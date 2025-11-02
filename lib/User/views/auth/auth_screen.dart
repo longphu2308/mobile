@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:mobile/User/views/widgets/widgets.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/strings.dart';
-import 'package:mobile/User/views/widgets/foodie_logo.dart';
+import 'package:mobile/User/utils/assets.dart';
 
 class AuthScreen extends StatelessWidget {
   const AuthScreen({super.key});
@@ -38,10 +38,18 @@ class AuthScreen extends StatelessWidget {
                   padding:
                       EdgeInsets.symmetric(horizontal: horizontalPadding + 10),
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Expanded(
-                        child: FoodieLogo(),
+                      // Logo ở giữa
+                      Center(
+                        child: Image.asset(
+                          FoodieAssets.logo,
+                          width: 100,
+                          height: 100,
+                          fit: BoxFit.contain,
+                        ),
                       ),
+                      const SizedBox(height: 40),
                       TabBar(
                         tabs: [
                           Tab(
