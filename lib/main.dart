@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/ui/views/auth/welcome_screen.dart';
 import 'package:mobile/ui/views/auth/auth_screen.dart';
 import 'package:mobile/ui/views/dashboard/dashboard.dart';
 import 'package:mobile/utils/utils.dart';
@@ -19,9 +20,10 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: primaryColor),
         useMaterial3: true,
       ),
-      initialRoute: '/auth',
+      initialRoute: '/',
       routes: {
-        '/auth': (context) => const AuthScreen(),
+        '/': (context) => const WelcomeScreen(),
+        authRoute: (context) => const AuthScreen(),
         dashboardRoute: (context) => const DashboardScreen(),
       },
     );
