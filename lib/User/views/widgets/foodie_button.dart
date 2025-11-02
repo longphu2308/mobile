@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mobile/utils/utils.dart';
+import 'package:mobile/User/utils/utils.dart';
 
 class FoodieButton extends StatelessWidget {
   final String text;

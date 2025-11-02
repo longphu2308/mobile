@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:mobile/ui/widgets/widgets.dart';
-import 'package:mobile/utils/utils.dart';
-import 'package:mobile/utils/strings.dart';
-import 'package:mobile/ui/widgets/foodie_logo.dart';
+import 'package:mobile/User/views/widgets/widgets.dart';
+import 'package:mobile/User/utils/utils.dart';
+import 'package:mobile/User/utils/strings.dart';
+import 'package:mobile/User/views/widgets/foodie_logo.dart';
 
 class AuthScreen extends StatelessWidget {
   const AuthScreen({super.key});

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:mobile/ui/views/auth/welcome_screen.dart';
-import 'package:mobile/ui/views/auth/auth_screen.dart';
-import 'package:mobile/ui/views/dashboard/dashboard.dart';
-import 'package:mobile/utils/utils.dart';
+import 'package:mobile/User/views/auth/welcome_screen.dart';
+import 'package:mobile/User/views/auth/auth_screen.dart';
+import 'package:mobile/User/views/dashboard/dashboard.dart';
+import 'package:mobile/User/utils/utils.dart';
 
 void main() {
   runApp(const MyApp());
