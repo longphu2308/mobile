@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'screens/dashboard_screen.dart';
-import 'screens/orders_screen.dart';
-import 'screens/menu_screen.dart';
-import 'screens/edit_food_screen.dart';
-import 'screens/promotions_screen.dart';
-import 'screens/profile_screen.dart';
-import 'screens/report_screen.dart';
-import 'screens/support_screen.dart';
+import 'Owner/Dashboard/dashboard_screen.dart';
+import 'Owner/Dashboard/orders_screen.dart';
+import 'Owner/Dashboard/menu_screen.dart';
+import 'Owner/Dashboard/edit_food_screen.dart';
+import 'Owner/Dashboard/promotions_screen.dart';
+import 'Owner/Dashboard/profile_screen.dart';
+import 'Owner/Dashboard/report_screen.dart';
+import 'Owner/Dashboard/support_screen.dart';
 
 void main() {
   runApp(const FoodStoreApp());
