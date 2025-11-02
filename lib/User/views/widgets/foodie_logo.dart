@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mobile/utils/utils.dart';
+import 'package:mobile/User/utils/utils.dart';
 
 /// Widget hiển thị logo Foodie (chef hat + lips)
 /// Nếu không có file ảnh, hiển thị logo bằng code
