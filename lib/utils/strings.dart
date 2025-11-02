@@ -7,8 +7,8 @@ class FoodieStrings {
   static const String name = 'Name';
   static const String phone = 'Phone';
   static const String address = 'Address';
-  static const String wSHeading = 'Welcome';
-  static const String getStarted = 'Get Started';
+  static const String wSHeading = 'Food for Everyone';
+  static const String getStarted = 'Get started';
 }
 
 
