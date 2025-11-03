@@ -16,6 +16,7 @@ const double verticalPadding = 50.0;
 const String authRoute = '/auth';
 const String dashboardRoute = '/dashboard';
 const String foodDetailRoute = '/food-detail';
+const String searchResultRoute = '/search-result';
 
 // Colors
 const Color transparentColor = Color(0x00000000);

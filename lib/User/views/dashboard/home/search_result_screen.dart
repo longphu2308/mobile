@@ -4,7 +4,7 @@ import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/assets.dart';
 import 'package:mobile/User/utils/strings.dart';
 
-class SearchResultScreen extends StatelessWidget {
+class SearchResultScreen extends StatefulWidget {
   final String searchString;
   final List<Food> foundFoodList;
 
@@ -13,6 +13,41 @@ class SearchResultScreen extends StatelessWidget {
     required this.searchString,
     required this.foundFoodList,
   });
+
+  @override
+  State<SearchResultScreen> createState() => _SearchResultScreenState();
+}
+
+class _SearchResultScreenState extends State<SearchResultScreen> {
+  late TextEditingController _searchController;
+  late List<Food> _filteredFoodList;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController(text: widget.searchString);
+    _filteredFoodList = widget.foundFoodList;
+    _performSearch(widget.searchString);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _performSearch(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredFoodList = widget.foundFoodList;
+      } else {
+        _filteredFoodList = widget.foundFoodList
+            .where((food) =>
+                food.name.toLowerCase().contains(query.toLowerCase()))
+            .toList();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,9 +63,12 @@ class SearchResultScreen extends StatelessWidget {
         title: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: TextField(
+            controller: _searchController,
             style: const TextStyle(color: blackColor),
+            autofocus: true,
+            onChanged: _performSearch,
             decoration: InputDecoration(
-              hintText: searchString,
+              hintText: 'Search',
               hintStyle: const TextStyle(color: blackColor),
               border: InputBorder.none,
             ),
@@ -40,9 +78,9 @@ class SearchResultScreen extends StatelessWidget {
               color: blackColor,
             ),
       ),
-      body: foundFoodList.isNotEmpty
+      body: _filteredFoodList.isNotEmpty
           ? _SearchFound(
-              foodList: foundFoodList,
+              foodList: _filteredFoodList,
             )
           : _SearchNotFound(),
     );
