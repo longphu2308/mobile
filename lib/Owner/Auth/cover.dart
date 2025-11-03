@@ -47,7 +47,7 @@ class FoodieCoverScreen extends StatelessWidget {
 
               const Spacer(),
 
-              // Hình ảnh minh họa
+              // Hình ảnh minh họaaaa
               Center(
                 child: Image.asset(
                   'assets/images/cover_people.png', // ảnh bạn dùng trong màn cover
