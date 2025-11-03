@@ -103,7 +103,7 @@ class WelcomeScreen extends StatelessWidget {
                               return Container(
                                 width: 120,
                                 height: 120,
-                                color: Colors.red.withOpacity(0.3),
+                                color: Colors.red.withValues(alpha: 0.3),
                                 child: const Icon(Icons.error, color: Colors.white),
                               );
                             },
@@ -124,7 +124,7 @@ class WelcomeScreen extends StatelessWidget {
                               return Container(
                                 width: 150,
                                 height: 150,
-                                color: Colors.red.withOpacity(0.3),
+                                color: Colors.red.withValues(alpha: 0.3),
                                 child: const Icon(Icons.error, color: Colors.white),
                               );
                             },
