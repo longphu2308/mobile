@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:mobile/User/models/food.dart';
-import 'package:mobile/User/views/widgets/widgets.dart';
-import 'package:mobile/User/views/dashboard/home/search_result_screen.dart';
+import 'package:mobile/User/domain/models/food.dart';
+import 'package:mobile/User/presentation/widgets/widgets.dart';
+import 'package:mobile/User/presentation/views/dashboard/home/search_result_screen.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/strings.dart';
+import 'package:mobile/config/routes.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
