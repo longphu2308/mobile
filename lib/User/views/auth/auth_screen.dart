@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile/User/views/widgets/widgets.dart';
 import 'package:mobile/User/utils/utils.dart';
+import 'package:mobile/Shipper/views/shipper_dashboard.dart';
 import 'package:mobile/User/utils/strings.dart';
 import 'package:mobile/User/utils/assets.dart';
 
@@ -35,8 +36,9 @@ class AuthScreen extends StatelessWidget {
                       bottomRight: Radius.circular(radius),
                     ),
                   ),
-                  padding:
-                      EdgeInsets.symmetric(horizontal: horizontalPadding + 10),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: horizontalPadding + 10,
+                  ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -52,12 +54,8 @@ class AuthScreen extends StatelessWidget {
                       const SizedBox(height: 40),
                       TabBar(
                         tabs: [
-                          Tab(
-                            text: FoodieStrings.login,
-                          ),
-                          Tab(
-                            text: FoodieStrings.signUp,
-                          ),
+                          Tab(text: FoodieStrings.login),
+                          Tab(text: FoodieStrings.signUp),
                         ],
                       ),
                     ],
@@ -68,10 +66,7 @@ class AuthScreen extends StatelessWidget {
               Expanded(
                 flex: 4,
                 child: TabBarView(
-                  children: [
-                    _LogInSection(),
-                    _SignUpSection(),
-                  ],
+                  children: [_LogInSection(), _SignUpSection()],
                 ),
               ),
             ],
@@ -105,17 +100,14 @@ class _LogInSection extends StatelessWidget {
             YBox(15),
             Align(
               alignment: Alignment.centerLeft,
-        child: InkWell(
-          onTap: () => Navigator.pushNamed(context, forgotPasswordRoute),
+              child: InkWell(
+                onTap: () => Navigator.pushNamed(context, forgotPasswordRoute),
                 borderRadius: BorderRadius.circular(radius),
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(0, 5.0, 0, 5.0),
                   child: Text(
                     FoodieStrings.forgotPasscode,
-                    style: TextStyle(
-                      color: primaryColor,
-                      fontSize: 15,
-                    ),
+                    style: TextStyle(color: primaryColor, fontSize: 15),
                   ),
                 ),
               ),
@@ -123,8 +115,12 @@ class _LogInSection extends StatelessWidget {
             YBox(50),
             FoodieButton(
               text: FoodieStrings.login,
+              // Temporary: direct access to shipper dashboard without credentials
               onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                  context, dashboardRoute, (route) => false),
+                context,
+                ShipperDashboard.routeName,
+                (route) => false,
+              ),
             ),
           ],
         ),
@@ -175,7 +171,10 @@ class _SignUpSection extends StatelessWidget {
             FoodieButton(
               text: FoodieStrings.signUp,
               onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                  context, dashboardRoute, (route) => false),
+                context,
+                dashboardRoute,
+                (route) => false,
+              ),
             ),
           ],
         ),

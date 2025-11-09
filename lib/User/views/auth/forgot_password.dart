@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/User/views/widgets/widgets.dart';
 import 'package:mobile/User/utils/utils.dart';
+
 class ForgotPasswordScreen extends StatelessWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -43,7 +44,10 @@ class ForgotPasswordScreen extends StatelessWidget {
                   children: [
                     const Text(
                       'Enter your account email',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     const FoodieTextField(
@@ -56,16 +60,23 @@ class ForgotPasswordScreen extends StatelessWidget {
                       text: 'Send reset link',
                       onPressed: () {
                         // TODO: implement send reset logic (call API / show snackbar)
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                          content: Text('If the email exists, a reset link has been sent.'),
-                        ));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'If the email exists, a reset link has been sent.',
+                            ),
+                          ),
+                        );
                         Navigator.pop(context);
                       },
                     ),
                     const SizedBox(height: 12),
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Back to login', style: TextStyle(color: primaryColor)),
+                      child: const Text(
+                        'Back to login',
+                        style: TextStyle(color: primaryColor),
+                      ),
                     ),
                   ],
                 ),
