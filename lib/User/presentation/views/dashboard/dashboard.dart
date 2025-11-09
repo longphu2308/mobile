@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mobile/User/views/dashboard/home/home_screen.dart';
+import 'package:mobile/User/presentation/views/dashboard/home/home_screen.dart';
 import 'package:mobile/User/utils/utils.dart';
 
 class DashboardScreen extends StatefulWidget {
