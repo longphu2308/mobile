@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:mobile/User/models/food.dart';
 import 'package:mobile/User/views/widgets/widgets.dart';
 import 'package:mobile/User/views/dashboard/home/search_result_screen.dart';
+import 'package:mobile/User/views/dashboard/cart/cart_screen.dart';
+import 'package:mobile/User/services/cart_service.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/strings.dart';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,49 +15,100 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   int _index = 0;
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 5, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 5,
-      child: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header với menu và cart icon
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: horizontalPadding,
-                  vertical: 16,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.menu),
-                      onPressed: () {},
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.shopping_cart_outlined),
-                      onPressed: () {},
-                    ),
-                  ],
-                ),
+    return SafeArea(
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header với menu và cart icon
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: 16,
               ),
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: horizontalPadding),
-                child: Text(
-                  FoodieStrings.hSHeading,
-                  style: const TextStyle(
-                    fontSize: 34,
-                    fontWeight: FontWeight.bold,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.menu),
+                    onPressed: () {},
                   ),
+                  Consumer<CartService>(
+                    builder: (context, cartService, child) {
+                      return Stack(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.shopping_cart_outlined),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const CartScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          if (cartService.itemCount > 0)
+                            Positioned(
+                              right: 8,
+                              top: 8,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: primaryColor,
+                                  shape: BoxShape.circle,
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 16,
+                                  minHeight: 16,
+                                ),
+                                child: Text(
+                                  '${cartService.itemCount}',
+                                  style: const TextStyle(
+                                    color: whiteColor,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: Text(
+                FoodieStrings.hSHeading,
+                style: const TextStyle(
+                  fontSize: 34,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
+            ),
             YBox(40),
             SearchTextField(
               onTap: () {
@@ -73,6 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Padding(
               padding: const EdgeInsets.only(left: horizontalPadding),
               child: TabBar(
+                controller: _tabController,
                 onTap: (index) {
                   setState(() {
                     _index = index;
@@ -117,12 +172,8 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Row(
                 children: [
                   ...List.generate(10, (index) {
-                    final demoFood = Food(
-                      name: 'Veggie tomato mix',
-                      price: 19000,
-                      assetSrc: 'assets/images/tomatomix.png',
-                      foodCategory: 'Foods',
-                    );
+                    final foods = Food.foodList;
+                    final demoFood = foods[index % foods.length];
                     return _FoodEntry(
                       food: demoFood,
                       tag: 'image_tag$index',
@@ -134,7 +185,6 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 100), // Thêm space ở cuối để không bị che bởi bottom nav
           ],
         ),
-      ),
       ),
     );
   }

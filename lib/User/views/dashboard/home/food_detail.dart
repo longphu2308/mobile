@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/User/models/food.dart';
 import 'package:mobile/User/views/widgets/widgets.dart';
+import 'package:mobile/User/views/dashboard/checkout/checkout_screen.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/strings.dart';
 
@@ -171,6 +172,27 @@ class _FoodDetailState extends State<FoodDetail> {
                 ),
               ),
             ),
+            YBox(10),
+            Align(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.store,
+                    size: 16,
+                    color: greyColor,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    widget.food.restaurantName,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: greyColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             YBox(30),
             Text(
               FoodieStrings.description,
@@ -195,8 +217,18 @@ class _FoodDetailState extends State<FoodDetail> {
             Spacer(),
 
             FoodieButton(
-              text: FoodieStrings.addToCart,
-              onPressed: () {},
+              text: 'Đặt hàng',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CheckoutScreen(
+                      food: widget.food,
+                      initialQuantity: 1,
+                    ),
+                  ),
+                );
+              },
             ),
           ],
         ),
