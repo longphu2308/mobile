@@ -105,8 +105,8 @@ class _LogInSection extends StatelessWidget {
             YBox(15),
             Align(
               alignment: Alignment.centerLeft,
-              child: InkWell(
-                onTap: () {},
+        child: InkWell(
+          onTap: () => Navigator.pushNamed(context, forgotPasswordRoute),
                 borderRadius: BorderRadius.circular(radius),
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(0, 5.0, 0, 5.0),

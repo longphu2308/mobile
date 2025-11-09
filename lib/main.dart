@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/User/views/auth/welcome_screen.dart';
 import 'package:mobile/User/views/auth/auth_screen.dart';
+import 'package:mobile/User/views/auth/forgot_password.dart';
 import 'package:mobile/User/views/dashboard/dashboard.dart';
 import 'package:mobile/User/views/dashboard/home/food_detail.dart';
 import 'package:mobile/User/utils/utils.dart';
@@ -25,6 +26,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => const WelcomeScreen(),
         authRoute: (context) => const AuthScreen(),
+  forgotPasswordRoute: (context) => const ForgotPasswordScreen(),
         dashboardRoute: (context) => const DashboardScreen(),
         foodDetailRoute: (context) {
           final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
