@@ -63,22 +63,21 @@ class OrderDetail extends StatelessWidget {
                               const SizedBox(height: 6),
                               Row(
                                 children: [
-                                  ElevatedButton.icon(
-                                    onPressed: () {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'Gọi nhà hàng (mock): ${order.restaurantName ?? ''}',
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.phone, size: 18),
+                                        const SizedBox(width: 6),
+                                        Expanded(
+                                          child: Text(
+                                            order.restaurantPhone ??
+                                                '-'.toString(),
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                            ),
                                           ),
                                         ),
-                                      );
-                                    },
-                                    icon: const Icon(Icons.call),
-                                    label: const Text('Gọi'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: primaryColor,
+                                      ],
                                     ),
                                   ),
                                   const SizedBox(width: 8),
@@ -122,21 +121,20 @@ class OrderDetail extends StatelessWidget {
                               const SizedBox(height: 6),
                               Row(
                                 children: [
-                                  ElevatedButton.icon(
-                                    onPressed: () =>
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              'Gọi khách: ${order.customerName}',
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.phone, size: 18),
+                                        const SizedBox(width: 6),
+                                        Expanded(
+                                          child: Text(
+                                            order.customerPhone ?? '-',
+                                            style: const TextStyle(
+                                              fontSize: 14,
                                             ),
                                           ),
                                         ),
-                                    icon: const Icon(Icons.call),
-                                    label: const Text('Gọi'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: primaryColor,
+                                      ],
                                     ),
                                   ),
                                   const SizedBox(width: 8),
@@ -189,7 +187,25 @@ class OrderDetail extends StatelessWidget {
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 4.0,
                                   ),
-                                  child: Text('• $i'),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          '${i.name} x${i.qty}',
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        '${i.total.toInt()} VND',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 8),
