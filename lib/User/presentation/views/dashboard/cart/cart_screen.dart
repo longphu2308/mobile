@@ -43,7 +43,7 @@ class CartScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'Cart',
+          'Giỏ hàng',
           style: TextStyle(color: blackColor),
         ),
         centerTitle: true,
