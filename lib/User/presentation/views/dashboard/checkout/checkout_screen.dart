@@ -55,13 +55,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             for (int i = 0; i < _quantity; i++) {
               cartService.addItem(widget.food);
             }
-            Navigator.pop(context);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Đã thêm ${widget.food.name} vào giỏ hàng'),
                 duration: const Duration(seconds: 1),
               ),
             );
+            Navigator.pop(context);
           },
         ),
         title: const Text(
