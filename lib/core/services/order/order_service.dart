@@ -10,10 +10,7 @@ class OrderService extends ChangeNotifier {
   void addOrder(List<CartItem> items, double totalPrice) {
     final order = Order(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      items: items.map((item) => CartItem(
-        food: item.food,
-        quantity: item.quantity,
-      )).toList(),
+      items: items.toList(),
       totalPrice: totalPrice,
       createdAt: DateTime.now(),
       status: 'completed',
