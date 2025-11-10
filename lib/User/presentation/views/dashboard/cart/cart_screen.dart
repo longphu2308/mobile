@@ -203,7 +203,7 @@ class CartScreen extends StatelessWidget {
                             elevation: 0,
                           ),
                           child: const Text(
-                            'Complete order',
+                            'Hoàn tất đơn hàng',
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w600,
