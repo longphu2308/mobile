@@ -94,7 +94,7 @@ class CartScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'swipe on an item to delete',
+                      'Vuốt để xóa món ăn',
                       style: TextStyle(
                         fontSize: 14,
                         color: greyColor,
