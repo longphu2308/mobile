@@ -118,7 +118,7 @@ class _OrderCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Đơn hàng #${order.id.substring(order.id.length - 6)}',
+                'Đơn hàng #${order.id.length >= 6 ? order.id.substring(order.id.length - 6) : order.id}',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
