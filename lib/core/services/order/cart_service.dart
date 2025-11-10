@@ -7,7 +7,7 @@ class CartService extends ChangeNotifier {
 
   List<CartItem> get items => List.unmodifiable(_items);
 
-  int get itemCount => _items.length;
+  int get itemCount => _items.fold(0, (sum, item) => sum + item.quantity);
 
   double get totalPrice {
     return _items.fold(0.0, (sum, item) => sum + item.totalPrice);
