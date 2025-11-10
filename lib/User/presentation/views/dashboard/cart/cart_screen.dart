@@ -1,23 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/User/domain/models/cart_item.dart';
-import 'package:mobile/core/services/order/cart_service.dart';
-import 'package:mobile/core/services/order/order_service.dart';
+import 'package:mobile/User/presentation/controllers/cart_controller.dart';
 import 'package:mobile/User/utils/utils.dart';
+import 'package:mobile/User/utils/formatters.dart';
 import 'package:provider/provider.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
-
-  String _formatPrice(double price) {
-    final priceStr = price.toStringAsFixed(0);
-    if (priceStr.length > 3) {
-      return priceStr.replaceAllMapped(
-        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-        (Match m) => '${m[1]},',
-      );
-    }
-    return priceStr;
-  }
 
   Map<String, List<CartItem>> _groupItemsByRestaurant(List<CartItem> items) {
     final Map<String, List<CartItem>> grouped = {};
@@ -42,15 +31,12 @@ class CartScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back, color: blackColor),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Giỏ hàng',
-          style: TextStyle(color: blackColor),
-        ),
+        title: const Text('Cart', style: TextStyle(color: blackColor)),
         centerTitle: true,
       ),
-      body: Consumer<CartService>(
-        builder: (context, cartService, child) {
-          if (cartService.items.isEmpty) {
+      body: Consumer<CartController>(
+        builder: (context, cartController, child) {
+          if (cartController.items.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -62,7 +48,7 @@ class CartScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Giỏ hàng trống',
+                    'Cart is empty',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
@@ -74,7 +60,7 @@ class CartScreen extends StatelessWidget {
             );
           }
 
-          final groupedItems = _groupItemsByRestaurant(cartService.items);
+          final groupedItems = _groupItemsByRestaurant(cartController.items);
           final restaurantNames = groupedItems.keys.toList();
 
           return Column(
@@ -87,23 +73,16 @@ class CartScreen extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.swipe_left,
-                      size: 20,
-                      color: greyColor,
-                    ),
+                    Icon(Icons.swipe_left, size: 20, color: greyColor),
                     const SizedBox(width: 8),
                     Text(
-                      'Vuốt để xóa món ăn',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: greyColor,
-                      ),
+                      'Swipe left to delete an item',
+                      style: TextStyle(fontSize: 14, color: greyColor),
                     ),
                   ],
                 ),
               ),
-              
+
               // Cart items list grouped by restaurant
               Expanded(
                 child: ListView.builder(
@@ -114,7 +93,7 @@ class CartScreen extends StatelessWidget {
                   itemBuilder: (context, restaurantIndex) {
                     final restaurantName = restaurantNames[restaurantIndex];
                     final items = groupedItems[restaurantName]!;
-                    
+
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -126,11 +105,7 @@ class CartScreen extends StatelessWidget {
                           ),
                           child: Row(
                             children: [
-                              Icon(
-                                Icons.store,
-                                size: 18,
-                                color: primaryColor,
-                              ),
+                              Icon(Icons.store, size: 18, color: primaryColor),
                               const SizedBox(width: 8),
                               Text(
                                 restaurantName,
@@ -144,25 +119,27 @@ class CartScreen extends StatelessWidget {
                           ),
                         ),
                         // Items in this restaurant
-                        ...items.map((item) => _CartItemCard(
-                          item: item,
-                          onDelete: () {
-                            cartService.removeItem(item.food.name);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Đã xóa ${item.food.name}'),
-                                duration: const Duration(seconds: 1),
-                              ),
-                            );
-                          },
-                          onIncrement: () {
-                            cartService.incrementQuantity(item.food.name);
-                          },
-                          onDecrement: () {
-                            cartService.decrementQuantity(item.food.name);
-                          },
-                          formatPrice: _formatPrice,
-                        )),
+                        ...items.map(
+                          (item) => _CartItemCard(
+                            item: item,
+                            onDelete: () {
+                              cartController.removeItem(item.food.id);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Đã xóa ${item.food.name}'),
+                                  duration: const Duration(seconds: 1),
+                                ),
+                              );
+                            },
+                            onIncrement: () {
+                              cartController.incrementQuantity(item.food.id);
+                            },
+                            onDecrement: () {
+                              cartController.decrementQuantity(item.food.id);
+                            },
+                            formatPrice: formatPrice,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                       ],
                     );
@@ -192,7 +169,7 @@ class CartScreen extends StatelessWidget {
                         height: 56,
                         child: ElevatedButton(
                           onPressed: () {
-                            _completeOrder(context, cartService);
+                            Navigator.pushNamed(context, '/checkout');
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryColor,
@@ -203,7 +180,7 @@ class CartScreen extends StatelessWidget {
                             elevation: 0,
                           ),
                           child: const Text(
-                            'Hoàn tất đơn hàng',
+                            'Complete Order',
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w600,
@@ -221,33 +198,6 @@ class CartScreen extends StatelessWidget {
         },
       ),
     );
-  }
-
-  void _completeOrder(BuildContext context, CartService cartService) {
-    if (cartService.items.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Giỏ hàng trống'),
-        ),
-      );
-      return;
-    }
-
-    final orderService = Provider.of<OrderService>(context, listen: false);
-    final totalPrice = cartService.totalPrice;
-    final items = List<CartItem>.from(cartService.items);
-
-    orderService.addOrder(items, totalPrice);
-    cartService.clear();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Đặt hàng thành công!'),
-        duration: Duration(seconds: 2),
-      ),
-    );
-
-    Navigator.pop(context);
   }
 }
 
@@ -289,10 +239,7 @@ class _CartItemCard extends StatelessWidget {
                 color: Colors.white,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.close,
-                color: Colors.red,
-              ),
+              child: const Icon(Icons.close, color: Colors.red),
             ),
           ],
         ),
@@ -337,7 +284,7 @@ class _CartItemCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 16),
-            
+
             // Food name and price
             Expanded(
               child: Column(
@@ -365,7 +312,7 @@ class _CartItemCard extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             // Quantity controls
             Container(
               decoration: BoxDecoration(
@@ -406,4 +353,3 @@ class _CartItemCard extends StatelessWidget {
     );
   }
 }
-

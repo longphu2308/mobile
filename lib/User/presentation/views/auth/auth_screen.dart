@@ -44,15 +44,17 @@ class AuthScreen extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Center(
-                        child: Image.asset(
-                          FoodieAssets.logo,
-                          width: 100,
-                          height: 100,
-                          fit: BoxFit.contain,
+                      Flexible(
+                        child: Center(
+                          child: Image.asset(
+                            FoodieAssets.logo,
+                            width: 100,
+                            height: 100,
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 20),
                       TabBar(
                         tabs: [
                           Tab(text: FoodieStrings.login),

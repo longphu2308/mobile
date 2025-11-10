@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/core/services/firebase/firebase_service.dart';
-import 'package:provider/provider.dart';
-import 'package:mobile/User/presentation/controllers/auth_controller.dart';
-import 'package:mobile/User/presentation/controllers/user_controller.dart';
+import 'package:mobile/core/di/service_locator.dart';
 import 'package:mobile/app.dart';
+import 'package:provider/provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,12 +15,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthController()),
-        ChangeNotifierProvider(create: (_) => UserController()),
-      ],
-      child: const App(),
-    );
+    return MultiProvider(providers: getProviders(), child: const App());
   }
 }

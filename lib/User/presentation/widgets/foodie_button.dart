@@ -25,7 +25,7 @@ class FoodieButton extends StatelessWidget {
                 foregroundColor: whiteColor,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 elevation: 0,
               ),
@@ -44,7 +44,7 @@ class FoodieButton extends StatelessWidget {
                 side: const BorderSide(color: whiteColor, width: 2),
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(16),
                 ),
               ),
               child: Text(
@@ -58,5 +58,3 @@ class FoodieButton extends StatelessWidget {
     );
   }
 }
-
-
