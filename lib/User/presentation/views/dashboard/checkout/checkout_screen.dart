@@ -387,7 +387,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
     
     // Quay về dashboard
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
   }
 }
 
