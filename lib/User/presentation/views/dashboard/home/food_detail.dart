@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mobile/User/models/food.dart';
-import 'package:mobile/User/views/widgets/widgets.dart';
-import 'package:mobile/User/views/dashboard/checkout/checkout_screen.dart';
+import 'package:mobile/User/domain/models/food.dart';
+import 'package:mobile/User/presentation/widgets/widgets.dart';
+import 'package:mobile/User/presentation/views/dashboard/checkout/checkout_screen.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/strings.dart';
 

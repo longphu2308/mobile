@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:mobile/User/views/auth/welcome_screen.dart';
-import 'package:mobile/User/views/auth/auth_screen.dart';
-import 'package:mobile/User/views/dashboard/dashboard.dart';
-import 'package:mobile/User/views/dashboard/home/food_detail.dart';
-import 'package:mobile/User/services/cart_service.dart';
-import 'package:mobile/User/services/order_service.dart';
+import 'package:mobile/User/presentation/views/auth/welcome_screen.dart';
+import 'package:mobile/User/presentation/views/auth/auth_screen.dart';
+import 'package:mobile/User/presentation/views/dashboard/dashboard.dart';
+import 'package:mobile/User/presentation/views/dashboard/home/food_detail.dart';
+import 'package:mobile/core/services/order/cart_service.dart';
+import 'package:mobile/core/services/order/order_service.dart';
 import 'package:mobile/User/utils/utils.dart';
 
 void main() {

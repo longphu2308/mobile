@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/strings.dart';
 import 'package:mobile/User/utils/assets.dart';
+import 'package:mobile/config/routes.dart';
+
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});

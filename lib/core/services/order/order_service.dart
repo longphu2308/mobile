@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:mobile/User/models/order.dart';
-import 'package:mobile/User/models/cart_item.dart';
+import 'package:mobile/User/domain/models/order.dart';
+import 'package:mobile/User/domain/models/cart_item.dart';
 
 class OrderService extends ChangeNotifier {
   final List<Order> _orders = [];

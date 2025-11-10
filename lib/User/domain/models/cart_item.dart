@@ -1,4 +1,4 @@
-import 'package:mobile/User/models/food.dart';
+import 'package:mobile/User/domain/models/food.dart';
 
 class CartItem {
   final Food food;

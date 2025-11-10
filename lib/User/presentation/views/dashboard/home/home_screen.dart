@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:mobile/User/models/food.dart';
-import 'package:mobile/User/views/widgets/widgets.dart';
-import 'package:mobile/User/views/dashboard/home/search_result_screen.dart';
-import 'package:mobile/User/views/dashboard/cart/cart_screen.dart';
-import 'package:mobile/User/services/cart_service.dart';
+import 'package:mobile/User/domain/models/food.dart';
+import 'package:mobile/User/presentation/widgets/widgets.dart';
+import 'package:mobile/User/presentation/views/dashboard/home/search_result_screen.dart';
+import 'package:mobile/User/presentation/views/dashboard/cart/cart_screen.dart';
+import 'package:mobile/core/services/order/cart_service.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/strings.dart';
 import 'package:provider/provider.dart';
