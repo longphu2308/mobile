@@ -137,7 +137,9 @@ class _StaffMainScreenState extends State<StaffMainScreen> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const EditFoodScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const EditFoodScreen(),
+                  ),
                 );
               },
             ),
@@ -162,7 +164,9 @@ class _StaffMainScreenState extends State<StaffMainScreen> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const SupportScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const SupportScreen(),
+                  ),
                 );
               },
             ),
