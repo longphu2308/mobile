@@ -1,228 +1,190 @@
-// lib/staff/screens/dashboard_screen.dart
 import 'package:flutter/material.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
-  static const Color primaryColor = Color(0xFFFF6B1D);
-  static const double cardRadius = 16.0;
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen>
+    with SingleTickerProviderStateMixin {
+  bool isOpen = true;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F6F6),
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: const Text('Dashboard', style: TextStyle(color: Colors.black)),
-        leading: IconButton(
-          icon: const Icon(Icons.menu, color: Colors.black),
-          onPressed: () => Scaffold.of(context).openDrawer(),
+        backgroundColor: Colors.orangeAccent,
+        title: const Text(
+          'Dashboard',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
+        centerTitle: true,
+        elevation: 0,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Summary row
-            Row(
-              children: const [
-                _SummaryCard(title: 'Today Orders', value: '12'),
-                SizedBox(width: 12),
-                _SummaryCard(title: 'Revenue', value: '₫ 2,300,000'),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Quick actions
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _ActionButton(
-                  label: 'Orders',
-                  icon: Icons.receipt_long,
-                  onTap: () => Navigator.pushNamed(context, '/orders'),
-                ),
-                _ActionButton(
-                  label: 'Menu',
-                  icon: Icons.restaurant_menu,
-                  onTap: () => Navigator.pushNamed(context, '/menu'),
-                ),
-                _ActionButton(
-                  label: 'Report',
-                  icon: Icons.bar_chart,
-                  onTap: () => Navigator.pushNamed(context, '/report'),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 20),
-
-            // Recent orders header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Text('Recent Orders', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                Text('See all', style: TextStyle(color: primaryColor)),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            // Recent orders list
-            Expanded(
-              child: ListView(
-                children: const [
-                  _OrderTile(
-                    id: 'ORD001',
-                    name: 'Veggie tomato mix',
-                    price: '₫ 19,000',
-                    status: 'Waiting',
+            // 🔹 TRẠNG THÁI CỬA HÀNG
+            Center(
+              child: Column(
+                children: [
+                  AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 400),
+                    curve: Curves.easeInOut,
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: isOpen ? Colors.green[700] : Colors.red[700],
+                      letterSpacing: 1.2,
+                    ),
+                    child: Text(isOpen ? "CỬA HÀNG ĐANG MỞ" : "CỬA HÀNG ĐÃ ĐÓNG"),
                   ),
-                  _OrderTile(
-                    id: 'ORD002',
-                    name: 'Spicy fried rice',
-                    price: '₫ 23,500',
-                    status: 'Preparing',
-                  ),
-                  _OrderTile(
-                    id: 'ORD003',
-                    name: 'Fish with orange',
-                    price: '₫ 19,000',
-                    status: 'Delivered',
+                  const SizedBox(height: 10),
+                  Switch(
+                    value: isOpen,
+                    onChanged: (value) {
+                      setState(() => isOpen = value);
+                    },
+                    activeColor: Colors.green,
+                    inactiveThumbColor: Colors.red,
                   ),
                 ],
               ),
             ),
+
+            const SizedBox(height: 30),
+
+            // 🔹 THÔNG TIN NHANH
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildInfoCard("Đơn hôm nay", "25", Icons.receipt_long, Colors.blue),
+                _buildInfoCard("Doanh thu", "₫15,200", Icons.attach_money, Colors.green),
+                _buildInfoCard("Lượt xem", "1,280", Icons.visibility, Colors.purple),
+              ],
+            ),
+
+            const SizedBox(height: 25),
+
+            // 🔹 DOANH THU TUẦN
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    "Tổng quan doanh thu",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                  SizedBox(height: 12),
+                  LinearProgressIndicator(
+                    value: 0.7,
+                    color: Colors.orangeAccent,
+                    backgroundColor: Colors.orange,
+                  ),
+                  SizedBox(height: 8),
+                  Text("Đã đạt 70% mục tiêu trong tuần này"),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 25),
+
+            // 🔹 ĐƠN HÀNG GẦN ĐÂY
+            const Text(
+              "Đơn hàng gần đây",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            _buildOrderTile("Bánh mì thịt", "₫25,000", "Hoàn thành"),
+            _buildOrderTile("Trà sữa trân châu", "₫45,000", "Đang giao"),
+            _buildOrderTile("Cơm gà", "₫50,000", "Đã hủy"),
+            _buildOrderTile("Phở bò đặc biệt", "₫65,000", "Hoàn thành"),
           ],
         ),
       ),
     );
   }
-}
 
-class _SummaryCard extends StatelessWidget {
-  final String title;
-  final String value;
-  const _SummaryCard({required this.title, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
+  // 🔸 Widget thông tin nhanh
+  Widget _buildInfoCard(String title, String value, IconData icon, Color color) {
     return Expanded(
       child: Container(
-        height: 98,
-        padding: const EdgeInsets.all(14),
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(DashboardScreen.cardRadius),
-          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0,2))],
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(color: Colors.black12, blurRadius: 6, offset: const Offset(0, 3)),
+          ],
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: const TextStyle(color: Colors.black54)),
-            const Spacer(),
-            Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Icon(icon, color: color, size: 32),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 13, color: Colors.black54),
+            ),
           ],
         ),
       ),
     );
   }
-}
 
-class _ActionButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-  const _ActionButton({required this.label, required this.icon, required this.onTap});
+  // 🔸 Widget hiển thị đơn hàng
+  Widget _buildOrderTile(String name, String price, String status) {
+    Color statusColor;
+    if (status == "Hoàn thành") {
+      statusColor = Colors.green;
+    } else if (status == "Đang giao") {
+      statusColor = Colors.orange;
+    } else {
+      statusColor = Colors.red;
+    }
 
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          height: 70,
-          margin: const EdgeInsets.symmetric(horizontal: 6),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0,2))],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: DashboardScreen.primaryColor),
-              const SizedBox(height: 6),
-              Text(label, style: const TextStyle(fontSize: 12)),
-            ],
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 2,
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Colors.orangeAccent.withOpacity(0.2),
+          child: const Icon(Icons.fastfood, color: Colors.orange),
+        ),
+        title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Text(price),
+        trailing: Text(
+          status,
+          style: TextStyle(
+            color: statusColor,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _OrderTile extends StatelessWidget {
-  final String id;
-  final String name;
-  final String price;
-  final String status;
-  const _OrderTile({required this.id, required this.name, required this.price, required this.status});
-
-  Color _statusColor() {
-    switch (status) {
-      case 'Waiting':
-        return Colors.orange;
-      case 'Preparing':
-        return Colors.deepOrange;
-      case 'Delivered':
-        return Colors.green;
-      case 'Canceled':
-        return Colors.grey;
-      default:
-        return Colors.blue;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0,2))],
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(radius: 26, backgroundColor: Colors.grey.shade100, child: const Icon(Icons.fastfood, color: Colors.orange)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
-              const SizedBox(height: 6),
-              Text(id, style: const TextStyle(color: Colors.black54, fontSize: 12)),
-            ]),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(price, style: const TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _statusColor().withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(status, style: TextStyle(color: _statusColor(), fontSize: 12)),
-              ),
-            ],
-          )
-        ],
       ),
     );
   }
