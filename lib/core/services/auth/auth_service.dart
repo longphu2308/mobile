@@ -13,8 +13,15 @@ class AuthService {
     required String email,
     required String password,
     required String fullName,
+    required String phone,
   }) async {
     try {
+      // Check if phone already exists
+      QuerySnapshot phoneQuery = await _firestore.collection('users').where('phone', isEqualTo: phone).get();
+      if (phoneQuery.docs.isNotEmpty) {
+        throw AuthException(message: 'Số điện thoại đã được sử dụng', code: 'phone-already-in-use');
+      }
+
       UserCredential cred = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
@@ -24,6 +31,9 @@ class AuthService {
         userId: cred.user!.uid,
         email: email,
         fullName: fullName,
+        phone: phone,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
       );
 
       await _firestore
@@ -37,6 +47,9 @@ class AuthService {
         message: _handleFirebaseError(e),
         code: e.code,
       );
+    } catch (e) {
+      if (e is AuthException) rethrow;
+      throw AuthException(message: 'Đã có lỗi xảy ra. Vui lòng thử lại.');
     }
   }
 
@@ -65,7 +78,7 @@ class AuthService {
     try {
       DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
       if (!doc.exists) throw AuthException(message: 'User not found');
-      return UserModel.fromMap(doc.data() as Map<String, dynamic>);
+      return UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
     } catch (e) {
       throw AuthException(message: 'Failed to load user');
     }
@@ -74,6 +87,8 @@ class AuthService {
   Future<void> signOut() => _auth.signOut();
 
   Stream<User?> authStateChanges() => _auth.authStateChanges();
+
+  User? get currentUser => _auth.currentUser;
 
   String _handleFirebaseError(FirebaseAuthException e) {
     switch (e.code) {
@@ -93,6 +108,6 @@ class AuthService {
 
   Future<UserModel> _getUserData(String uid) async {
     DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
-    return UserModel.fromMap(doc.data() as Map<String, dynamic>);
+    return UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
   }
 }

@@ -6,6 +6,7 @@ import 'package:mobile/User/presentation/views/dashboard/cart/cart_screen.dart';
 import 'package:mobile/core/services/order/cart_service.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/strings.dart';
+import 'package:mobile/config/routes.dart';
 import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {

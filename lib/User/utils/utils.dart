@@ -12,12 +12,6 @@ const double radius = 16.0;
 const double horizontalPadding = 24.0;
 const double verticalPadding = 50.0;
 
-// Routes
-const String authRoute = '/auth';
-const String dashboardRoute = '/dashboard';
-const String foodDetailRoute = '/food-detail';
-const String cartRoute = '/cart';
-
 // Colors
 const Color transparentColor = Color(0x00000000);
 const Color blackAccentColor = Color(0xFF000000);
@@ -26,17 +20,3 @@ const Color bgColor = Color(0xFFF2F2F2);
 
 // Tab Bar Titles
 const List<String> tabBarTitle = ['Foods', 'Drinks', 'Snacks', 'Sauces', 'Desserts'];
-
-// Spacing Widget
-class YBox extends StatelessWidget {
-  final double height;
-
-  const YBox(this.height, {super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(height: height);
-  }
-}
-
-

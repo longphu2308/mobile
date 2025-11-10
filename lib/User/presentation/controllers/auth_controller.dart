@@ -28,7 +28,7 @@ class AuthController extends ChangeNotifier {
 
   void _init() {
     // Listen to auth state changes
-    _authRepository.auth.authStateChanges().listen(_onAuthStateChanged);
+    _authRepository.auth.listen(_onAuthStateChanged);
   }
 
   void _onAuthStateChanged(User? firebaseUser) async {
@@ -40,12 +40,16 @@ class AuthController extends ChangeNotifier {
           _currentUser = user;
           _state = AuthState.authenticated;
         } else {
-          _errorMessage = 'Không tìm thấy thông tin người dùng';
-          _state = AuthState.error;
+          // User authenticated but no data in Firestore, sign out
+          await _authRepository.signOut();
+          _currentUser = null;
+          _state = AuthState.unauthenticated;
         }
       } catch (e) {
-        _errorMessage = 'Lỗi tải thông tin người dùng: ${e.toString()}';
-        _state = AuthState.error;
+        // If error loading, sign out
+        await _authRepository.signOut();
+        _currentUser = null;
+        _state = AuthState.unauthenticated;
       }
     } else {
       // User is signed out
@@ -60,6 +64,7 @@ class AuthController extends ChangeNotifier {
     required String email,
     required String password,
     required String fullName,
+    required String phone,
   }) async {
     try {
       _setLoading(true);
@@ -69,6 +74,7 @@ class AuthController extends ChangeNotifier {
         email: email,
         password: password,
         fullName: fullName,
+        phone: phone,
       );
 
       _currentUser = user;

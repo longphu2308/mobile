@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/User/domain/models/food.dart';
+import 'package:mobile/User/presentation/widgets/widgets.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/assets.dart';
 import 'package:mobile/User/utils/strings.dart';
+import 'package:mobile/config/routes.dart';
 
 class SearchResultScreen extends StatelessWidget {
   final String searchString;

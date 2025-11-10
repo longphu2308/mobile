@@ -282,6 +282,7 @@ class _SignUpSectionState extends State<_SignUpSection> {
                           // Validate input
                           if (_nameController.text.isEmpty ||
                               _emailController.text.isEmpty ||
+                              _phoneController.text.isEmpty ||
                               _passwordController.text.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -318,9 +319,16 @@ class _SignUpSectionState extends State<_SignUpSection> {
                             email: _emailController.text,
                             password: _passwordController.text,
                             fullName: _nameController.text,
+                            phone: _phoneController.text,
                           );
 
                           if (success && mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Đăng ký thành công'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
                             Navigator.pushNamedAndRemoveUntil(
                               context,
                               dashboardRoute,

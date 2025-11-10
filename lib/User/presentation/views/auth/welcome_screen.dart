@@ -1,13 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:mobile/User/presentation/controllers/auth_controller.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/strings.dart';
 import 'package:mobile/User/utils/assets.dart';
 import 'package:mobile/config/routes.dart';
 
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
+
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthState();
+  }
+
+  void _checkAuthState() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authController = Provider.of<AuthController>(context, listen: false);
+      if (authController.state == AuthState.authenticated) {
+        Navigator.pushReplacementNamed(context, dashboardRoute);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
