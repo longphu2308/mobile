@@ -12,7 +12,6 @@ const double radius = 16.0;
 const double horizontalPadding = 24.0;
 const double verticalPadding = 50.0;
 
-
 // Colors
 const Color transparentColor = Color(0x00000000);
 const Color blackAccentColor = Color(0xFF000000);
