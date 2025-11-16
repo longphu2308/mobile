@@ -11,18 +11,32 @@ import 'package:mobile/User/presentation/views/dashboard/home/search_result_scre
 import 'package:mobile/User/presentation/views/dashboard/cart/cart_screen.dart';
 import 'package:mobile/User/presentation/views/dashboard/checkout/checkout_screen.dart';
 import 'package:mobile/User/presentation/views/dashboard/order_history/order_history_screen.dart';
+import 'package:mobile/Owner/presentation/views/dashboard/menu/edit_food_screen.dart';
+import 'package:mobile/Owner/presentation/views/dashboard/report/report_screen.dart';
+import 'package:mobile/Owner/presentation/views/dashboard/support/support_screen.dart';
+import 'package:mobile/Owner/presentation/views/dashboard/profile/edit_profile_screen.dart';
+import 'package:mobile/Owner/presentation/views/dashboard/profile/change_password_screen.dart';
 
 // Route names
 const String welcomeRoute = '/';
 const String authRoute = '/auth';
+
+// User routes
 const String userDashboardRoute = '/user-dashboard';
-const String ownerDashboardRoute = '/owner-dashboard';
 const String foodDetailRoute = '/food-detail';
 const String homeRoute = '/home';
 const String searchResultRoute = '/search-result';
 const String cartRoute = '/cart';
 const String checkoutRoute = '/checkout';
 const String orderHistoryRoute = '/order-history';
+
+// Owner routes
+const String ownerDashboardRoute = '/owner-dashboard';
+const String ownerEditFoodRoute = '/owner/edit-food';
+const String ownerReportRoute = '/owner/report';
+const String ownerSupportRoute = '/owner/support';
+const String ownerEditProfileRoute = '/owner/edit-profile';
+const String ownerChangePasswordRoute = '/owner/change-password';
 
 class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -84,6 +98,25 @@ class AppRouter {
 
       case orderHistoryRoute:
         return MaterialPageRoute(builder: (_) => const OrderHistoryScreen());
+
+      // Owner routes
+      case ownerEditFoodRoute:
+        final args = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          builder: (_) => EditFoodScreen(food: args?['food']),
+        );
+
+      case ownerReportRoute:
+        return MaterialPageRoute(builder: (_) => const ReportScreen());
+
+      case ownerSupportRoute:
+        return MaterialPageRoute(builder: (_) => const SupportScreen());
+
+      case ownerEditProfileRoute:
+        return MaterialPageRoute(builder: (_) => const EditProfileScreen());
+
+      case ownerChangePasswordRoute:
+        return MaterialPageRoute(builder: (_) => const ChangePasswordScreen());
 
       default:
         return MaterialPageRoute(

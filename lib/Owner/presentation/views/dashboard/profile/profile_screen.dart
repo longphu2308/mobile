@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mobile/Owner/presentation/views/dashboard/profile/edit_profile_screen.dart';
-import 'package:mobile/Owner/presentation/views/dashboard/profile/change_password_screen.dart';
 import 'package:mobile/Owner/presentation/widgets/widgets.dart';
 import 'package:mobile/User/utils/utils.dart';
+import 'package:mobile/config/routes.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -95,24 +94,14 @@ class ProfileScreen extends StatelessWidget {
                     icon: Icons.edit,
                     title: "Edit Profile",
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const EditProfileScreen(),
-                        ),
-                      );
+                      Navigator.pushNamed(context, ownerEditProfileRoute);
                     },
                   ),
                   ActionTile(
                     icon: Icons.lock,
                     title: "Change Password",
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const ChangePasswordScreen(),
-                        ),
-                      );
+                      Navigator.pushNamed(context, ownerChangePasswordRoute);
                     },
                   ),
                   ActionTile(

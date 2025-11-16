@@ -4,10 +4,8 @@ import 'package:mobile/Owner/presentation/views/dashboard/orders/orders_screen.d
 import 'package:mobile/Owner/presentation/views/dashboard/menu/menu_screen.dart';
 import 'package:mobile/Owner/presentation/views/dashboard/promotions/promotions_screen.dart';
 import 'package:mobile/Owner/presentation/views/dashboard/profile/profile_screen.dart';
-import 'package:mobile/Owner/presentation/views/dashboard/report/report_screen.dart';
-import 'package:mobile/Owner/presentation/views/dashboard/menu/edit_food_screen.dart';
-import 'package:mobile/Owner/presentation/views/dashboard/support/support_screen.dart';
 import 'package:mobile/User/utils/utils.dart';
+import 'package:mobile/config/routes.dart';
 
 /// Màn hình chính của chủ quán (Bottom Navigation)
 class OwnerDashboardScreen extends StatefulWidget {
@@ -113,12 +111,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
               leading: const Icon(Icons.edit),
               title: const Text('Edit Food'),
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const EditFoodScreen(),
-                  ),
-                );
+                Navigator.pushNamed(context, ownerEditFoodRoute);
               },
             ),
             ListTile(
@@ -130,22 +123,14 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
               leading: const Icon(Icons.bar_chart),
               title: const Text('Reports'),
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ReportScreen()),
-                );
+                Navigator.pushNamed(context, ownerReportRoute);
               },
             ),
             ListTile(
               leading: const Icon(Icons.support_agent),
               title: const Text('Support'),
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SupportScreen(),
-                  ),
-                );
+                Navigator.pushNamed(context, ownerSupportRoute);
               },
             ),
             const Divider(),
