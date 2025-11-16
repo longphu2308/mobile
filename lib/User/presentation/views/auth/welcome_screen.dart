@@ -26,7 +26,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authController = Provider.of<AuthController>(context, listen: false);
       if (authController.state == AuthState.authenticated) {
-        Navigator.pushReplacementNamed(context, dashboardRoute);
+        Navigator.pushReplacementNamed(context, userDashboardRoute);
       }
     });
   }

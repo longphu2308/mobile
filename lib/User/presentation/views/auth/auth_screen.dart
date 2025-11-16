@@ -179,7 +179,7 @@ class _LogInSectionState extends State<_LogInSection> {
                           if (success && mounted) {
                             Navigator.pushNamedAndRemoveUntil(
                               context,
-                              dashboardRoute,
+                              userDashboardRoute,
                               (route) => false,
                             );
                           }
@@ -333,7 +333,7 @@ class _SignUpSectionState extends State<_SignUpSection> {
                             );
                             Navigator.pushNamedAndRemoveUntil(
                               context,
-                              dashboardRoute,
+                              userDashboardRoute,
                               (route) => false,
                             );
                           }

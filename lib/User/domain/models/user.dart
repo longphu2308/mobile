@@ -5,6 +5,7 @@ class UserModel {
   final String email;
   final String? fullName;
   final String? phone;
+  final String role;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -13,6 +14,7 @@ class UserModel {
     required this.email,
     this.fullName,
     this.phone,
+    this.role = 'user',
     required this.createdAt,
     required this.updatedAt,
   });
@@ -24,6 +26,7 @@ class UserModel {
       email: data['email'] ?? '',
       fullName: data['fullName'],
       phone: data['phone'],
+      role: data['role'] ?? 'user',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -35,6 +38,7 @@ class UserModel {
       'email': email,
       'fullName': fullName,
       'phone': phone,
+      'role': role,
       'createdAt': createdAt,
       'updatedAt': DateTime.now(),
     };
@@ -46,6 +50,7 @@ class UserModel {
     String? email,
     String? fullName,
     String? phone,
+    String? role,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -54,6 +59,7 @@ class UserModel {
       email: email ?? this.email,
       fullName: fullName ?? this.fullName,
       phone: phone ?? this.phone,
+      role: role ?? this.role,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

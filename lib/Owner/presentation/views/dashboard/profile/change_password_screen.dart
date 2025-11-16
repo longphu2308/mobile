@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/Owner/presentation/controllers/change_password_controller.dart';
+import 'package:mobile/User/utils/utils.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -8,30 +10,32 @@ class ChangePasswordScreen extends StatefulWidget {
 }
 
 class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
-  final TextEditingController currentCtrl = TextEditingController();
-  final TextEditingController newCtrl = TextEditingController();
-  final TextEditingController confirmCtrl = TextEditingController();
+  final ChangePasswordController _controller = ChangePasswordController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    const Color primaryColor = Color(0xFFFF6B1D);
-
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: whiteColor,
         elevation: 0,
-        title: const Text("Change Password",
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        leading: const BackButton(color: Colors.black),
+        title: const Text(
+          "Change Password",
+          style: TextStyle(color: blackColor, fontWeight: FontWeight.bold),
+        ),
+        leading: const BackButton(color: blackColor),
       ),
-
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(horizontalPadding),
         child: Column(
           children: [
-
             TextField(
-              controller: currentCtrl,
+              controller: _controller.currentCtrl,
               obscureText: true,
               decoration: const InputDecoration(
                 labelText: "Current Password",
@@ -39,9 +43,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               ),
             ),
             const SizedBox(height: 16),
-
             TextField(
-              controller: newCtrl,
+              controller: _controller.newCtrl,
               obscureText: true,
               decoration: const InputDecoration(
                 labelText: "New Password",
@@ -49,30 +52,25 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               ),
             ),
             const SizedBox(height: 16),
-
             TextField(
-              controller: confirmCtrl,
+              controller: _controller.confirmCtrl,
               obscureText: true,
               decoration: const InputDecoration(
                 labelText: "Confirm Password",
                 border: OutlineInputBorder(),
               ),
             ),
-
             const Spacer(),
-
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
-                onPressed: () {
-                  if (newCtrl.text == confirmCtrl.text) {
-                    Navigator.pop(context);
-                  }
-                },
-                child: const Text("Update Password",
-                    style: TextStyle(color: Colors.white, fontSize: 16)),
+                onPressed: () => _controller.validateAndUpdate(context),
+                child: const Text(
+                  "Update Password",
+                  style: TextStyle(color: whiteColor, fontSize: 16),
+                ),
               ),
             ),
           ],

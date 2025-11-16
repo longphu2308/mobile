@@ -3,14 +3,14 @@ import 'package:mobile/User/presentation/views/dashboard/home/home_screen.dart';
 import 'package:mobile/User/presentation/views/dashboard/order_history/order_history_screen.dart';
 import 'package:mobile/User/utils/utils.dart';
 
-class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+class UserDashboardScreen extends StatefulWidget {
+  const UserDashboardScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  State<UserDashboardScreen> createState() => _UserDashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _UserDashboardScreenState extends State<UserDashboardScreen> {
   int _currentIndex = 0;
 
   @override

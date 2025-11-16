@@ -264,7 +264,7 @@ class CheckoutScreen extends StatelessWidget {
           Navigator.pushNamedAndRemoveUntil(
             context,
             orderHistoryRoute,
-            (route) => route.settings.name == dashboardRoute,
+            (route) => route.settings.name == userDashboardRoute,
           );
         }
       } else {

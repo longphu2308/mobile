@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/Owner/presentation/controllers/edit_food_controller.dart';
+import 'package:mobile/User/utils/utils.dart';
 
 class EditFoodScreen extends StatefulWidget {
   final Map<String, dynamic>? food;
@@ -9,49 +11,19 @@ class EditFoodScreen extends StatefulWidget {
 }
 
 class _EditFoodScreenState extends State<EditFoodScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final Color primaryColor = const Color(0xFFFF6B1D);
-
-  late TextEditingController _nameCtl;
-  late TextEditingController _priceCtl;
-  late TextEditingController _descCtl;
-  late TextEditingController _imageCtl;
-  String _category = 'Món chính';
-  bool _available = true;
-
-  // Tuỳ chọn món
-  Map<String, String> _options = {'Size': 'Vừa', 'Topping': 'Không'};
-
-  final List<String> _categories = ['Món chính', 'Đồ uống', 'Combo'];
+  late EditFoodController _controller;
 
   @override
   void initState() {
     super.initState();
-    final f = widget.food;
-    _nameCtl = TextEditingController(text: f?['name'] ?? '');
-    _priceCtl = TextEditingController(text: f?['price']?.toString() ?? '');
-    _descCtl = TextEditingController(text: f?['desc'] ?? '');
-    _imageCtl = TextEditingController(text: f?['image'] ?? '');
-    _category = f?['category'] ?? 'Món chính';
-    _available = f?['available'] ?? true;
-    _options = Map<String, String>.from(f?['options'] ?? _options);
+    _controller = EditFoodController(widget.food);
   }
 
   void _save() {
-    if (!_formKey.currentState!.validate()) return;
-    final res = {
-      'id': widget.food != null
-          ? widget.food!['id']
-          : 'F${DateTime.now().millisecondsSinceEpoch}',
-      'name': _nameCtl.text.trim(),
-      'price': int.tryParse(_priceCtl.text.trim()) ?? 0,
-      'desc': _descCtl.text.trim(),
-      'available': _available,
-      'category': _category,
-      'image': _imageCtl.text.trim(),
-      'options': _options,
-    };
-    Navigator.pop(context, res);
+    final res = _controller.save(widget.food);
+    if (res.isNotEmpty) {
+      Navigator.pop(context, res);
+    }
   }
 
   Widget _buildOptionRow(String key, String value) {
@@ -66,13 +38,13 @@ class _EditFoodScreenState extends State<EditFoodScreen> {
               isDense: true,
               border: OutlineInputBorder(),
             ),
-            onChanged: (v) => _options[key] = v,
+            onChanged: (v) => _controller.options[key] = v,
           ),
         ),
         IconButton(
-          onPressed: () => setState(() => _options.remove(key)),
+          onPressed: () => setState(() => _controller.removeOption(key)),
           icon: const Icon(Icons.delete, color: Colors.redAccent),
-        )
+        ),
       ],
     );
   }
@@ -80,22 +52,24 @@ class _EditFoodScreenState extends State<EditFoodScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F6F6),
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        title: Text(widget.food != null ? 'Chỉnh sửa món' : 'Thêm món',
-            style: const TextStyle(color: Colors.black)),
-        leading: const BackButton(color: Colors.black),
+        backgroundColor: whiteColor,
+        title: Text(
+          widget.food != null ? 'Chỉnh sửa món' : 'Thêm món',
+          style: const TextStyle(color: blackColor),
+        ),
+        leading: const BackButton(color: blackColor),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(horizontalPadding),
         child: Form(
-          key: _formKey,
+          key: _controller.formKey,
           child: Column(
             children: [
               // Ảnh món
               TextFormField(
-                controller: _imageCtl,
+                controller: _controller.imageCtl,
                 decoration: const InputDecoration(
                   labelText: 'Ảnh (URL)',
                   border: OutlineInputBorder(),
@@ -103,47 +77,55 @@ class _EditFoodScreenState extends State<EditFoodScreen> {
               ),
               const SizedBox(height: 12),
               TextFormField(
-                controller: _nameCtl,
+                controller: _controller.nameCtl,
                 validator: (v) =>
                     v == null || v.trim().isEmpty ? 'Nhập tên món' : null,
                 decoration: const InputDecoration(
-                    labelText: 'Tên món', border: OutlineInputBorder()),
+                  labelText: 'Tên món',
+                  border: OutlineInputBorder(),
+                ),
               ),
               const SizedBox(height: 12),
               TextFormField(
-                controller: _priceCtl,
+                controller: _controller.priceCtl,
                 keyboardType: TextInputType.number,
                 validator: (v) =>
                     v == null || v.trim().isEmpty ? 'Nhập giá' : null,
                 decoration: const InputDecoration(
-                    labelText: 'Giá (VNĐ)', border: OutlineInputBorder()),
+                  labelText: 'Giá (VNĐ)',
+                  border: OutlineInputBorder(),
+                ),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: _category,
+                value: _controller.category,
                 decoration: const InputDecoration(
                   labelText: 'Danh mục',
                   border: OutlineInputBorder(),
                 ),
-                items: _categories
+                items: _controller.categories
                     .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                     .toList(),
-                onChanged: (v) => setState(() => _category = v ?? _category),
+                onChanged: (v) => setState(
+                  () => _controller.category = v ?? _controller.category,
+                ),
               ),
               const SizedBox(height: 12),
               TextFormField(
-                controller: _descCtl,
+                controller: _controller.descCtl,
                 minLines: 3,
                 maxLines: 5,
                 decoration: const InputDecoration(
-                    labelText: 'Mô tả món', border: OutlineInputBorder()),
+                  labelText: 'Mô tả món',
+                  border: OutlineInputBorder(),
+                ),
               ),
               const SizedBox(height: 12),
               SwitchListTile(
                 title: const Text('Còn hàng'),
-                value: _available,
+                value: _controller.available,
                 activeColor: primaryColor,
-                onChanged: (v) => setState(() => _available = v),
+                onChanged: (v) => setState(() => _controller.available = v),
               ),
               const SizedBox(height: 20),
 
@@ -151,21 +133,22 @@ class _EditFoodScreenState extends State<EditFoodScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Tùy chọn món',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  const Text(
+                    'Tùy chọn món',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
                   IconButton(
                     icon: const Icon(Icons.add_circle_outline),
                     onPressed: () {
                       setState(() {
-                        _options['Tùy chọn mới'] = '';
+                        _controller.addOption('Tùy chọn mới', '');
                       });
                     },
-                  )
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
-              ..._options.entries
+              ..._controller.options.entries
                   .map((e) => _buildOptionRow(e.key, e.value))
                   .toList(),
               const SizedBox(height: 25),
@@ -177,10 +160,13 @@ class _EditFoodScreenState extends State<EditFoodScreen> {
                     backgroundColor: primaryColor,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30)),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
                   ),
-                  child: Text(widget.food != null ? 'Lưu thay đổi' : 'Thêm món',
-                      style: const TextStyle(color: Colors.white, fontSize: 16)),
+                  child: Text(
+                    widget.food != null ? 'Lưu thay đổi' : 'Thêm món',
+                    style: const TextStyle(color: whiteColor, fontSize: 16),
+                  ),
                 ),
               ),
             ],
