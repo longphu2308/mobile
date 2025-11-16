@@ -10,11 +10,18 @@ Future<void> main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class FoodStoreApp extends StatelessWidget {
+  const FoodStoreApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(providers: getProviders(), child: const App());
+  }
+
+  void _navigateToScreen(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    Navigator.pop(context); // đóng Drawer
   }
 }
