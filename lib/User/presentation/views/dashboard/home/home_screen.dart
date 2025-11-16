@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/User/domain/models/food.dart';
 import 'package:mobile/User/presentation/widgets/widgets.dart';
-import 'package:mobile/User/presentation/views/dashboard/home/search_result_screen.dart';
-import 'package:mobile/User/presentation/views/dashboard/cart/cart_screen.dart';
-import 'package:mobile/core/services/order/cart_service.dart';
+import 'package:mobile/User/presentation/controllers/cart_controller.dart';
+import 'package:mobile/core/services/food/food_service.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/strings.dart';
 import 'package:mobile/config/routes.dart';
@@ -16,7 +15,8 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   int _index = 0;
   late TabController _tabController;
 
@@ -48,26 +48,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.menu),
-                    onPressed: () {},
-                  ),
-                  Consumer<CartService>(
-                    builder: (context, cartService, child) {
+                  IconButton(icon: const Icon(Icons.menu), onPressed: () {}),
+                  Consumer<CartController>(
+                    builder: (context, CartController, child) {
                       return Stack(
                         children: [
                           IconButton(
                             icon: const Icon(Icons.shopping_cart_outlined),
                             onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const CartScreen(),
-                                ),
-                              );
+                              Navigator.pushNamed(context, cartRoute);
                             },
                           ),
-                          if (cartService.itemCount > 0)
+                          if (CartController.itemCount > 0)
                             Positioned(
                               right: 8,
                               top: 8,
@@ -82,7 +74,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                   minHeight: 16,
                                 ),
                                 child: Text(
-                                  '${cartService.itemCount}',
+                                  '${CartController.itemCount}',
                                   style: const TextStyle(
                                     color: whiteColor,
                                     fontSize: 10,
@@ -100,8 +92,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               ),
             ),
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: horizontalPadding),
+              padding: const EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+              ),
               child: Text(
                 FoodieStrings.hSHeading,
                 style: const TextStyle(
@@ -113,14 +106,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             YBox(40),
             SearchTextField(
               onTap: () {
-                Navigator.push(
+                Navigator.pushNamed(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => SearchResultScreen(
-                      searchString: 'Search',
-                      foundFoodList: Food.foodList,
-                    ),
-                  ),
+                  searchResultRoute,
+                  arguments: {
+                    'searchString': 'Search',
+                    'foundFoodList': Provider.of<FoodService>(
+                      context,
+                      listen: false,
+                    ).foods,
+                  },
                 );
               },
             ),
@@ -139,18 +134,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 labelColor: primaryColor,
                 unselectedLabelColor: greyColor,
                 tabs: [
-                  ...List.generate(
-                    5,
-                    (index) => Tab(
-                      text: tabBarTitle[index],
-                    ),
-                  ),
+                  ...List.generate(5, (index) => Tab(text: tabBarTitle[index])),
                 ],
               ),
             ),
             YBox(25),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: horizontalPadding),
+              padding: const EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -167,23 +159,34 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               ),
             ),
             YBox(15),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-              child: Row(
-                children: [
-                  ...List.generate(10, (index) {
-                    final foods = Food.foodList;
-                    final demoFood = foods[index % foods.length];
-                    return _FoodEntry(
-                      food: demoFood,
-                      tag: 'image_tag$index',
-                    );
-                  }),
-                ],
-              ),
+            Consumer<FoodService>(
+              builder: (context, foodService, child) {
+                if (foodService.isLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final foods = foodService.filteredFoods.isNotEmpty
+                    ? foodService.filteredFoods
+                    : foodService.foods;
+
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ...List.generate(foods.length, (index) {
+                        final food = foods[index];
+                        return _FoodEntry(food: food, tag: 'image_tag$index');
+                      }),
+                    ],
+                  ),
+                );
+              },
             ),
-            const SizedBox(height: 100), // Thêm space ở cuối để không bị che bởi bottom nav
+            const SizedBox(
+              height: 100,
+            ), // Thêm space ở cuối để không bị che bởi bottom nav
           ],
         ),
       ),
@@ -252,10 +255,7 @@ class _FoodEntry extends StatelessWidget {
             // Food name
             Text(
               food.name,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,

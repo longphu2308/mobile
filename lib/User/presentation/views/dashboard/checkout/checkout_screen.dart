@@ -1,43 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:mobile/User/domain/models/food.dart';
 import 'package:mobile/User/domain/models/cart_item.dart';
-import 'package:mobile/core/services/order/cart_service.dart';
-import 'package:mobile/core/services/order/order_service.dart';
+import 'package:mobile/User/presentation/controllers/cart_controller.dart';
+import 'package:mobile/User/presentation/controllers/order_controller.dart';
 import 'package:mobile/User/utils/utils.dart';
+import 'package:mobile/User/utils/formatters.dart';
+import 'package:mobile/config/routes.dart';
 import 'package:provider/provider.dart';
 
-class CheckoutScreen extends StatefulWidget {
-  final Food food;
-  final int initialQuantity;
+class CheckoutScreen extends StatelessWidget {
+  const CheckoutScreen({super.key});
 
-  const CheckoutScreen({
-    super.key,
-    required this.food,
-    this.initialQuantity = 1,
-  });
-
-  @override
-  State<CheckoutScreen> createState() => _CheckoutScreenState();
-}
-
-class _CheckoutScreenState extends State<CheckoutScreen> {
-  late int _quantity;
-
-  @override
-  void initState() {
-    super.initState();
-    _quantity = widget.initialQuantity;
-  }
-
-  String _formatPrice(double price) {
-    final priceStr = price.toStringAsFixed(0);
-    if (priceStr.length > 3) {
-      return priceStr.replaceAllMapped(
-        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-        (Match m) => '${m[1]},',
-      );
+  Map<String, List<CartItem>> _groupItemsByRestaurant(List<CartItem> items) {
+    final Map<String, List<CartItem>> grouped = {};
+    for (var item in items) {
+      final restaurantName = item.food.restaurantName;
+      if (!grouped.containsKey(restaurantName)) {
+        grouped[restaurantName] = [];
+      }
+      grouped[restaurantName]!.add(item);
     }
-    return priceStr;
+    return grouped;
   }
 
   @override
@@ -49,123 +31,70 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         backgroundColor: bgColor,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: blackColor),
-          onPressed: () {
-            // Khi back, thêm vào cart với quantity đã chọn
-            final cartService = Provider.of<CartService>(context, listen: false);
-            for (int i = 0; i < _quantity; i++) {
-              cartService.addItem(widget.food);
-            }
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Đã thêm ${widget.food.name} vào giỏ hàng'),
-                duration: const Duration(seconds: 1),
-              ),
-            );
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Thanh toán',
-          style: TextStyle(color: blackColor),
-        ),
+        title: const Text('Thanh toán', style: TextStyle(color: blackColor)),
         centerTitle: true,
       ),
-      body: Builder(
-        builder: (context) {
-          final itemPrice = widget.food.price * _quantity;
-          final totalPrice = itemPrice;
+      body: Consumer<CartController>(
+        builder: (context, cartController, child) {
+          if (cartController.items.isEmpty) {
+            return const Center(child: Text('Cart is empty'));
+          }
+
+          final groupedItems = _groupItemsByRestaurant(cartController.items);
+          final restaurantNames = groupedItems.keys.toList();
 
           return Column(
             children: [
               Expanded(
-                child: SingleChildScrollView(
+                child: ListView.builder(
                   padding: const EdgeInsets.all(horizontalPadding),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 20),
-                      
-                      // Thông tin quán
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: whiteColor,
-                          borderRadius: BorderRadius.circular(radius),
-                          boxShadow: [
-                            BoxShadow(
-                              offset: const Offset(0, 2),
-                              blurRadius: 8,
-                              color: Colors.black.withValues(alpha: 0.1),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.store,
-                              color: primaryColor,
-                              size: 24,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Thông tin quán',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: greyColor,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    widget.food.restaurantName,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
+                  itemCount: restaurantNames.length,
+                  itemBuilder: (context, restaurantIndex) {
+                    final restaurantName = restaurantNames[restaurantIndex];
+                    final items = groupedItems[restaurantName]!;
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Row(
+                            children: [
+                              Icon(Icons.store, size: 18, color: primaryColor),
+                              const SizedBox(width: 8),
+                              Text(
+                                restaurantName,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: blackColor,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      
-                      const SizedBox(height: 20),
-                      
-                      // Thông tin món
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: whiteColor,
-                          borderRadius: BorderRadius.circular(radius),
-                          boxShadow: [
-                            BoxShadow(
-                              offset: const Offset(0, 2),
-                              blurRadius: 8,
-                              color: Colors.black.withValues(alpha: 0.1),
+                        ...items.map(
+                          (item) => Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: whiteColor,
+                              borderRadius: BorderRadius.circular(radius),
+                              boxShadow: [
+                                BoxShadow(
+                                  offset: const Offset(0, 2),
+                                  blurRadius: 8,
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Thông tin đơn hàng',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
+                            child: Row(
                               children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
+                                ClipOval(
                                   child: Image.asset(
-                                    widget.food.assetSrc,
+                                    item.food.assetSrc,
                                     width: 60,
                                     height: 60,
                                     fit: BoxFit.cover,
@@ -182,79 +111,35 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                     },
                                   ),
                                 ),
-                                const SizedBox(width: 12),
+                                const SizedBox(width: 16),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        widget.food.name,
+                                        item.food.name,
                                         style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w600,
+                                          color: blackColor,
                                         ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                      const SizedBox(height: 8),
-                                      // Quantity selector
-                                      Row(
-                                        children: [
-                                          const Text(
-                                            'Số lượng: ',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                          Container(
-                                            decoration: BoxDecoration(
-                                              color: primaryColor,
-                                              borderRadius: BorderRadius.circular(20),
-                                            ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                IconButton(
-                                                  icon: const Icon(Icons.remove, color: whiteColor, size: 18),
-                                                  onPressed: () {
-                                                    if (_quantity > 1) {
-                                                      setState(() {
-                                                        _quantity--;
-                                                      });
-                                                    }
-                                                  },
-                                                  padding: const EdgeInsets.all(4),
-                                                  constraints: const BoxConstraints(),
-                                                ),
-                                                Padding(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                                                  child: Text(
-                                                    '$_quantity',
-                                                    style: const TextStyle(
-                                                      color: whiteColor,
-                                                      fontWeight: FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                ),
-                                                IconButton(
-                                                  icon: const Icon(Icons.add, color: whiteColor, size: 18),
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      _quantity++;
-                                                    });
-                                                  },
-                                                  padding: const EdgeInsets.all(4),
-                                                  constraints: const BoxConstraints(),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        ' x ',
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: greyColor,
+                                        ),
                                       ),
                                     ],
                                   ),
                                 ),
                                 Text(
-                                  _formatPrice(itemPrice),
+                                  formatPrice(item.totalPrice),
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
@@ -263,59 +148,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 ),
                               ],
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                      
-                      const SizedBox(height: 20),
-                      
-                      // Tổng tiền
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: whiteColor,
-                          borderRadius: BorderRadius.circular(radius),
-                          boxShadow: [
-                            BoxShadow(
-                              offset: const Offset(0, 2),
-                              blurRadius: 8,
-                              color: Colors.black.withValues(alpha: 0.1),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'Tổng tiền:',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                Text(
-                                  _formatPrice(totalPrice),
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    color: primaryColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 20),
-                    ],
-                  ),
+                        const SizedBox(height: 8),
+                      ],
+                    );
+                  },
                 ),
               ),
-              
-              // Nút thanh toán
               Container(
                 padding: const EdgeInsets.all(horizontalPadding),
                 decoration: BoxDecoration(
@@ -332,12 +172,34 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   child: Column(
                     children: [
                       const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Total:',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: blackColor,
+                            ),
+                          ),
+                          Text(
+                            formatPrice(cartController.totalPrice),
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: primaryColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
                         height: 56,
                         child: ElevatedButton(
                           onPressed: () {
-                            _processPayment(context, widget.food, _quantity, totalPrice);
+                            _completeOrder(context, cartController);
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryColor,
@@ -348,7 +210,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             elevation: 0,
                           ),
                           child: const Text(
-                            'Thanh toán',
+                            'Complete Order',
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w600,
@@ -368,26 +230,60 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  void _processPayment(BuildContext context, Food food, int quantity, double totalPrice) {
-    final orderService = Provider.of<OrderService>(context, listen: false);
-    
-    // Tạo cart item
-    final cartItem = CartItem(food: food, quantity: quantity);
-    
-    // Tạo order
-    orderService.addOrder([cartItem], totalPrice);
-    
-    // Hiển thị thông báo thành công
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Thanh toán thành công!'),
-        duration: Duration(seconds: 2),
-        backgroundColor: Colors.green,
-      ),
+  void _completeOrder(BuildContext context, CartController cartController) {
+    final orderController = Provider.of<OrderController>(
+      context,
+      listen: false,
     );
-    
-    // Quay về dashboard
-    Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    final totalPrice = cartController.totalPrice;
+    final items = List<CartItem>.from(cartController.items);
+
+    print('Starting order creation with ${items.length} items, total: $totalPrice');
+
+    // Create order and handle the result
+    orderController.createOrder(items, totalPrice).then((success) {
+      print('Order creation result: $success');
+      
+      if (!context.mounted) return; // Check if context is still valid
+      
+      if (success) {
+        print('Order successful, clearing cart');
+        // Clear cart after successful order
+        cartController.clear();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đặt hàng thành công!'),
+            duration: Duration(seconds: 2),
+            backgroundColor: Color(0xFFFF6B35),
+          ),
+        );
+
+        // Navigate to order history
+        if (context.mounted) {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            orderHistoryRoute,
+            (route) => route.settings.name == dashboardRoute,
+          );
+        }
+      } else {
+        // Show error if order creation failed
+        print('Order failed: ${orderController.errorMessage}');
+        print('Order state: ${orderController.state}');
+        
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                orderController.errorMessage ?? 'Lỗi đặt hàng. Vui lòng thử lại.',
+              ),
+              duration: const Duration(seconds: 3),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    });
   }
 }
-

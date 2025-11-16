@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/User/domain/models/food.dart';
 import 'package:mobile/User/presentation/widgets/widgets.dart';
-import 'package:mobile/User/presentation/views/dashboard/checkout/checkout_screen.dart';
+import 'package:mobile/User/presentation/controllers/cart_controller.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/strings.dart';
+import 'package:provider/provider.dart';
 
 class FoodDetail extends StatefulWidget {
   final Food food;
@@ -25,10 +26,7 @@ class _FoodDetailState extends State<FoodDetail> {
     fontWeight: FontWeight.w600,
   );
 
-  final TextStyle _contentStyle = TextStyle(
-    fontSize: 15,
-    color: greyColor,
-  );
+  final TextStyle _contentStyle = TextStyle(fontSize: 15, color: greyColor);
 
   @override
   void initState() {
@@ -80,158 +78,146 @@ class _FoodDetailState extends State<FoodDetail> {
       appBar: AppBar(
         elevation: 0.0,
         backgroundColor: bgColor,
-        titleTextStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: blackColor,
-            ),
-        iconTheme: IconThemeData(
-          color: blackColor,
-        ),
+        titleTextStyle: Theme.of(
+          context,
+        ).textTheme.titleLarge?.copyWith(color: blackColor),
+        iconTheme: IconThemeData(color: blackColor),
         actions: [
           Padding(
-            padding: EdgeInsets.only(
-              right: horizontalPadding,
-            ),
-            child: Icon(
-              Icons.favorite_border_rounded,
-              color: blackColor,
-            ),
+            padding: EdgeInsets.only(right: horizontalPadding),
+            child: Icon(Icons.favorite_border_rounded, color: blackColor),
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: horizontalPadding).add(
-          EdgeInsets.only(
-            bottom: verticalPadding,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              height: 240,
-              width: double.infinity,
-              child: Hero(
-                tag: widget.tag,
-                child: PageView(
-                  onPageChanged: (value) {
-                    setState(
-                      () => _currentPage = value,
-                    );
-                  },
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                ).add(EdgeInsets.only(top: 16)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ...List.generate(
-                      4,
-                      (index) => Image.asset(
-                        widget.food.assetSrc,
-                        fit: BoxFit.fitHeight,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            color: Colors.grey[200],
-                            child: const Center(
-                              child: Icon(
-                                Icons.image_not_supported_outlined,
-                                color: Colors.grey,
-                                size: 48,
+                    SizedBox(
+                      height: 240,
+                      width: double.infinity,
+                      child: Hero(
+                        tag: widget.tag,
+                        child: PageView(
+                          onPageChanged: (value) {
+                            setState(() => _currentPage = value);
+                          },
+                          children: [
+                            ...List.generate(
+                              4,
+                              (index) => Image.asset(
+                                widget.food.assetSrc,
+                                fit: BoxFit.fitHeight,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: Colors.grey[200],
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.image_not_supported_outlined,
+                                        color: Colors.grey,
+                                        size: 48,
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
-                          );
-                        },
+                          ],
+                        ),
                       ),
                     ),
+
+                    // page view indicator
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [..._buildPageIndicator()],
+                    ),
+
+                    YBox(30),
+
+                    Align(
+                      child: Text(
+                        widget.food.name,
+                        style: TextStyle(
+                          fontSize: 25,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    Align(
+                      child: Text(
+                        _formatPrice(widget.food.price),
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: primaryColor,
+                        ),
+                      ),
+                    ),
+                    YBox(10),
+                    Align(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.store, size: 16, color: greyColor),
+                          const SizedBox(width: 4),
+                          Text(
+                            widget.food.restaurantName,
+                            style: TextStyle(fontSize: 14, color: greyColor),
+                          ),
+                        ],
+                      ),
+                    ),
+                    YBox(30),
+                    Text(FoodieStrings.description, style: _helperStyle),
+                    YBox(5),
+                    Text(
+                      FoodieStrings.descriptionContent,
+                      style: _contentStyle,
+                    ),
+                    YBox(20),
+                    Text(FoodieStrings.returnPolicyHelper, style: _helperStyle),
+                    YBox(5),
+                    Text(FoodieStrings.returnPolicy, style: _contentStyle),
+                    YBox(30),
                   ],
                 ),
               ),
             ),
-
-            // page view indicator
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ..._buildPageIndicator(),
-              ],
-            ),
-
-            YBox(30),
-
-            Align(
-              child: Text(
-                widget.food.name,
-                style: TextStyle(
-                  fontSize: 25,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            Align(
-              child: Text(
-                _formatPrice(widget.food.price),
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: primaryColor,
-                ),
-              ),
-            ),
-            YBox(10),
-            Align(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.store,
-                    size: 16,
-                    color: greyColor,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    widget.food.restaurantName,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: greyColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            YBox(30),
-            Text(
-              FoodieStrings.description,
-              style: _helperStyle,
-            ),
-            YBox(5),
-            Text(
-              FoodieStrings.descriptionContent,
-              style: _contentStyle,
-            ),
-            YBox(20),
-            Text(
-              FoodieStrings.returnPolicyHelper,
-              style: _helperStyle,
-            ),
-            YBox(5),
-            Text(
-              FoodieStrings.returnPolicy,
-              style: _contentStyle,
-            ),
-
-            Spacer(),
-
-            FoodieButton(
-              text: 'Đặt hàng',
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: horizontalPadding,
+            ).add(EdgeInsets.only(bottom: verticalPadding, top: 16)),
+            child: FoodieButton(
+              text: 'Thêm vào giỏ hàng',
               onPressed: () {
-                Navigator.push(
+                final cartController = Provider.of<CartController>(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => CheckoutScreen(
-                      food: widget.food,
-                      initialQuantity: 1,
+                  listen: false,
+                );
+                cartController.addItem(widget.food);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      '${widget.food.name} đã được thêm vào giỏ hàng',
                     ),
+                    duration: const Duration(seconds: 2),
+                    backgroundColor: primaryColor,
                   ),
                 );
+                Navigator.pop(context);
               },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
