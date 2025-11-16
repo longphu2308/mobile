@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/User/views/dashboard/home/home_screen.dart';
+import 'package:mobile/User/views/dashboard/history/order_history_screen.dart';
 import 'package:mobile/User/utils/utils.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -57,7 +58,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 2:
         return _buildPlaceholder('Profile');
       case 3:
-        return _buildPlaceholder('History');
+        return const OrderHistoryScreen();
       default:
         return const HomeScreen();
     }

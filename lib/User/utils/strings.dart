@@ -18,7 +18,12 @@ class FoodieStrings {
   static const String returnPolicyHelper = 'Return policy';
   static const String returnPolicy = 'All our foods are double checked before leaving our stores so by any case you found a broken food please contact our hotline immediately.';
   static const String addToCart = 'Add to cart';
+  static const String orderNow = 'Đặt ngay';
   static const String foundResults = 'Found %d results';
+  static const String cart = 'Giỏ hàng';
+  static const String placeOrder = 'Đặt hàng';
+  static const String emptyCart = 'Giỏ hàng trống';
+  static const String orderSuccess = 'Đặt hàng thành công!';
 }
 
 

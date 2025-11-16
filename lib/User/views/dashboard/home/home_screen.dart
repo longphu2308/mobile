@@ -4,6 +4,8 @@ import 'package:mobile/User/views/widgets/widgets.dart';
 import 'package:mobile/User/views/dashboard/home/search_result_screen.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/strings.dart';
+import 'package:mobile/User/providers/cart_provider.dart';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,8 +22,10 @@ class _HomeScreenState extends State<HomeScreen> {
     return DefaultTabController(
       length: 5,
       child: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header với menu và cart icon
@@ -37,9 +41,52 @@ class _HomeScreenState extends State<HomeScreen> {
                       icon: const Icon(Icons.menu),
                       onPressed: () {},
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.shopping_cart_outlined),
-                      onPressed: () {},
+                    Consumer<CartProvider>(
+                      builder: (context, cartProvider, child) {
+                        return Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.shopping_cart_outlined),
+                              onPressed: () {
+                                Navigator.pushNamed(context, cartRoute);
+                              },
+                            ),
+                            if (cartProvider.itemCount > 0)
+                              Positioned(
+                                right: 6,
+                                top: 6,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    Navigator.pushNamed(context, cartRoute);
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: primaryColor,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    constraints: const BoxConstraints(
+                                      minWidth: 18,
+                                      minHeight: 18,
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        '${cartProvider.itemCount}',
+                                        style: const TextStyle(
+                                          color: whiteColor,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -111,30 +158,36 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             YBox(15),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-              child: Row(
-                children: [
-                  ...List.generate(10, (index) {
-                    final demoFood = Food(
-                      name: 'Veggie tomato mix',
-                      price: 19000,
-                      assetSrc: 'assets/images/tomatomix.png',
-                      foodCategory: 'Foods',
-                    );
+            SizedBox(
+              height: 280,
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (ScrollNotification notification) {
+                  // Chặn tất cả scroll notification từ ListView ngang để không ảnh hưởng đến scroll dọc
+                  return true;
+                },
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: 10,
+                  separatorBuilder: (context, index) => const SizedBox(width: 20),
+                  itemBuilder: (context, index) {
+                    final foodIndex = index % Food.foodList.length;
+                    final demoFood = Food.foodList[foodIndex];
                     return _FoodEntry(
                       food: demoFood,
                       tag: 'image_tag$index',
                     );
-                  }),
-                ],
+                  },
+                ),
               ),
             ),
             const SizedBox(height: 100), // Thêm space ở cuối để không bị che bởi bottom nav
-          ],
+            ],
+          ),
         ),
-      ),
+      ],
+    ),
       ),
     );
   }
@@ -159,9 +212,7 @@ class _FoodEntry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      splashColor: transparentColor,
-      highlightColor: transparentColor,
+    return GestureDetector(
       onTap: () => Navigator.pushNamed(
         context,
         foodDetailRoute,
@@ -169,7 +220,6 @@ class _FoodEntry extends StatelessWidget {
       ),
       child: Container(
         width: 220,
-        margin: EdgeInsets.only(right: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [

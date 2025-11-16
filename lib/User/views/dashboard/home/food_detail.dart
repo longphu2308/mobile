@@ -3,6 +3,8 @@ import 'package:mobile/User/models/food.dart';
 import 'package:mobile/User/views/widgets/widgets.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/strings.dart';
+import 'package:mobile/User/providers/cart_provider.dart';
+import 'package:provider/provider.dart';
 
 class FoodDetail extends StatefulWidget {
   final Food food;
@@ -194,9 +196,36 @@ class _FoodDetailState extends State<FoodDetail> {
 
             Spacer(),
 
-            FoodieButton(
-              text: FoodieStrings.addToCart,
-              onPressed: () {},
+            // Two buttons: Add to cart and Order now
+            Row(
+              children: [
+                Expanded(
+                  child: FoodieButton(
+                    text: FoodieStrings.addToCart,
+                    onPressed: () {
+                      final cartProvider = Provider.of<CartProvider>(context, listen: false);
+                      cartProvider.addItem(widget.food);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Đã thêm ${widget.food.name} vào giỏ hàng'),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FoodieButton(
+                    text: FoodieStrings.orderNow,
+                    onPressed: () {
+                      final cartProvider = Provider.of<CartProvider>(context, listen: false);
+                      cartProvider.addItem(widget.food);
+                      Navigator.pushNamed(context, cartRoute);
+                    },
+                  ),
+                ),
+              ],
             ),
           ],
         ),

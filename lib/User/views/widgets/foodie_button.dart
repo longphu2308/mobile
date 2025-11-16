@@ -3,13 +3,13 @@ import 'package:mobile/User/utils/utils.dart';
 
 class FoodieButton extends StatelessWidget {
   final String text;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final bool isPainted;
 
   const FoodieButton({
     super.key,
     required this.text,
-    required this.onPressed,
+    this.onPressed,
     this.isPainted = true,
   });
 
