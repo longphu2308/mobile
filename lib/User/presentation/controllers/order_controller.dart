@@ -40,6 +40,10 @@ class OrderController extends ChangeNotifier {
 
   void _onAuthStateChanged() {
     final userId = _authController?.currentUser?.userId;
+    print('OrderController: Auth state changed - userId: $userId');
+    print('OrderController: currentUser: ${_authController?.currentUser}');
+    print('OrderController: authController exists: ${_authController != null}');
+    
     if (userId != null && userId != _currentUserId) {
       _currentUserId = userId;
       loadUserOrders();

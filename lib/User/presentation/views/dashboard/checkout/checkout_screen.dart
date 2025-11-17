@@ -272,12 +272,13 @@ class CheckoutScreen extends StatelessWidget {
               ),
             );
 
-            // Navigate to order history
+            // Navigate back to dashboard with History tab selected
             if (context.mounted) {
               Navigator.pushNamedAndRemoveUntil(
                 context,
-                orderHistoryRoute,
-                (route) => route.settings.name == userDashboardRoute,
+                userDashboardRoute,
+                (route) => false, // Remove all previous routes
+                arguments: {'initialIndex': 3}, // Tab index 3 = History
               );
             }
           } else {
