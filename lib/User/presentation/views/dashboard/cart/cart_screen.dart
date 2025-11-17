@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:mobile/User/domain/models/cart_item.dart';
-import 'package:mobile/User/presentation/controllers/cart_controller.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/formatters.dart';
+import 'package:mobile/User/presentation/controllers/cart_controller.dart';
+import 'package:mobile/core/models/cart_model.dart';
 import 'package:provider/provider.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
 
-  Map<String, List<CartItem>> _groupItemsByRestaurant(List<CartItem> items) {
-    final Map<String, List<CartItem>> grouped = {};
+  Map<String, List<CartItemModel>> _groupItemsByRestaurant(
+    List<CartItemModel> items,
+  ) {
+    final Map<String, List<CartItemModel>> grouped = {};
     for (var item in items) {
-      final restaurantName = item.food.restaurantName;
+      final restaurantName =
+          item.foodName; // CartItemModel doesn't have nested restaurant
       if (!grouped.containsKey(restaurantName)) {
         grouped[restaurantName] = [];
       }
@@ -123,19 +126,19 @@ class CartScreen extends StatelessWidget {
                           (item) => _CartItemCard(
                             item: item,
                             onDelete: () {
-                              cartController.removeItem(item.food.id);
+                              cartController.removeItem(item.foodId);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Đã xóa ${item.food.name}'),
+                                  content: Text('Đã xóa ${item.foodName}'),
                                   duration: const Duration(seconds: 1),
                                 ),
                               );
                             },
                             onIncrement: () {
-                              cartController.incrementQuantity(item.food.id);
+                              cartController.incrementQuantity(item.foodId);
                             },
                             onDecrement: () {
-                              cartController.decrementQuantity(item.food.id);
+                              cartController.decrementQuantity(item.foodId);
                             },
                             formatPrice: formatPrice,
                           ),
@@ -202,7 +205,7 @@ class CartScreen extends StatelessWidget {
 }
 
 class _CartItemCard extends StatelessWidget {
-  final CartItem item;
+  final CartItemModel item;
   final VoidCallback onDelete;
   final VoidCallback onIncrement;
   final VoidCallback onDecrement;
@@ -219,7 +222,7 @@ class _CartItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dismissible(
-      key: Key(item.food.name),
+      key: Key(item.foodId),
       direction: DismissDirection.endToStart,
       background: Container(
         margin: const EdgeInsets.only(bottom: 16),
@@ -265,8 +268,8 @@ class _CartItemCard extends StatelessWidget {
           children: [
             // Food image
             ClipOval(
-              child: Image.asset(
-                item.food.assetSrc,
+              child: Image.network(
+                item.imageUrl,
                 width: 60,
                 height: 60,
                 fit: BoxFit.cover,
@@ -291,7 +294,7 @@ class _CartItemCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item.food.name,
+                    item.foodName,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -302,7 +305,7 @@ class _CartItemCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    formatPrice(item.food.price),
+                    formatPrice(item.price),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,

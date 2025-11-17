@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mobile/User/data/repositories/user_repository.dart';
-import 'package:mobile/User/domain/models/user.dart';
+import 'package:mobile/core/repositories/user_repository.dart';
+import 'package:mobile/core/models/user_model.dart';
 import 'package:mobile/core/errors/app_exception.dart';
 
 enum UserState { initial, loading, success, error }

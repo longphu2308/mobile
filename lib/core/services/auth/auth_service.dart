@@ -1,8 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:mobile/User/domain/models/user.dart';
+import 'package:mobile/core/models/user_model.dart';
 import 'package:mobile/core/errors/app_exception.dart';
-
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -17,9 +16,15 @@ class AuthService {
   }) async {
     try {
       // Check if phone already exists
-      QuerySnapshot phoneQuery = await _firestore.collection('users').where('phone', isEqualTo: phone).get();
+      QuerySnapshot phoneQuery = await _firestore
+          .collection('users')
+          .where('phone', isEqualTo: phone)
+          .get();
       if (phoneQuery.docs.isNotEmpty) {
-        throw AuthException(message: 'Số điện thoại đã được sử dụng', code: 'phone-already-in-use');
+        throw AuthException(
+          message: 'Số điện thoại đã được sử dụng',
+          code: 'phone-already-in-use',
+        );
       }
 
       UserCredential cred = await _auth.createUserWithEmailAndPassword(
@@ -32,6 +37,7 @@ class AuthService {
         email: email,
         fullName: fullName,
         phone: phone,
+        role: 'user',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -43,10 +49,7 @@ class AuthService {
 
       return user;
     } on FirebaseAuthException catch (e) {
-      throw AuthException(
-        message: _handleFirebaseError(e),
-        code: e.code,
-      );
+      throw AuthException(message: _handleFirebaseError(e), code: e.code);
     } catch (e) {
       if (e is AuthException) rethrow;
       throw AuthException(message: 'Đã có lỗi xảy ra. Vui lòng thử lại.');
@@ -66,17 +69,17 @@ class AuthService {
 
       return await _getUserData(cred.user!.uid);
     } on FirebaseAuthException catch (e) {
-      throw AuthException(
-        message: _handleFirebaseError(e),
-        code: e.code,
-      );
+      throw AuthException(message: _handleFirebaseError(e), code: e.code);
     }
   }
 
   // Get user from Firestore
   Future<UserModel> getUser(String uid) async {
     try {
-      DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
+      DocumentSnapshot doc = await _firestore
+          .collection('users')
+          .doc(uid)
+          .get();
       if (!doc.exists) throw AuthException(message: 'User not found');
       return UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
     } catch (e) {

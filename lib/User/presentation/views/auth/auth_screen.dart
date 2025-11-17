@@ -177,9 +177,15 @@ class _LogInSectionState extends State<_LogInSection> {
                           );
 
                           if (success && mounted) {
+                            // Check user role and navigate to appropriate dashboard
+                            final user = authController.currentUser;
+                            final route = (user?.role == 'owner')
+                                ? ownerDashboardRoute
+                                : userDashboardRoute;
+
                             Navigator.pushNamedAndRemoveUntil(
                               context,
-                              dashboardRoute,
+                              route,
                               (route) => false,
                             );
                           }
@@ -331,9 +337,15 @@ class _SignUpSectionState extends State<_SignUpSection> {
                                 backgroundColor: Colors.green,
                               ),
                             );
+                            // Check user role and navigate to appropriate dashboard
+                            final user = authController.currentUser;
+                            final route = (user?.role == 'owner')
+                                ? ownerDashboardRoute
+                                : userDashboardRoute;
+
                             Navigator.pushNamedAndRemoveUntil(
                               context,
-                              dashboardRoute,
+                              route,
                               (route) => false,
                             );
                           }

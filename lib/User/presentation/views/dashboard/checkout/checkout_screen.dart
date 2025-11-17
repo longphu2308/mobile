@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:mobile/User/domain/models/cart_item.dart';
-import 'package:mobile/User/presentation/controllers/cart_controller.dart';
-import 'package:mobile/User/presentation/controllers/order_controller.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/formatters.dart';
+import 'package:mobile/User/presentation/controllers/cart_controller.dart';
+import 'package:mobile/User/presentation/controllers/order_controller.dart';
+import 'package:mobile/core/models/cart_model.dart';
 import 'package:mobile/config/routes.dart';
 import 'package:provider/provider.dart';
 
 class CheckoutScreen extends StatelessWidget {
   const CheckoutScreen({super.key});
 
-  Map<String, List<CartItem>> _groupItemsByRestaurant(List<CartItem> items) {
-    final Map<String, List<CartItem>> grouped = {};
+  Map<String, List<CartItemModel>> _groupItemsByRestaurant(
+    List<CartItemModel> items,
+  ) {
+    final Map<String, List<CartItemModel>> grouped = {};
     for (var item in items) {
-      final restaurantName = item.food.restaurantName;
+      final restaurantName = item.foodName;
       if (!grouped.containsKey(restaurantName)) {
         grouped[restaurantName] = [];
       }
@@ -93,8 +95,8 @@ class CheckoutScreen extends StatelessWidget {
                             child: Row(
                               children: [
                                 ClipOval(
-                                  child: Image.asset(
-                                    item.food.assetSrc,
+                                  child: Image.network(
+                                    item.imageUrl,
                                     width: 60,
                                     height: 60,
                                     fit: BoxFit.cover,
@@ -118,7 +120,7 @@ class CheckoutScreen extends StatelessWidget {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        item.food.name,
+                                        item.foodName,
                                         style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w600,
@@ -236,54 +238,66 @@ class CheckoutScreen extends StatelessWidget {
       listen: false,
     );
     final totalPrice = cartController.totalPrice;
-    final items = List<CartItem>.from(cartController.items);
+    final items = List<CartItemModel>.from(cartController.items);
+    final restaurantId = cartController.currentRestaurantId ?? '';
 
-    print('Starting order creation with ${items.length} items, total: $totalPrice');
+    print(
+      'Starting order creation with ${items.length} items, total: $totalPrice',
+    );
 
     // Create order and handle the result
-    orderController.createOrder(items, totalPrice).then((success) {
-      print('Order creation result: $success');
-      
-      if (!context.mounted) return; // Check if context is still valid
-      
-      if (success) {
-        print('Order successful, clearing cart');
-        // Clear cart after successful order
-        cartController.clear();
+    orderController
+        .createOrder(
+          items,
+          totalPrice,
+          restaurantId: restaurantId,
+          deliveryAddress: '123 Main St', // TODO: Get from user input
+          paymentMethod: 'cash',
+        )
+        .then((success) {
+          print('Order creation result: $success');
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đặt hàng thành công!'),
-            duration: Duration(seconds: 2),
-            backgroundColor: Color(0xFFFF6B35),
-          ),
-        );
+          if (!context.mounted) return; // Check if context is still valid
 
-        // Navigate to order history
-        if (context.mounted) {
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            orderHistoryRoute,
-            (route) => route.settings.name == dashboardRoute,
-          );
-        }
-      } else {
-        // Show error if order creation failed
-        print('Order failed: ${orderController.errorMessage}');
-        print('Order state: ${orderController.state}');
-        
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                orderController.errorMessage ?? 'Lỗi đặt hàng. Vui lòng thử lại.',
+          if (success) {
+            print('Order successful, clearing cart');
+            // Clear cart after successful order
+            cartController.clear();
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Đặt hàng thành công!'),
+                duration: Duration(seconds: 2),
+                backgroundColor: Color(0xFFFF6B35),
               ),
-              duration: const Duration(seconds: 3),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    });
+            );
+
+            // Navigate to order history
+            if (context.mounted) {
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                orderHistoryRoute,
+                (route) => route.settings.name == userDashboardRoute,
+              );
+            }
+          } else {
+            // Show error if order creation failed
+            print('Order failed: ${orderController.errorMessage}');
+            print('Order state: ${orderController.state}');
+
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    orderController.errorMessage ??
+                        'Lỗi đặt hàng. Vui lòng thử lại.',
+                  ),
+                  duration: const Duration(seconds: 3),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
+        });
   }
 }

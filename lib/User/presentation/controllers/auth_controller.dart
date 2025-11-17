@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:mobile/User/data/repositories/auth_repository.dart';
-import 'package:mobile/User/domain/models/user.dart';
+import 'package:mobile/core/repositories/auth_repository.dart';
+import 'package:mobile/core/models/user_model.dart';
 import 'package:mobile/core/errors/app_exception.dart';
 
 enum AuthState { initial, loading, authenticated, unauthenticated, error }

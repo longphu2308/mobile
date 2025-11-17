@@ -1,14 +1,16 @@
 import 'package:flutter/foundation.dart';
-import 'package:mobile/User/domain/models/cart_item.dart';
-import 'package:mobile/User/domain/models/food.dart';
 import 'package:mobile/User/presentation/controllers/auth_controller.dart';
-import 'package:mobile/User/data/repositories/cart_repository.dart';
+import 'package:mobile/core/repositories/cart_repository.dart';
+import 'package:mobile/core/models/cart_model.dart';
+import 'package:mobile/core/models/food_model.dart';
 
 class CartController extends ChangeNotifier {
   final CartRepository _cartRepository;
   final AuthController? _authController;
-  final List<CartItem> _items = [];
+  final List<CartItemModel> _items = [];
   String? _currentUserId;
+  String? _currentRestaurantId;
+  String? _currentRestaurantName;
 
   CartController({
     CartRepository? cartRepository,
@@ -18,7 +20,9 @@ class CartController extends ChangeNotifier {
     _init();
   }
 
-  List<CartItem> get items => List.unmodifiable(_items);
+  List<CartItemModel> get items => List.unmodifiable(_items);
+  String? get currentRestaurantId => _currentRestaurantId;
+  String? get currentRestaurantName => _currentRestaurantName;
 
   int get itemCount => _items.fold(0, (sum, item) => sum + item.quantity);
 
@@ -43,49 +47,82 @@ class CartController extends ChangeNotifier {
     }
   }
 
-  /// Load cart from Firebase
   Future<void> loadCartFromFirebase() async {
     if (_currentUserId == null) return;
 
     try {
-      final firebaseItems = await _cartRepository.getCartItems(_currentUserId!);
+      final cart = await _cartRepository.getUserCart(_currentUserId!);
       _items.clear();
-      _items.addAll(firebaseItems);
+      if (cart != null) {
+        _items.addAll(cart.items);
+        _currentRestaurantId = cart.restaurantId;
+        _currentRestaurantName = cart.restaurantName;
+      }
       notifyListeners();
     } catch (e) {
-      // Handle error silently for now
       print('Error loading cart: $e');
     }
   }
 
-  void addItem(Food food) {
-    final existingIndex = _items.indexWhere((item) => item.food.id == food.id);
+  void addItem(
+    FoodModel food, {
+    String restaurantId = '',
+    String restaurantName = '',
+  }) {
+    final existingIndex = _items.indexWhere((item) => item.foodId == food.id);
 
     if (existingIndex >= 0) {
-      _items[existingIndex].quantity++;
+      final newQuantity = _items[existingIndex].quantity + 1;
+      _items[existingIndex] = CartItemModel(
+        foodId: food.id,
+        foodName: food.name,
+        price: food.price,
+        imageUrl: food.imageUrl,
+        quantity: newQuantity,
+      );
     } else {
-      _items.add(CartItem(food: food, quantity: 1));
+      _items.add(
+        CartItemModel(
+          foodId: food.id,
+          foodName: food.name,
+          price: food.price,
+          imageUrl: food.imageUrl,
+          quantity: 1,
+        ),
+      );
     }
 
-    // Sync with Firebase
+    if (_currentRestaurantId == null || _currentRestaurantId != restaurantId) {
+      _currentRestaurantId = restaurantId;
+      _currentRestaurantName = restaurantName;
+    }
+
     if (_currentUserId != null) {
-      _cartRepository.addItemToCart(_currentUserId!, _items.last).catchError((
-        e,
-      ) {
-        print('Error syncing cart: $e');
-      });
+      _cartRepository
+          .addItemToCart(
+            _currentUserId!,
+            restaurantId,
+            restaurantName,
+            _items.last,
+          )
+          .catchError((e) {
+            print('Error syncing cart: $e');
+            return false;
+          });
     }
 
     notifyListeners();
   }
 
   void removeItem(String foodId) {
-    _items.removeWhere((item) => item.food.id == foodId);
+    _items.removeWhere((item) => item.foodId == foodId);
 
-    // Sync with Firebase
     if (_currentUserId != null) {
-      _cartRepository.removeCartItem(_currentUserId!, foodId).catchError((e) {
+      _cartRepository.removeItemFromCart(_currentUserId!, foodId).catchError((
+        e,
+      ) {
         print('Error syncing cart: $e');
+        return false;
       });
     }
 
@@ -98,16 +135,22 @@ class CartController extends ChangeNotifier {
       return;
     }
 
-    final index = _items.indexWhere((item) => item.food.id == foodId);
+    final index = _items.indexWhere((item) => item.foodId == foodId);
     if (index >= 0) {
-      _items[index].quantity = quantity;
+      _items[index] = CartItemModel(
+        foodId: _items[index].foodId,
+        foodName: _items[index].foodName,
+        price: _items[index].price,
+        imageUrl: _items[index].imageUrl,
+        quantity: quantity,
+      );
 
-      // Sync with Firebase
       if (_currentUserId != null) {
         _cartRepository
-            .updateCartItem(_currentUserId!, foodId, quantity)
+            .updateItemQuantity(_currentUserId!, foodId, quantity)
             .catchError((e) {
               print('Error syncing cart: $e');
+              return false;
             });
       }
 
@@ -116,14 +159,14 @@ class CartController extends ChangeNotifier {
   }
 
   void incrementQuantity(String foodId) {
-    final index = _items.indexWhere((item) => item.food.id == foodId);
+    final index = _items.indexWhere((item) => item.foodId == foodId);
     if (index >= 0) {
       updateQuantity(foodId, _items[index].quantity + 1);
     }
   }
 
   void decrementQuantity(String foodId) {
-    final index = _items.indexWhere((item) => item.food.id == foodId);
+    final index = _items.indexWhere((item) => item.foodId == foodId);
     if (index >= 0) {
       if (_items[index].quantity > 1) {
         updateQuantity(foodId, _items[index].quantity - 1);
@@ -136,13 +179,19 @@ class CartController extends ChangeNotifier {
   void clear() {
     _items.clear();
 
-    // Sync with Firebase
     if (_currentUserId != null) {
       _cartRepository.clearCart(_currentUserId!).catchError((e) {
         print('Error clearing cart: $e');
+        return false;
       });
     }
 
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _authController?.removeListener(_onAuthStateChanged);
+    super.dispose();
   }
 }

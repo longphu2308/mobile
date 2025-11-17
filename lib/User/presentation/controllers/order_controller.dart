@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:mobile/User/data/repositories/order_repository.dart';
-import 'package:mobile/User/domain/models/order.dart' as order_model;
-import 'package:mobile/User/domain/models/cart_item.dart';
 import 'package:mobile/core/errors/app_exception.dart';
 import 'package:mobile/User/presentation/controllers/auth_controller.dart';
+import 'package:mobile/core/repositories/order_repository.dart';
+import 'package:mobile/core/models/order_model.dart';
+import 'package:mobile/core/models/cart_model.dart';
 
 enum OrderState { initial, loading, success, error }
 
@@ -11,16 +11,16 @@ class OrderController extends ChangeNotifier {
   final OrderRepository _orderRepository;
   final AuthController? _authController;
 
-  List<order_model.Order> _orders = [];
-  order_model.Order? _currentOrder;
+  List<OrderModel> _orders = [];
+  OrderModel? _currentOrder;
   OrderState _state = OrderState.initial;
   String? _errorMessage;
   bool _isLoading = false;
   String? _currentUserId;
 
   // Getters
-  List<order_model.Order> get orders => List.unmodifiable(_orders.reversed);
-  order_model.Order? get currentOrder => _currentOrder;
+  List<OrderModel> get orders => List.unmodifiable(_orders.reversed);
+  OrderModel? get currentOrder => _currentOrder;
   OrderState get state => _state;
   String? get errorMessage => _errorMessage;
   bool get isLoading => _isLoading;
@@ -58,7 +58,7 @@ class OrderController extends ChangeNotifier {
       _setLoading(true);
       _errorMessage = null;
 
-      List<order_model.Order> orders = await _orderRepository.getUserOrders(
+      List<OrderModel> orders = await _orderRepository.getUserOrders(
         _currentUserId!,
       );
       _orders = orders;
@@ -74,9 +74,18 @@ class OrderController extends ChangeNotifier {
   }
 
   /// Create a new order
-  Future<bool> createOrder(List<CartItem> items, double totalPrice) async {
-    print('createOrder called - userId: $_currentUserId, items: ${items.length}');
-    
+  Future<bool> createOrder(
+    List<CartItemModel> items,
+    double totalAmount, {
+    required String restaurantId,
+    required String deliveryAddress,
+    String paymentMethod = 'cash',
+    String? note,
+  }) async {
+    print(
+      'createOrder called - userId: $_currentUserId, items: ${items.length}',
+    );
+
     if (_currentUserId == null) {
       _errorMessage = 'Lỗi: Bạn chưa đăng nhập';
       notifyListeners();
@@ -88,19 +97,52 @@ class OrderController extends ChangeNotifier {
       _setLoading(true);
       _errorMessage = null;
 
-      order_model.Order order = await _orderRepository.createOrder(
+      // Convert CartItemModel to OrderItemModel
+      final orderItems = items
+          .map(
+            (item) => OrderItemModel(
+              foodId: item.foodId,
+              foodName: item.foodName,
+              quantity: item.quantity,
+              price: item.price,
+            ),
+          )
+          .toList();
+
+      // Create order model
+      final order = OrderModel(
+        id: '', // Will be set by Firestore
         userId: _currentUserId!,
-        items: items,
-        totalPrice: totalPrice,
+        restaurantId: restaurantId,
+        items: orderItems,
+        totalAmount: totalAmount,
+        status: 'pending',
+        deliveryAddress: deliveryAddress,
+        paymentMethod: paymentMethod,
+        note: note,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
       );
 
-      _orders.add(order);
-      _currentOrder = order;
-      _state = OrderState.success;
-      _setLoading(false);
-      notifyListeners();
-      print('Order created successfully');
-      return true;
+      // Save to Firestore
+      final orderId = await _orderRepository.createOrder(order);
+
+      if (orderId != null) {
+        final createdOrder = order.copyWith(id: orderId);
+        _orders.add(createdOrder);
+        _currentOrder = createdOrder;
+        _state = OrderState.success;
+        _setLoading(false);
+        notifyListeners();
+        print('Order created successfully');
+        return true;
+      } else {
+        _errorMessage = 'Không thể tạo đơn hàng';
+        _state = OrderState.error;
+        _setLoading(false);
+        notifyListeners();
+        return false;
+      }
     } on FirestoreException catch (e) {
       _errorMessage = e.message;
       _state = OrderState.error;
@@ -124,7 +166,7 @@ class OrderController extends ChangeNotifier {
       _setLoading(true);
       _errorMessage = null;
 
-      order_model.Order? order = await _orderRepository.getOrderById(orderId);
+      OrderModel? order = await _orderRepository.getOrderById(orderId);
 
       if (order != null) {
         _currentOrder = order;
@@ -182,11 +224,11 @@ class OrderController extends ChangeNotifier {
   }
 
   /// Get orders by status
-  Future<List<order_model.Order>> getOrdersByStatus(String status) async {
+  Future<List<OrderModel>> getOrdersByStatus(String status) async {
     try {
-      return await _orderRepository.getOrdersByStatus(status);
-    } on FirestoreException catch (e) {
-      _errorMessage = e.message;
+      return _orders.where((order) => order.status == status).toList();
+    } catch (e) {
+      _errorMessage = e.toString();
       _state = OrderState.error;
       notifyListeners();
       return [];
@@ -194,17 +236,17 @@ class OrderController extends ChangeNotifier {
   }
 
   /// Get pending orders
-  Future<List<order_model.Order>> getPendingOrders() async {
+  Future<List<OrderModel>> getPendingOrders() async {
     return await getOrdersByStatus('pending');
   }
 
   /// Get completed orders
-  Future<List<order_model.Order>> getCompletedOrders() async {
-    return await getOrdersByStatus('completed');
+  Future<List<OrderModel>> getCompletedOrders() async {
+    return await getOrdersByStatus('delivered');
   }
 
   /// Get cancelled orders
-  Future<List<order_model.Order>> getCancelledOrders() async {
+  Future<List<OrderModel>> getCancelledOrders() async {
     return await getOrdersByStatus('cancelled');
   }
 
@@ -216,17 +258,23 @@ class OrderController extends ChangeNotifier {
   /// Get total spent
   double getTotalSpent() {
     return _orders
-        .where((order) => order.status == 'completed')
-        .fold(0.0, (sum, order) => sum + order.totalPrice);
+        .where((order) => order.status == 'delivered')
+        .fold(0.0, (sum, order) => sum + order.totalAmount);
   }
 
   /// Get recent orders (last 10)
-  List<order_model.Order> getRecentOrders({int limit = 10}) {
+  List<OrderModel> getRecentOrders({int limit = 10}) {
     return _orders.take(limit).toList();
   }
 
   void _setLoading(bool loading) {
     _isLoading = loading;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _authController?.removeListener(_onAuthStateChanged);
+    super.dispose();
   }
 }
