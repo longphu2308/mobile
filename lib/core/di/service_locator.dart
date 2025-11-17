@@ -11,14 +11,23 @@ List<SingleChildWidget> getProviders() {
     ChangeNotifierProvider(create: (_) => FoodService()),
 
     ChangeNotifierProxyProvider<AuthController, CartController>(
-      create: (_) => CartController(),
-      update: (_, auth, cart) => cart ?? CartController(authController: auth),
+      create: (context) {
+        final auth = Provider.of<AuthController>(context, listen: false);
+        return CartController(authController: auth);
+      },
+      update: (_, auth, cart) {
+        return cart ?? CartController(authController: auth);
+      },
     ),
 
     ChangeNotifierProxyProvider<AuthController, OrderController>(
-      create: (_) => OrderController(),
-      update: (_, auth, order) =>
-          order ?? OrderController(authController: auth),
+      create: (context) {
+        final auth = Provider.of<AuthController>(context, listen: false);
+        return OrderController(authController: auth);
+      },
+      update: (_, auth, order) {
+        return order ?? OrderController(authController: auth);
+      },
     ),
   ];
 }

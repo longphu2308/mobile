@@ -10,7 +10,6 @@ import 'package:mobile/User/presentation/views/dashboard/home/home_screen.dart';
 import 'package:mobile/User/presentation/views/dashboard/home/search_result_screen.dart';
 import 'package:mobile/User/presentation/views/dashboard/cart/cart_screen.dart';
 import 'package:mobile/User/presentation/views/dashboard/checkout/checkout_screen.dart';
-import 'package:mobile/User/presentation/views/dashboard/order_history/order_history_screen.dart';
 import 'package:mobile/Owner/presentation/views/dashboard/menu/edit_food_screen.dart';
 import 'package:mobile/Owner/presentation/views/dashboard/report/report_screen.dart';
 import 'package:mobile/Owner/presentation/views/dashboard/support/support_screen.dart';
@@ -67,7 +66,12 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const AuthScreen());
 
       case userDashboardRoute:
-        return MaterialPageRoute(builder: (_) => const UserDashboardScreen());
+        final args = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          builder: (_) => UserDashboardScreen(
+            initialIndex: args?['initialIndex'] ?? 0,
+          ),
+        );
 
       case ownerDashboardRoute:
         return MaterialPageRoute(builder: (_) => const OwnerDashboardScreen());
@@ -95,9 +99,6 @@ class AppRouter {
 
       case checkoutRoute:
         return MaterialPageRoute(builder: (_) => const CheckoutScreen());
-
-      case orderHistoryRoute:
-        return MaterialPageRoute(builder: (_) => const OrderHistoryScreen());
 
       // Owner routes
       case ownerEditFoodRoute:

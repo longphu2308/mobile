@@ -27,12 +27,23 @@ class FoodModel {
 
   // Chuyển từ Firestore document sang model
   factory FoodModel.fromMap(Map<String, dynamic> data, String documentId) {
+    // Helper function to safely parse price from String or num
+    double parsePrice(dynamic value) {
+      if (value == null) return 0.0;
+      if (value is double) return value;
+      if (value is int) return value.toDouble();
+      if (value is String) {
+        return double.tryParse(value) ?? 0.0;
+      }
+      return 0.0;
+    }
+
     return FoodModel(
       id: documentId,
       restaurantId: data['restaurantId'] ?? '',
       name: data['name'] ?? '',
       description: data['description'] ?? '',
-      price: (data['price'] ?? 0).toDouble(),
+      price: parsePrice(data['price']),
       imageUrl: data['imageUrl'] ?? '',
       category: data['category'] ?? '',
       available: data['available'] ?? true,

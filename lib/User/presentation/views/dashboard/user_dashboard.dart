@@ -4,14 +4,25 @@ import 'package:mobile/User/presentation/views/dashboard/order_history/order_his
 import 'package:mobile/User/utils/utils.dart';
 
 class UserDashboardScreen extends StatefulWidget {
-  const UserDashboardScreen({super.key});
+  final int initialIndex;
+
+  const UserDashboardScreen({
+    super.key,
+    this.initialIndex = 0,
+  });
 
   @override
   State<UserDashboardScreen> createState() => _UserDashboardScreenState();
 }
 
 class _UserDashboardScreenState extends State<UserDashboardScreen> {
-  int _currentIndex = 0;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+  }
 
   @override
   Widget build(BuildContext context) {
