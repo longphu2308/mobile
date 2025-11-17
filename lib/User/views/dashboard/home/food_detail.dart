@@ -3,6 +3,8 @@ import 'package:mobile/User/models/food.dart';
 import 'package:mobile/User/views/widgets/widgets.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/strings.dart';
+import 'package:mobile/User/state/foodie_store.dart';
+import 'package:provider/provider.dart';
 
 class FoodDetail extends StatefulWidget {
   final Food food;
@@ -41,17 +43,6 @@ class _FoodDetailState extends State<FoodDetail> {
     super.dispose();
   }
 
-  String _formatPrice(double price) {
-    final priceStr = price.toStringAsFixed(0);
-    if (priceStr.length > 3) {
-      return priceStr.replaceAllMapped(
-        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-        (Match m) => '${m[1]},',
-      );
-    }
-    return priceStr;
-  }
-
   List<Widget> _buildPageIndicator() {
     List<Widget> list = [];
     for (int i = 0; i < _numOfPages; i++) {
@@ -87,12 +78,20 @@ class _FoodDetailState extends State<FoodDetail> {
         ),
         actions: [
           Padding(
-            padding: EdgeInsets.only(
+            padding: const EdgeInsets.only(
               right: horizontalPadding,
             ),
-            child: Icon(
-              Icons.favorite_border_rounded,
-              color: blackColor,
+            child: Consumer<FoodieStore>(
+              builder: (context, store, _) {
+                final isFavorite = store.isFavorite(widget.food);
+                return IconButton(
+                  onPressed: () => store.toggleFavorite(widget.food),
+                  icon: Icon(
+                    isFavorite ? Icons.favorite : Icons.favorite_border_rounded,
+                    color: isFavorite ? primaryColor : blackColor,
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -163,8 +162,8 @@ class _FoodDetailState extends State<FoodDetail> {
             ),
             Align(
               child: Text(
-                _formatPrice(widget.food.price),
-                style: TextStyle(
+                '${formatCurrency(widget.food.price)} đ',
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
                   color: primaryColor,
@@ -196,7 +195,14 @@ class _FoodDetailState extends State<FoodDetail> {
 
             FoodieButton(
               text: FoodieStrings.addToCart,
-              onPressed: () {},
+              onPressed: () {
+                context.read<FoodieStore>().addToCart(widget.food);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${widget.food.name} đã thêm vào giỏ'),
+                  ),
+                );
+              },
             ),
           ],
         ),

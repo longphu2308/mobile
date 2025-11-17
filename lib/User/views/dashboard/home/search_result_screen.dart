@@ -52,18 +52,7 @@ class SearchResultScreen extends StatelessWidget {
 class _SearchFound extends StatelessWidget {
   final List<Food> foodList;
 
-  const _SearchFound({super.key, required this.foodList});
-
-  String _formatPrice(double price) {
-    final priceStr = price.toStringAsFixed(0);
-    if (priceStr.length > 3) {
-      return priceStr.replaceAllMapped(
-        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-        (Match m) => '${m[1]},',
-      );
-    }
-    return priceStr;
-  }
+  const _SearchFound({required this.foodList});
 
   @override
   Widget build(BuildContext context) {
@@ -159,7 +148,7 @@ class _SearchFound extends StatelessWidget {
                         const SizedBox(height: 8),
                         // Price
                         Text(
-                          _formatPrice(food.price),
+                          '${formatCurrency(food.price)} đ',
                           style: TextStyle(
                             fontSize: 14,
                             color: primaryColor,

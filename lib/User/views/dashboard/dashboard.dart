@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/User/views/dashboard/home/home_screen.dart';
+import 'package:mobile/User/views/dashboard/favorites/favorites_screen.dart';
+import 'package:mobile/User/views/dashboard/profile/profile_screen.dart';
+import 'package:mobile/User/views/dashboard/history/history_screen.dart';
 import 'package:mobile/User/utils/utils.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -53,35 +56,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 0:
         return const HomeScreen();
       case 1:
-        return _buildPlaceholder('Favorites');
+        return const FavoritesScreen();
       case 2:
-        return _buildPlaceholder('Profile');
+        return const ProfileScreen();
       case 3:
-        return _buildPlaceholder('History');
+        return const HistoryScreen();
       default:
         return const HomeScreen();
     }
   }
 
-  Widget _buildPlaceholder(String title) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.place, size: 64, color: Colors.grey[400]),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[600],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 
