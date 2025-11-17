@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:mobile/User/domain/models/food.dart';
 import 'package:mobile/User/presentation/widgets/widgets.dart';
 import 'package:mobile/User/presentation/controllers/cart_controller.dart';
+import 'package:mobile/core/models/food_model.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/strings.dart';
 import 'package:provider/provider.dart';
 
 class FoodDetail extends StatefulWidget {
-  final Food food;
+  final FoodModel food;
   final String tag;
 
   const FoodDetail({super.key, required this.food, required this.tag});
@@ -112,8 +112,8 @@ class _FoodDetailState extends State<FoodDetail> {
                           children: [
                             ...List.generate(
                               4,
-                              (index) => Image.asset(
-                                widget.food.assetSrc,
+                              (index) => Image.network(
+                                widget.food.imageUrl,
                                 fit: BoxFit.fitHeight,
                                 errorBuilder: (context, error, stackTrace) {
                                   return Container(
@@ -159,20 +159,6 @@ class _FoodDetailState extends State<FoodDetail> {
                           fontWeight: FontWeight.w600,
                           color: primaryColor,
                         ),
-                      ),
-                    ),
-                    YBox(10),
-                    Align(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.store, size: 16, color: greyColor),
-                          const SizedBox(width: 4),
-                          Text(
-                            widget.food.restaurantName,
-                            style: TextStyle(fontSize: 14, color: greyColor),
-                          ),
-                        ],
                       ),
                     ),
                     YBox(30),

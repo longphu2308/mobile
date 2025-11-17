@@ -18,6 +18,7 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
   void initState() {
     super.initState();
     _controller = PromotionsController();
+    _controller.loadPromos();
   }
 
   void _createPromo() {
@@ -57,8 +58,9 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
                 final promo = controller.promos[idx];
                 return PromoCard(
                   promo: promo,
-                  onToggle: () => controller.toggleActive(idx),
-                  onDelete: () => controller.deletePromo(idx),
+                  onToggle: () =>
+                      controller.toggleActive(promo.id, !promo.active),
+                  onDelete: () => controller.deletePromo(promo.id),
                   onShowDetail: () => showPromoDetail(context, promo),
                 );
               },

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mobile/User/domain/models/food.dart';
 import 'package:mobile/User/presentation/widgets/widgets.dart';
+import 'package:mobile/core/models/food_model.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/assets.dart';
 import 'package:mobile/User/utils/strings.dart';
@@ -8,7 +8,7 @@ import 'package:mobile/config/routes.dart';
 
 class SearchResultScreen extends StatelessWidget {
   final String searchString;
-  final List<Food> foundFoodList;
+  final List<FoodModel> foundFoodList;
 
   const SearchResultScreen({
     super.key,
@@ -38,21 +38,19 @@ class SearchResultScreen extends StatelessWidget {
             ),
           ),
         ),
-        titleTextStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: blackColor,
-            ),
+        titleTextStyle: Theme.of(
+          context,
+        ).textTheme.titleLarge?.copyWith(color: blackColor),
       ),
       body: foundFoodList.isNotEmpty
-          ? _SearchFound(
-              foodList: foundFoodList,
-            )
+          ? _SearchFound(foodList: foundFoodList)
           : _SearchNotFound(),
     );
   }
 }
 
 class _SearchFound extends StatelessWidget {
-  final List<Food> foodList;
+  final List<FoodModel> foodList;
 
   const _SearchFound({super.key, required this.foodList});
 
@@ -81,17 +79,16 @@ class _SearchFound extends StatelessWidget {
             ),
             child: Text(
               FoodieStrings.foundResults.replaceAll('%d', '${foodList.length}'),
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
           ),
           // Grid
           Expanded(
             child: GridView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: horizontalPadding),
+              padding: const EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+              ),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 childAspectRatio: 0.75,
@@ -105,7 +102,10 @@ class _SearchFound extends StatelessWidget {
                   onTap: () => Navigator.pushNamed(
                     context,
                     foodDetailRoute,
-                    arguments: {'food': food, 'tag': 'search_${food.name}_$index'},
+                    arguments: {
+                      'food': food,
+                      'tag': 'search_${food.name}_$index',
+                    },
                   ),
                   child: Container(
                     decoration: BoxDecoration(
@@ -125,8 +125,8 @@ class _SearchFound extends StatelessWidget {
                         const SizedBox(height: 16),
                         // Circular image
                         ClipOval(
-                          child: Image.asset(
-                            food.assetSrc,
+                          child: Image.network(
+                            food.imageUrl,
                             width: 120,
                             height: 120,
                             fit: BoxFit.cover,
@@ -190,23 +190,13 @@ class _SearchNotFound extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              FoodieAssets.notFound,
-            ),
+            Image.asset(FoodieAssets.notFound),
             YBox(20),
-            Text(
-              FoodieStrings.searchNotFound,
-              style: TextStyle(
-                fontSize: 28,
-              ),
-            ),
+            Text(FoodieStrings.searchNotFound, style: TextStyle(fontSize: 28)),
             YBox(10),
             Text(
               FoodieStrings.searchNotFoundHint,
-              style: TextStyle(
-                fontSize: 17,
-                color: greyColor,
-              ),
+              style: TextStyle(fontSize: 17, color: greyColor),
               textAlign: TextAlign.center,
             ),
           ],

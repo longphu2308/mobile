@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/User/utils/utils.dart';
+import 'package:mobile/core/models/food_model.dart';
 
 class MenuItemCard extends StatelessWidget {
-  final Map<String, dynamic> item;
+  final FoodModel item;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final ValueChanged<bool> onToggle;
@@ -32,12 +33,20 @@ class MenuItemCard extends StatelessWidget {
           // Ảnh món
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
-            child: item['image'] != ''
+            child: item.imageUrl.isNotEmpty
                 ? Image.network(
-                    item['image'],
+                    item.imageUrl,
                     width: 60,
                     height: 60,
                     fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 60,
+                        height: 60,
+                        color: Colors.grey.shade200,
+                        child: const Icon(Icons.fastfood, color: Colors.grey),
+                      );
+                    },
                   )
                 : Container(
                     width: 60,
@@ -53,19 +62,21 @@ class MenuItemCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item['name'],
+                  item.name,
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 16,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '₫ ${item['price']}',
+                  '₫ ${item.price}',
                   style: const TextStyle(color: Colors.black54),
                 ),
                 Text(
-                  item['category'],
+                  item.category,
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                 ),
               ],
@@ -73,19 +84,30 @@ class MenuItemCard extends StatelessWidget {
           ),
           // Nút chức năng
           Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
                 onPressed: onEdit,
-                icon: const Icon(Icons.edit, color: Colors.black54),
+                icon: const Icon(Icons.edit, color: Colors.black54, size: 20),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
               ),
+              const SizedBox(height: 4),
               IconButton(
                 onPressed: onDelete,
-                icon: const Icon(Icons.delete, color: Colors.redAccent),
+                icon: const Icon(
+                  Icons.delete,
+                  color: Colors.redAccent,
+                  size: 20,
+                ),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
               ),
             ],
           ),
+          const SizedBox(width: 4),
           Switch(
-            value: item['available'],
+            value: item.available,
             onChanged: onToggle,
             activeColor: primaryColor,
           ),

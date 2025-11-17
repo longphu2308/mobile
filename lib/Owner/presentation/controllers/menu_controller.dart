@@ -1,53 +1,72 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:mobile/core/repositories/restaurant_repository.dart';
+import 'package:mobile/core/repositories/food_repository.dart';
+import 'package:mobile/core/models/food_model.dart';
+import 'package:mobile/core/models/restaurant_model.dart';
 
 class MenuScreenController extends ChangeNotifier {
   final Color primaryColor = const Color(0xFFFF6B1D);
+  final FoodRepository _foodRepository = FoodRepository();
+  final RestaurantRepository _restaurantRepository = RestaurantRepository();
+
+  RestaurantModel? _restaurant;
+  List<FoodModel> _menu = [];
+  bool _isLoading = false;
+  String? _error;
 
   // Danh mục món
-  final List<String> _categories = ['Tất cả', 'Món chính', 'Đồ uống', 'Combo'];
-
-  String _selectedCategory = 'Tất cả';
-
-  final List<Map<String, dynamic>> _menu = [
-    {
-      'id': 'F001',
-      'name': 'Cơm chiên hải sản',
-      'price': 35000,
-      'available': true,
-      'category': 'Món chính',
-      'image': '',
-      'desc': 'Cơm chiên thơm ngon với hải sản tươi sống',
-      'options': {'Size': 'Vừa', 'Topping': 'Không'},
-    },
-    {
-      'id': 'F002',
-      'name': 'Trà sữa trân châu',
-      'price': 29000,
-      'available': true,
-      'category': 'Đồ uống',
-      'image': '',
-      'desc': 'Thức uống ngọt ngào, mát lạnh, topping trân châu dai ngon',
-      'options': {'Size': 'Lớn', 'Đá': 'Vừa'},
-    },
-    {
-      'id': 'F003',
-      'name': 'Combo ăn trưa',
-      'price': 55000,
-      'available': false,
-      'category': 'Combo',
-      'image': '',
-      'desc': 'Cơm + Canh + Tráng miệng – đủ chất cho bữa trưa!',
-      'options': {},
-    },
+  final List<String> _categories = [
+    'Tất cả',
+    'main',
+    'appetizer',
+    'dessert',
+    'drink',
+    'combo',
   ];
+  String _selectedCategory = 'Tất cả';
 
   List<String> get categories => _categories;
   String get selectedCategory => _selectedCategory;
-  List<Map<String, dynamic>> get menu => _menu;
+  List<FoodModel> get menu => _menu;
+  bool get isLoading => _isLoading;
+  String? get error => _error;
 
-  List<Map<String, dynamic>> get filteredMenu {
+  List<FoodModel> get filteredMenu {
     if (_selectedCategory == 'Tất cả') return _menu;
-    return _menu.where((m) => m['category'] == _selectedCategory).toList();
+    return _menu.where((m) => m.category == _selectedCategory).toList();
+  }
+
+  // Load menu của restaurant
+  Future<void> loadMenu() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) {
+        _error = 'User not authenticated';
+        return;
+      }
+
+      // Lấy restaurant của owner
+      _restaurant = await _restaurantRepository.getRestaurantByOwnerId(userId);
+
+      if (_restaurant == null) {
+        _error = 'Restaurant not found';
+        return;
+      }
+
+      // Lấy tất cả món ăn của restaurant
+      _menu = await _foodRepository.getFoodsByRestaurant(_restaurant!.id);
+    } catch (e) {
+      _error = 'Error loading menu: $e';
+      print(_error);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   void selectCategory(String category) {
@@ -55,27 +74,73 @@ class MenuScreenController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleAvailability(int index) {
-    final item = filteredMenu[index];
-    item['available'] = !item['available'];
-    notifyListeners();
-  }
+  Future<void> toggleAvailability(String foodId, bool currentAvailable) async {
+    try {
+      final success = await _foodRepository.updateFoodAvailability(
+        foodId,
+        !currentAvailable,
+      );
 
-  void deleteItem(String id) {
-    _menu.removeWhere((item) => item['id'] == id);
-    notifyListeners();
-  }
-
-  void addItem(Map<String, dynamic> item) {
-    _menu.add(item);
-    notifyListeners();
-  }
-
-  void updateItem(String id, Map<String, dynamic> updatedItem) {
-    final idx = _menu.indexWhere((i) => i['id'] == id);
-    if (idx != -1) {
-      _menu[idx] = updatedItem;
-      notifyListeners();
+      if (success) {
+        final index = _menu.indexWhere((f) => f.id == foodId);
+        if (index >= 0) {
+          _menu[index] = _menu[index].copyWith(available: !currentAvailable);
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      print('Error toggling availability: $e');
     }
+  }
+
+  Future<void> deleteItem(String foodId) async {
+    try {
+      final success = await _foodRepository.deleteFood(foodId);
+
+      if (success) {
+        _menu.removeWhere((item) => item.id == foodId);
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error deleting food: $e');
+    }
+  }
+
+  Future<void> addItem(FoodModel food) async {
+    if (_restaurant == null) return;
+
+    try {
+      final foodId = await _foodRepository.createFood(food);
+
+      if (foodId != null) {
+        _menu.add(food.copyWith(id: foodId));
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error adding food: $e');
+    }
+  }
+
+  Future<void> updateItem(String foodId, FoodModel updatedFood) async {
+    try {
+      final success = await _foodRepository.updateFood(
+        foodId,
+        updatedFood.toMap(),
+      );
+
+      if (success) {
+        final idx = _menu.indexWhere((i) => i.id == foodId);
+        if (idx != -1) {
+          _menu[idx] = updatedFood.copyWith(id: foodId);
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      print('Error updating food: $e');
+    }
+  }
+
+  Future<void> refresh() async {
+    await loadMenu();
   }
 }

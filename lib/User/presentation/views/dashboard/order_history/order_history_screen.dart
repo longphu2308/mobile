@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mobile/User/domain/models/order.dart';
-import 'package:mobile/User/domain/models/cart_item.dart';
 import 'package:mobile/User/presentation/controllers/order_controller.dart';
+import 'package:mobile/core/models/order_model.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:provider/provider.dart';
 
@@ -80,7 +79,7 @@ class OrderHistoryScreen extends StatelessWidget {
 }
 
 class _OrderCard extends StatelessWidget {
-  final Order order;
+  final OrderModel order;
   final String Function(double) formatPrice;
   final String Function(DateTime) formatDate;
 
@@ -131,7 +130,7 @@ class _OrderCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  order.status == 'completed' ? 'Hoàn thành' : order.status,
+                  _getStatusText(order.status),
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -162,7 +161,7 @@ class _OrderCard extends StatelessWidget {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               Text(
-                formatPrice(order.totalPrice),
+                formatPrice(order.totalAmount),
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -177,103 +176,77 @@ class _OrderCard extends StatelessWidget {
   }
 
   List<Widget> _buildGroupedItems(
-    List<CartItem> items,
+    List<OrderItemModel> items,
     String Function(double) formatPrice,
   ) {
-    // Group items by restaurant
-    final Map<String, List<CartItem>> grouped = {};
-    for (var item in items) {
-      final restaurantName = item.food.restaurantName;
-      if (!grouped.containsKey(restaurantName)) {
-        grouped[restaurantName] = [];
-      }
-      grouped[restaurantName]!.add(item);
-    }
-
+    // OrderItemModel doesn't have restaurant grouping, show all items
     final List<Widget> widgets = [];
-    grouped.forEach((restaurantName, restaurantItems) {
-      // Restaurant header if multiple restaurants
-      if (grouped.length > 1) {
-        widgets.add(
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8, top: 8),
-            child: Row(
-              children: [
-                Icon(Icons.store, size: 14, color: primaryColor),
-                const SizedBox(width: 4),
-                Text(
-                  restaurantName,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: greyColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }
 
-      // Items from this restaurant
-      widgets.addAll(
-        restaurantItems.map(
-          (item) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
-              children: [
-                ClipOval(
-                  child: Image.asset(
-                    item.food.assetSrc,
-                    width: 40,
-                    height: 40,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 40,
-                        height: 40,
-                        color: Colors.grey[300],
-                        child: Icon(
-                          Icons.image_not_supported_outlined,
-                          color: Colors.grey[600],
-                          size: 20,
-                        ),
-                      );
-                    },
-                  ),
+    widgets.addAll(
+      items.map(
+        (item) => Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    item.food.name,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Text(
-                  'x${item.quantity}',
-                  style: TextStyle(fontSize: 14, color: greyColor),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  formatPrice(item.totalPrice),
+                child: Icon(Icons.fastfood, color: Colors.grey[600], size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  item.foodName,
                   style: const TextStyle(
                     fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: primaryColor,
+                    fontWeight: FontWeight.w500,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
-            ),
+              ),
+              Text(
+                'x${item.quantity}',
+                style: TextStyle(fontSize: 14, color: greyColor),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                formatPrice(item.price * item.quantity),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: primaryColor,
+                ),
+              ),
+            ],
           ),
         ),
-      );
-    });
+      ),
+    );
 
     return widgets;
+  }
+
+  String _getStatusText(String status) {
+    switch (status) {
+      case 'pending':
+        return 'Chờ xác nhận';
+      case 'confirmed':
+        return 'Đã xác nhận';
+      case 'preparing':
+        return 'Đang chuẩn bị';
+      case 'delivering':
+        return 'Đang giao';
+      case 'delivered':
+        return 'Hoàn tất';
+      case 'cancelled':
+        return 'Đã hủy';
+      default:
+        return status;
+    }
   }
 }

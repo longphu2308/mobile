@@ -5,7 +5,9 @@ class UserModel {
   final String email;
   final String? fullName;
   final String? phone;
-  final String role;
+  final String role; // 'user' hoặc 'owner'
+  final String? address; // địa chỉ mặc định cho user
+  final String? restaurantId; // chỉ nếu role == 'owner'
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -15,6 +17,8 @@ class UserModel {
     this.fullName,
     this.phone,
     this.role = 'user',
+    this.address,
+    this.restaurantId,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -27,6 +31,8 @@ class UserModel {
       fullName: data['fullName'],
       phone: data['phone'],
       role: data['role'] ?? 'user',
+      address: data['address'],
+      restaurantId: data['restaurantId'],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -39,8 +45,10 @@ class UserModel {
       'fullName': fullName,
       'phone': phone,
       'role': role,
-      'createdAt': createdAt,
-      'updatedAt': DateTime.now(),
+      'address': address,
+      'restaurantId': restaurantId,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'updatedAt': Timestamp.fromDate(DateTime.now()),
     };
   }
 
@@ -51,6 +59,8 @@ class UserModel {
     String? fullName,
     String? phone,
     String? role,
+    String? address,
+    String? restaurantId,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -60,6 +70,8 @@ class UserModel {
       fullName: fullName ?? this.fullName,
       phone: phone ?? this.phone,
       role: role ?? this.role,
+      address: address ?? this.address,
+      restaurantId: restaurantId ?? this.restaurantId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

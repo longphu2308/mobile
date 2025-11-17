@@ -19,6 +19,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   void initState() {
     super.initState();
     _controller = DashboardController();
+    _controller.loadDashboardData();
   }
 
   @override

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile/Owner/presentation/controllers/menu_controller.dart';
 import 'package:mobile/Owner/presentation/widgets/widgets.dart';
 import 'package:mobile/User/utils/utils.dart';
+import 'package:mobile/core/models/food_model.dart';
 import 'package:provider/provider.dart';
 import 'package:mobile/config/routes.dart';
 
@@ -19,6 +20,7 @@ class _MenuScreenState extends State<MenuScreen> {
   void initState() {
     super.initState();
     _controller = MenuScreenController();
+    _controller.loadMenu();
   }
 
   @override
@@ -26,25 +28,20 @@ class _MenuScreenState extends State<MenuScreen> {
     super.dispose();
   }
 
-  Future<void> _openEdit(Map<String, dynamic> food) async {
-    final res = await Navigator.pushNamed<Map<String, dynamic>>(
-      context,
-      ownerEditFoodRoute,
-      arguments: {'food': food},
+  void _openEdit(FoodModel food) async {
+    // For now, skip edit navigation until edit_food_screen is updated
+    // TODO: Update edit_food_screen to work with FoodModel
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Tính năng chỉnh sửa đang được cập nhật')),
     );
-    if (res != null) {
-      _controller.updateItem(res['id'], res);
-    }
   }
 
   void _addNew() async {
-    final res = await Navigator.pushNamed<Map<String, dynamic>>(
-      context,
-      ownerEditFoodRoute,
+    // For now, skip add navigation until edit_food_screen is updated
+    // TODO: Update edit_food_screen to work with FoodModel
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Tính năng thêm mới đang được cập nhật')),
     );
-    if (res != null) {
-      _controller.addItem(res);
-    }
   }
 
   @override
@@ -118,9 +115,9 @@ class _MenuScreenState extends State<MenuScreen> {
                         return MenuItemCard(
                           item: item,
                           onEdit: () => _openEdit(item),
-                          onDelete: () => controller.deleteItem(item['id']),
+                          onDelete: () => controller.deleteItem(item.id),
                           onToggle: (value) =>
-                              controller.toggleAvailability(idx),
+                              controller.toggleAvailability(item.id, value),
                         );
                       },
                     ),

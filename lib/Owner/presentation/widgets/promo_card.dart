@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/User/utils/utils.dart';
+import 'package:mobile/core/models/promo_model.dart';
 
 class PromoCard extends StatelessWidget {
-  final Map<String, dynamic> promo;
+  final PromoModel promo;
   final VoidCallback onToggle;
   final VoidCallback onDelete;
   final VoidCallback onShowDetail;
@@ -34,7 +35,7 @@ class PromoCard extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  '${promo['code']} • ${promo['type']}',
+                  '${promo.code} • ${_getTypeText(promo.type)}',
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 16,
@@ -44,7 +45,7 @@ class PromoCard extends StatelessWidget {
                 ),
               ),
               Switch(
-                value: promo['active'],
+                value: promo.active,
                 onChanged: (_) => onToggle(),
                 activeColor: primaryColor,
               ),
@@ -57,18 +58,17 @@ class PromoCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              if (promo['type'] != 'Miễn phí vận chuyển')
-                Flexible(
-                  child: Text(
-                    "Giảm ${promo['value']}% (tối đa ₫${promo['maxDiscount']})",
-                    style: const TextStyle(fontSize: 13),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 2,
-                  ),
-                ),
               Flexible(
                 child: Text(
-                  "Đã dùng: ${promo['used']}",
+                  "Giảm ${promo.discount}%",
+                  style: const TextStyle(fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                ),
+              ),
+              Flexible(
+                child: Text(
+                  "Đã dùng: ${promo.usedCount}",
                   style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -83,125 +83,68 @@ class PromoCard extends StatelessWidget {
       ),
     );
   }
+
+  String _getTypeText(String type) {
+    switch (type) {
+      case 'user':
+        return 'Khách hàng';
+      case 'owner':
+        return 'Chủ quán';
+      case 'both':
+        return 'Tất cả';
+      default:
+        return type;
+    }
+  }
 }
 
-void showPromoDetail(BuildContext context, Map<String, dynamic> promo) {
-  showModalBottomSheet(
-    context: context,
-    backgroundColor: whiteColor,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
-    builder: (_) => Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Chi tiết chương trình",
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 10),
-          Text("Mã: ${promo['code']}"),
-          Text("Loại: ${promo['type']}"),
-          if (promo['type'] != 'Miễn phí vận chuyển')
-            Text("Giá trị giảm: ${promo['value']}%"),
-          if (promo['maxDiscount'] > 0)
-            Text("Giảm tối đa: ₫${promo['maxDiscount']}"),
-          const SizedBox(height: 10),
-          Text("Đã sử dụng: ${promo['used']} lượt"),
-          const SizedBox(height: 20),
-          ElevatedButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.insights),
-            label: const Text('Xem báo cáo hiệu quả'),
-            style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
+// Dialog functions remain below but need updating
 void showCreatePromoDialog(
   BuildContext context,
-  Function(Map<String, dynamic>) onCreate,
+  Function(PromoModel) onCreate,
 ) {
-  final codeCtrl = TextEditingController();
-  final valueCtrl = TextEditingController();
-  final maxCtrl = TextEditingController();
-  String selectedType = 'Giảm %';
-
   showDialog(
     context: context,
     builder: (context) {
       return AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(radius),
-        ),
-        title: const Text('Tạo chương trình mới'),
+        title: const Text('Thêm khuyến mãi mới'),
+        content: const Text('Chức năng đang được cập nhật'),
+        actions: [
+          TextButton(
+            child: const Text('Hủy'),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+void showPromoDetail(BuildContext context, PromoModel promo) {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: Text('Mã: ${promo.code}'),
         content: SingleChildScrollView(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                controller: codeCtrl,
-                decoration: const InputDecoration(labelText: 'Mã khuyến mãi'),
-              ),
-              DropdownButtonFormField<String>(
-                value: selectedType,
-                decoration: const InputDecoration(labelText: 'Loại khuyến mãi'),
-                items: const [
-                  DropdownMenuItem(value: 'Giảm %', child: Text('Giảm %')),
-                  DropdownMenuItem(
-                    value: 'Miễn phí vận chuyển',
-                    child: Text('Miễn phí vận chuyển'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'Chiến dịch',
-                    child: Text('Chiến dịch đặc biệt'),
-                  ),
-                ],
-                onChanged: (val) => selectedType = val ?? 'Giảm %',
-              ),
-              TextField(
-                controller: valueCtrl,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Giá trị giảm (%)',
-                ),
-              ),
-              TextField(
-                controller: maxCtrl,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Giảm tối đa (VND)',
-                ),
+              Text('Mô tả: ${promo.description}'),
+              Text('Giảm: ${promo.discount}%'),
+              Text('Loại: ${promo.type}'),
+              Text('Đã sử dụng: ${promo.usedCount} lần'),
+              Text(
+                'Trạng thái: ${promo.active ? "Hoạt động" : "Không hoạt động"}',
               ),
             ],
           ),
         ),
         actions: [
           TextButton(
-            child: const Text('Hủy'),
+            child: const Text('Đóng'),
             onPressed: () => Navigator.pop(context),
-          ),
-          ElevatedButton(
-            child: const Text('Tạo'),
-            onPressed: () {
-              final promo = {
-                'code': codeCtrl.text.isNotEmpty
-                    ? codeCtrl.text
-                    : 'NEW${DateTime.now().millisecondsSinceEpoch}',
-                'type': selectedType,
-                'value': int.tryParse(valueCtrl.text) ?? 5,
-                'maxDiscount': int.tryParse(maxCtrl.text) ?? 10000,
-                'active': true,
-                'used': 0,
-              };
-              onCreate(promo);
-              Navigator.pop(context);
-            },
           ),
         ],
       );

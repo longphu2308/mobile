@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/User/utils/utils.dart';
+import 'package:mobile/core/models/order_model.dart';
 
 class OrderCard extends StatelessWidget {
-  final Map<String, dynamic> order;
+  final OrderModel order;
   final VoidCallback onUpdateStatus;
   final VoidCallback onCancel;
   final VoidCallback onShowDetail;
@@ -40,7 +41,7 @@ class OrderCard extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  order['name'],
+                  'Đơn hàng #${order.id.substring(0, 8)}',
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 16,
@@ -48,7 +49,7 @@ class OrderCard extends StatelessWidget {
                 ),
               ),
               Text(
-                "₫${order['price']}",
+                "₫${order.totalAmount}",
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -61,7 +62,7 @@ class OrderCard extends StatelessWidget {
             children: [
               Chip(
                 label: Text(
-                  order['status'],
+                  _getStatusText(order.status),
                   style: const TextStyle(color: whiteColor),
                 ),
                 backgroundColor: statusColor,
@@ -74,7 +75,7 @@ class OrderCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          if (order['status'] == 'Chờ xác nhận') ...[
+          if (order.status == 'pending') ...[
             Row(
               children: [
                 ElevatedButton(
@@ -97,8 +98,8 @@ class OrderCard extends StatelessWidget {
                 ),
               ],
             ),
-          ] else if (order['status'] != 'Đã hủy' &&
-              order['status'] != 'Hoàn tất') ...[
+          ] else if (order.status != 'cancelled' &&
+              order.status != 'delivered') ...[
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
@@ -110,6 +111,25 @@ class OrderCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _getStatusText(String status) {
+    switch (status) {
+      case 'pending':
+        return 'Chờ xác nhận';
+      case 'confirmed':
+        return 'Đã xác nhận';
+      case 'preparing':
+        return 'Đang chuẩn bị';
+      case 'delivering':
+        return 'Đang giao';
+      case 'delivered':
+        return 'Hoàn tất';
+      case 'cancelled':
+        return 'Đã hủy';
+      default:
+        return status;
+    }
   }
 }
 

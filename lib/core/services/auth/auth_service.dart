@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:mobile/User/domain/models/user.dart';
+import 'package:mobile/core/models/user_model.dart';
 import 'package:mobile/core/errors/app_exception.dart';
 
 class AuthService {

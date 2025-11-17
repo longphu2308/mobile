@@ -1,47 +1,120 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:mobile/core/repositories/restaurant_repository.dart';
+import 'package:mobile/core/repositories/promo_repository.dart';
+import 'package:mobile/core/models/restaurant_model.dart';
+import 'package:mobile/core/models/promo_model.dart';
 
 class PromotionsController extends ChangeNotifier {
-  final List<Map<String, dynamic>> _promos = [
-    {
-      'code': 'WELCOME10',
-      'type': 'Giảm %',
-      'value': 10,
-      'maxDiscount': 10000,
-      'active': true,
-      'used': 25,
-    },
-    {
-      'code': 'FREESHIP',
-      'type': 'Miễn phí vận chuyển',
-      'value': 0,
-      'maxDiscount': 0,
-      'active': true,
-      'used': 40,
-    },
-    {
-      'code': 'FLASHSALE',
-      'type': 'Chiến dịch',
-      'value': 20,
-      'maxDiscount': 15000,
-      'active': false,
-      'used': 12,
-    },
-  ];
+  final RestaurantRepository _restaurantRepository = RestaurantRepository();
+  final PromoRepository _promoRepository = PromoRepository();
 
-  List<Map<String, dynamic>> get promos => _promos;
+  RestaurantModel? _restaurant;
+  List<PromoModel> _promos = [];
+  bool _isLoading = false;
+  String? _error;
 
-  void toggleActive(int idx) {
-    _promos[idx]['active'] = !_promos[idx]['active'];
+  List<PromoModel> get promos => _promos;
+  bool get isLoading => _isLoading;
+  String? get error => _error;
+
+  // Load promos của restaurant
+  Future<void> loadPromos() async {
+    _isLoading = true;
+    _error = null;
     notifyListeners();
+
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) {
+        _error = 'User not authenticated';
+        return;
+      }
+
+      // Lấy restaurant của owner
+      _restaurant = await _restaurantRepository.getRestaurantByOwnerId(userId);
+
+      if (_restaurant == null) {
+        _error = 'Restaurant not found';
+        return;
+      }
+
+      // Lấy tất cả promos của restaurant
+      _promos = await _promoRepository.getRestaurantPromos(_restaurant!.id);
+    } catch (e) {
+      _error = 'Error loading promos: $e';
+      print(_error);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
-  void deletePromo(int idx) {
-    _promos.removeAt(idx);
-    notifyListeners();
+  Future<void> toggleActive(String promoId, bool currentActive) async {
+    try {
+      final success = await _promoRepository.togglePromoActive(
+        promoId,
+        !currentActive,
+      );
+
+      if (success) {
+        final index = _promos.indexWhere((p) => p.id == promoId);
+        if (index >= 0) {
+          _promos[index] = _promos[index].copyWith(active: !currentActive);
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      print('Error toggling promo active: $e');
+    }
   }
 
-  void addPromo(Map<String, dynamic> promo) {
-    _promos.add(promo);
-    notifyListeners();
+  Future<void> deletePromo(String promoId) async {
+    try {
+      final success = await _promoRepository.deletePromo(promoId);
+
+      if (success) {
+        _promos.removeWhere((p) => p.id == promoId);
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error deleting promo: $e');
+    }
+  }
+
+  Future<void> addPromo(PromoModel promo) async {
+    try {
+      final promoId = await _promoRepository.createPromo(promo);
+
+      if (promoId != null) {
+        _promos.add(promo.copyWith(id: promoId));
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error adding promo: $e');
+    }
+  }
+
+  Future<void> updatePromo(String promoId, PromoModel updatedPromo) async {
+    try {
+      final success = await _promoRepository.updatePromo(
+        promoId,
+        updatedPromo.toMap(),
+      );
+
+      if (success) {
+        final index = _promos.indexWhere((p) => p.id == promoId);
+        if (index >= 0) {
+          _promos[index] = updatedPromo.copyWith(id: promoId);
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      print('Error updating promo: $e');
+    }
+  }
+
+  Future<void> refresh() async {
+    await loadPromos();
   }
 }

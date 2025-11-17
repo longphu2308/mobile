@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile/Owner/presentation/controllers/orders_controller.dart';
 import 'package:mobile/Owner/presentation/widgets/widgets.dart';
 import 'package:mobile/User/utils/utils.dart';
+import 'package:mobile/core/models/order_model.dart';
 import 'package:provider/provider.dart';
 
 class OrdersScreen extends StatefulWidget {
@@ -18,6 +19,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   void initState() {
     super.initState();
     _controller = OrdersController();
+    _controller.loadOrders();
   }
 
   @override
@@ -47,15 +49,68 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 final order = controller.orders[index];
                 return OrderCard(
                   order: order,
-                  statusColor: controller.statusColor(order['status']),
-                  onUpdateStatus: () => controller.updateStatus(index),
-                  onCancel: () => controller.cancelOrder(index),
-                  onShowDetail: () => showOrderDetail(context, order),
+                  statusColor: controller.statusColor(order.status),
+                  onUpdateStatus: () => controller.updateStatus(
+                    order.id,
+                    _getNextStatus(order.status),
+                  ),
+                  onCancel: () => controller.cancelOrder(order.id),
+                  onShowDetail: () => _showOrderDetail(context, order),
                 );
               },
             ),
           );
         },
+      ),
+    );
+  }
+
+  String _getNextStatus(String currentStatus) {
+    switch (currentStatus) {
+      case 'pending':
+        return 'confirmed';
+      case 'confirmed':
+        return 'preparing';
+      case 'preparing':
+        return 'delivering';
+      case 'delivering':
+        return 'delivered';
+      default:
+        return currentStatus;
+    }
+  }
+
+  void _showOrderDetail(BuildContext context, OrderModel order) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Đơn hàng #${order.id.substring(0, 8)}'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Khách hàng: ${order.userId}'),
+              Text('Địa chỉ: ${order.deliveryAddress}'),
+              Text('Tổng tiền: ₫${order.totalAmount}'),
+              const SizedBox(height: 10),
+              const Text(
+                'Món ăn:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              ...order.items.map(
+                (item) =>
+                    Text('${item.foodName} x${item.quantity} - ₫${item.price}'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Đóng'),
+          ),
+        ],
       ),
     );
   }

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:mobile/User/domain/models/food.dart';
 import 'package:mobile/User/presentation/widgets/widgets.dart';
 import 'package:mobile/User/presentation/controllers/cart_controller.dart';
 import 'package:mobile/core/services/food/food_service.dart';
+import 'package:mobile/core/models/food_model.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/strings.dart';
 import 'package:mobile/config/routes.dart';
@@ -195,7 +195,7 @@ class _HomeScreenState extends State<HomeScreen>
 }
 
 class _FoodEntry extends StatelessWidget {
-  final Food food;
+  final FoodModel food;
   final String tag;
 
   const _FoodEntry({super.key, required this.food, required this.tag});
@@ -231,8 +231,8 @@ class _FoodEntry extends StatelessWidget {
             Hero(
               tag: tag,
               child: ClipOval(
-                child: Image.asset(
-                  food.assetSrc,
+                child: Image.network(
+                  food.imageUrl,
                   width: 200,
                   height: 200,
                   fit: BoxFit.cover,
