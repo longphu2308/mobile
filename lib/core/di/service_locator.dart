@@ -3,12 +3,16 @@ import 'package:provider/single_child_widget.dart';
 import 'package:mobile/User/presentation/controllers/auth_controller.dart';
 import 'package:mobile/User/presentation/controllers/cart_controller.dart';
 import 'package:mobile/User/presentation/controllers/order_controller.dart';
+import 'package:mobile/User/presentation/controllers/user_controller.dart';
+import 'package:mobile/User/presentation/controllers/favorite_controller.dart';
 import 'package:mobile/core/services/food/food_service.dart';
 
 List<SingleChildWidget> getProviders() {
   return [
     ChangeNotifierProvider(create: (_) => AuthController()),
     ChangeNotifierProvider(create: (_) => FoodService()),
+    ChangeNotifierProvider(create: (_) => UserController()),
+    ChangeNotifierProvider(create: (_) => FavoriteController()),
 
     ChangeNotifierProxyProvider<AuthController, CartController>(
       create: (context) {

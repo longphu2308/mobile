@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/User/presentation/widgets/widgets.dart';
 import 'package:mobile/User/presentation/controllers/cart_controller.dart';
+import 'package:mobile/User/presentation/controllers/favorite_controller.dart';
+import 'package:mobile/User/presentation/controllers/auth_controller.dart';
 import 'package:mobile/core/models/food_model.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/strings.dart';
@@ -20,6 +22,8 @@ class _FoodDetailState extends State<FoodDetail> {
   late PageController _pageController;
   final int _numOfPages = 4;
   int _currentPage = 0;
+  bool _isFavorited = false;
+  bool _isCheckingFavorite = true;
 
   final TextStyle _helperStyle = TextStyle(
     fontSize: 17,
@@ -32,6 +36,87 @@ class _FoodDetailState extends State<FoodDetail> {
   void initState() {
     super.initState();
     _pageController = PageController();
+    _checkFavoriteStatus();
+  }
+
+  Future<void> _checkFavoriteStatus() async {
+    final authController = Provider.of<AuthController>(context, listen: false);
+    final favoriteController =
+        Provider.of<FavoriteController>(context, listen: false);
+
+    if (authController.currentUser == null) {
+      setState(() {
+        _isCheckingFavorite = false;
+        _isFavorited = false;
+      });
+      return;
+    }
+
+    favoriteController.setUserId(authController.currentUser!.userId);
+    final isFavorited =
+        await favoriteController.isFavorited(widget.food.restaurantId);
+
+    if (mounted) {
+      setState(() {
+        _isFavorited = isFavorited;
+        _isCheckingFavorite = false;
+      });
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    final authController = Provider.of<AuthController>(context, listen: false);
+    final favoriteController =
+        Provider.of<FavoriteController>(context, listen: false);
+
+    if (authController.currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng đăng nhập để thêm vào yêu thích'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    favoriteController.setUserId(authController.currentUser!.userId);
+
+    setState(() {
+      _isFavorited = !_isFavorited;
+    });
+
+    final success = _isFavorited
+        ? await favoriteController.addFavorite(widget.food.restaurantId)
+        : await favoriteController.removeFavorite(widget.food.restaurantId);
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _isFavorited
+                ? 'Đã thêm vào yêu thích'
+                : 'Đã xóa khỏi yêu thích',
+          ),
+          duration: const Duration(seconds: 2),
+          backgroundColor: primaryColor,
+        ),
+      );
+    } else {
+      // Revert state on failure
+      setState(() {
+        _isFavorited = !_isFavorited;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            favoriteController.errorMessage ?? 'Có lỗi xảy ra',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -85,7 +170,24 @@ class _FoodDetailState extends State<FoodDetail> {
         actions: [
           Padding(
             padding: EdgeInsets.only(right: horizontalPadding),
-            child: Icon(Icons.favorite_border_rounded, color: blackColor),
+            child: _isCheckingFavorite
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : IconButton(
+                    icon: Icon(
+                      _isFavorited
+                          ? Icons.favorite
+                          : Icons.favorite_border_rounded,
+                      color: _isFavorited ? primaryColor : blackColor,
+                    ),
+                    onPressed: _toggleFavorite,
+                    tooltip: _isFavorited
+                        ? 'Xóa khỏi yêu thích'
+                        : 'Thêm vào yêu thích',
+                  ),
           ),
         ],
       ),

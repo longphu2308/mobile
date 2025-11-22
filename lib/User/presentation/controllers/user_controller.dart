@@ -56,6 +56,7 @@ class UserController extends ChangeNotifier {
     required String userId,
     String? fullName,
     String? phone,
+    String? address,
     String? profileImageUrl,
   }) async {
     try {
@@ -66,6 +67,7 @@ class UserController extends ChangeNotifier {
         userId: userId,
         fullName: fullName,
         phone: phone,
+        address: address,
         profileImageUrl: profileImageUrl,
       );
 
@@ -74,6 +76,7 @@ class UserController extends ChangeNotifier {
         _user = _user!.copyWith(
           fullName: fullName ?? _user!.fullName,
           phone: phone ?? _user!.phone,
+          address: address ?? _user!.address,
         );
       }
 
