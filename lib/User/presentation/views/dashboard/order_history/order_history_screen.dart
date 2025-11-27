@@ -30,31 +30,15 @@ class OrderHistoryScreen extends StatelessWidget {
         elevation: 0.0,
         backgroundColor: bgColor,
         title: const Text(
-          'Lịch sử đơn hàng',
-          style: TextStyle(color: blackColor),
+          'Order History',
+          style: TextStyle(color: blackColor, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
       ),
       body: Consumer<OrderController>(
         builder: (context, orderController, child) {
           if (orderController.orders.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.history, size: 64, color: Colors.grey[400]),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Chưa có đơn hàng nào',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            );
+            return const _EmptyState();
           }
 
           return ListView.builder(
@@ -113,31 +97,14 @@ class _OrderCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Đơn hàng #${order.id.length >= 6 ? order.id.substring(order.id.length - 6) : order.id}',
+                'Order #${order.id.length >= 6 ? order.id.substring(order.id.length - 6) : order.id}',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                   color: blackColor,
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: primaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  _getStatusText(order.status),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: primaryColor,
-                  ),
-                ),
-              ),
+              _StatusChip(status: order.status),
             ],
           ),
           const SizedBox(height: 8),
@@ -157,7 +124,7 @@ class _OrderCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Total:',
+                'Total',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               Text(
@@ -231,22 +198,134 @@ class _OrderCard extends StatelessWidget {
     return widgets;
   }
 
-  String _getStatusText(String status) {
+  String _getStatusLabel(String status) {
     switch (status) {
       case 'pending':
-        return 'Chờ xác nhận';
+        return 'Pending confirmation';
       case 'confirmed':
-        return 'Đã xác nhận';
+        return 'Confirmed';
       case 'preparing':
-        return 'Đang chuẩn bị';
+        return 'Preparing';
       case 'delivering':
-        return 'Đang giao';
+        return 'Out for delivery';
       case 'delivered':
-        return 'Hoàn tất';
+        return 'Completed';
       case 'cancelled':
-        return 'Đã hủy';
+        return 'Cancelled';
       default:
         return status;
     }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'pending':
+        return const Color(0xFFFFB347);
+      case 'confirmed':
+      case 'preparing':
+        return primaryColor;
+      case 'delivering':
+        return const Color(0xFF2EC4B6);
+      case 'delivered':
+        return const Color(0xFF4CAF50);
+      case 'cancelled':
+        return Colors.redAccent;
+      default:
+        return primaryColor;
+    }
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  final String status;
+
+  const _StatusChip({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _getColor(status);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        _getLabel(status),
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  static Color _getColor(String status) {
+    switch (status) {
+      case 'pending':
+        return const Color(0xFFFFB347);
+      case 'confirmed':
+      case 'preparing':
+        return primaryColor;
+      case 'delivering':
+        return const Color(0xFF2EC4B6);
+      case 'delivered':
+        return const Color(0xFF4CAF50);
+      case 'cancelled':
+        return Colors.redAccent;
+      default:
+        return primaryColor;
+    }
+  }
+
+  static String _getLabel(String status) {
+    switch (status) {
+      case 'pending':
+        return 'Pending confirmation';
+      case 'confirmed':
+        return 'Confirmed';
+      case 'preparing':
+        return 'Preparing order';
+      case 'delivering':
+        return 'On the way';
+      case 'delivered':
+        return 'Completed';
+      case 'cancelled':
+        return 'Cancelled';
+      default:
+        return status;
+    }
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.history, size: 64, color: Colors.grey[400]),
+        const SizedBox(height: 16),
+        Text(
+          'No orders yet',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[600],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Start ordering and your history will appear here.',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[500],
+          ),
+        ),
+      ],
+    );
   }
 }
