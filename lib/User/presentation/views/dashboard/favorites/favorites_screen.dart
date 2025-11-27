@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/User/presentation/controllers/favorite_controller.dart';
 import 'package:mobile/User/presentation/controllers/auth_controller.dart';
-import 'package:mobile/core/models/restaurant_model.dart';
+import 'package:mobile/core/models/favorite_model.dart';
 import 'package:mobile/User/utils/utils.dart';
+import 'package:mobile/User/utils/formatters.dart';
 import 'package:provider/provider.dart';
 
 class FavoritesScreen extends StatefulWidget {
@@ -41,7 +42,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         backgroundColor: whiteColor,
         elevation: 0,
         title: const Text(
-          'Yêu thích',
+          'Favorites',
           style: TextStyle(color: blackColor, fontWeight: FontWeight.bold),
         ),
       ),
@@ -49,7 +50,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         builder: (context, favoriteController, authController, child) {
           if (authController.currentUser == null) {
             return const Center(
-              child: Text('Vui lòng đăng nhập để xem danh sách yêu thích'),
+              child: Text('Please log in to view favorites'),
             );
           }
 
@@ -69,14 +70,14 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: _loadFavorites,
-                    child: const Text('Thử lại'),
+                    child: const Text('Try again'),
                   ),
                 ],
               ),
             );
           }
 
-          if (favoriteController.favoriteRestaurants.isEmpty) {
+          if (favoriteController.favoriteFoods.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -88,7 +89,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Chưa có nhà hàng yêu thích',
+                    'No favorites yet',
                     style: TextStyle(
                       fontSize: 18,
                       color: Colors.grey[600],
@@ -97,7 +98,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Thêm nhà hàng vào yêu thích để xem ở đây',
+                    'Tap the heart icon on a dish to save it here',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[500],
@@ -114,19 +115,18 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             },
             child: ListView.builder(
               padding: const EdgeInsets.all(horizontalPadding),
-              itemCount: favoriteController.favoriteRestaurants.length,
+              itemCount: favoriteController.favoriteFoods.length,
               itemBuilder: (context, index) {
-                final restaurant =
-                    favoriteController.favoriteRestaurants[index];
-                return _RestaurantCard(
-                  restaurant: restaurant,
+                final favorite = favoriteController.favoriteFoods[index];
+                return _FoodCard(
+                  favorite: favorite,
                   onRemove: () async {
                     final success = await favoriteController
-                        .removeFavorite(restaurant.id);
+                        .removeFavorite(favorite.foodId);
                     if (success && context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Đã xóa khỏi yêu thích'),
+                          content: Text('Removed from favorites'),
                           duration: Duration(seconds: 2),
                         ),
                       );
@@ -142,12 +142,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 }
 
-class _RestaurantCard extends StatelessWidget {
-  final RestaurantModel restaurant;
+class _FoodCard extends StatelessWidget {
+  final FavoriteModel favorite;
   final VoidCallback onRemove;
 
-  const _RestaurantCard({
-    required this.restaurant,
+  const _FoodCard({
+    required this.favorite,
     required this.onRemove,
   });
 
@@ -168,14 +168,13 @@ class _RestaurantCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Restaurant Image
           ClipRRect(
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(radius),
               bottomLeft: Radius.circular(radius),
             ),
             child: Image.network(
-              restaurant.imageUrl,
+              favorite.foodImageUrl,
               width: 100,
               height: 100,
               fit: BoxFit.cover,
@@ -193,7 +192,6 @@ class _RestaurantCard extends StatelessWidget {
               },
             ),
           ),
-          // Restaurant Info
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -201,7 +199,7 @@ class _RestaurantCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    restaurant.name,
+                    favorite.foodName,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -212,46 +210,23 @@ class _RestaurantCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    restaurant.address,
+                    formatPrice(favorite.price),
                     style: const TextStyle(
                       fontSize: 14,
                       color: greyColor,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 8),
-                  if (restaurant.status == 'open')
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text(
-                        'Đang mở',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.green,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),
           ),
-          // Remove Button
           IconButton(
             icon: Icon(
               Icons.favorite,
               color: primaryColor,
             ),
             onPressed: onRemove,
-            tooltip: 'Xóa khỏi yêu thích',
+            tooltip: 'Remove from favorites',
           ),
         ],
       ),

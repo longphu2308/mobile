@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/core/repositories/favorite_repository.dart';
-import 'package:mobile/core/models/restaurant_model.dart';
+import 'package:mobile/core/models/favorite_model.dart';
+import 'package:mobile/core/models/food_model.dart';
 import 'package:mobile/core/errors/app_exception.dart';
 
 enum FavoriteState { initial, loading, success, error }
@@ -8,14 +9,14 @@ enum FavoriteState { initial, loading, success, error }
 class FavoriteController extends ChangeNotifier {
   final FavoriteRepository _favoriteRepository;
 
-  List<RestaurantModel> _favoriteRestaurants = [];
+  List<FavoriteModel> _favoriteFoods = [];
   FavoriteState _state = FavoriteState.initial;
   String? _errorMessage;
   bool _isLoading = false;
   String? _currentUserId;
 
   // Getters
-  List<RestaurantModel> get favoriteRestaurants => _favoriteRestaurants;
+  List<FavoriteModel> get favoriteFoods => _favoriteFoods;
   FavoriteState get state => _state;
   String? get errorMessage => _errorMessage;
   bool get isLoading => _isLoading;
@@ -28,10 +29,10 @@ class FavoriteController extends ChangeNotifier {
     _currentUserId = userId;
   }
 
-  /// Load user's favorite restaurants
+  /// Load user's favorite foods
   Future<bool> loadFavorites() async {
     if (_currentUserId == null) {
-      _errorMessage = 'Người dùng chưa đăng nhập';
+      _errorMessage = 'User not logged in';
       _state = FavoriteState.error;
       notifyListeners();
       return false;
@@ -41,8 +42,12 @@ class FavoriteController extends ChangeNotifier {
       _setLoading(true);
       _errorMessage = null;
 
-      _favoriteRestaurants =
-          await _favoriteRepository.getFavoriteRestaurants(_currentUserId!);
+      final favorites =
+          await _favoriteRepository.getUserFavorites(_currentUserId!);
+      _favoriteFoods = favorites
+          .where((favorite) =>
+              favorite.foodId.isNotEmpty && favorite.foodName.isNotEmpty)
+          .toList();
 
       _state = FavoriteState.success;
       _setLoading(false);
@@ -57,10 +62,10 @@ class FavoriteController extends ChangeNotifier {
     }
   }
 
-  /// Add restaurant to favorites
-  Future<bool> addFavorite(String restaurantId) async {
+  /// Add food to favorites
+  Future<bool> addFavorite(FoodModel food) async {
     if (_currentUserId == null) {
-      _errorMessage = 'Người dùng chưa đăng nhập';
+      _errorMessage = 'User not logged in';
       notifyListeners();
       return false;
     }
@@ -69,10 +74,8 @@ class FavoriteController extends ChangeNotifier {
       _setLoading(true);
       _errorMessage = null;
 
-      final success = await _favoriteRepository.addFavorite(
-        _currentUserId!,
-        restaurantId,
-      );
+      final success =
+          await _favoriteRepository.addFavorite(_currentUserId!, food);
 
       if (success) {
         // Reload favorites
@@ -90,10 +93,10 @@ class FavoriteController extends ChangeNotifier {
     }
   }
 
-  /// Remove restaurant from favorites
-  Future<bool> removeFavorite(String restaurantId) async {
+  /// Remove food from favorites
+  Future<bool> removeFavorite(String foodId) async {
     if (_currentUserId == null) {
-      _errorMessage = 'Người dùng chưa đăng nhập';
+      _errorMessage = 'User not logged in';
       notifyListeners();
       return false;
     }
@@ -104,7 +107,7 @@ class FavoriteController extends ChangeNotifier {
 
       final success = await _favoriteRepository.removeFavorite(
         _currentUserId!,
-        restaurantId,
+        foodId,
       );
 
       if (success) {
@@ -123,14 +126,14 @@ class FavoriteController extends ChangeNotifier {
     }
   }
 
-  /// Check if restaurant is favorited
-  Future<bool> isFavorited(String restaurantId) async {
+  /// Check if food is favorited
+  Future<bool> isFavorited(String foodId) async {
     if (_currentUserId == null) return false;
 
     try {
       return await _favoriteRepository.isFavorited(
         _currentUserId!,
-        restaurantId,
+        foodId,
       );
     } catch (e) {
       return false;
@@ -150,7 +153,7 @@ class FavoriteController extends ChangeNotifier {
 
   /// Reset controller
   void reset() {
-    _favoriteRestaurants = [];
+    _favoriteFoods = [];
     _state = FavoriteState.initial;
     _errorMessage = null;
     _isLoading = false;

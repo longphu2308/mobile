@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mobile/core/errors/app_exception.dart';
 import 'package:mobile/core/services/firebase/firebase_service.dart';
 import 'package:mobile/core/models/favorite_model.dart';
-import 'package:mobile/core/models/restaurant_model.dart';
+import 'package:mobile/core/models/food_model.dart';
 
 class FavoriteRepository {
   final FirebaseService _firebaseService;
@@ -35,46 +35,14 @@ class FavoriteRepository {
     }
   }
 
-  /// Get favorite restaurants with full restaurant data
-  Future<List<RestaurantModel>> getFavoriteRestaurants(String userId) async {
-    try {
-      // Get favorites
-      final favorites = await getUserFavorites(userId);
-      if (favorites.isEmpty) return [];
-
-      // Get restaurant IDs
-      final restaurantIds = favorites.map((f) => f.restaurantId).toList();
-
-      // Get restaurants
-      final restaurants = <RestaurantModel>[];
-      for (final restaurantId in restaurantIds) {
-        final restaurantDoc = await _firebaseService.firestore
-            .collection('restaurants')
-            .doc(restaurantId)
-            .get();
-        if (restaurantDoc.exists) {
-          restaurants.add(RestaurantModel.fromMap(
-              restaurantDoc.data()!, restaurantDoc.id));
-        }
-      }
-
-      return restaurants;
-    } catch (e) {
-      throw FirestoreException(
-        message: 'Lỗi lấy danh sách nhà hàng yêu thích: ${e.toString()}',
-        code: 'get_favorite_restaurants_error',
-      );
-    }
-  }
-
-  /// Add restaurant to favorites
-  Future<bool> addFavorite(String userId, String restaurantId) async {
+  /// Add food to favorites
+  Future<bool> addFavorite(String userId, FoodModel food) async {
     try {
       // Check if already favorited
       final existing = await _firebaseService.firestore
           .collection('favorites')
           .where('userId', isEqualTo: userId)
-          .where('restaurantId', isEqualTo: restaurantId)
+          .where('foodId', isEqualTo: food.id)
           .limit(1)
           .get();
 
@@ -82,23 +50,15 @@ class FavoriteRepository {
         return false; // Already favorited
       }
 
-      // Get restaurant info
-      final restaurantDoc = await _firebaseService.firestore
-          .collection('restaurants')
-          .doc(restaurantId)
-          .get();
-
-      Map<String, dynamic> favoriteData = {
+      final favoriteData = {
         'userId': userId,
-        'restaurantId': restaurantId,
+        'foodId': food.id,
+        'foodName': food.name,
+        'foodImageUrl': food.imageUrl,
+        'price': food.price,
+        'restaurantId': food.restaurantId,
         'createdAt': DateTime.now(),
       };
-
-      if (restaurantDoc.exists) {
-        final restaurantData = restaurantDoc.data()!;
-        favoriteData['restaurantName'] = restaurantData['name'];
-        favoriteData['restaurantImageUrl'] = restaurantData['imageUrl'];
-      }
 
       await _firebaseService.firestore
           .collection('favorites')
@@ -113,13 +73,13 @@ class FavoriteRepository {
     }
   }
 
-  /// Remove restaurant from favorites
-  Future<bool> removeFavorite(String userId, String restaurantId) async {
+  /// Remove food from favorites
+  Future<bool> removeFavorite(String userId, String foodId) async {
     try {
       final snapshot = await _firebaseService.firestore
           .collection('favorites')
           .where('userId', isEqualTo: userId)
-          .where('restaurantId', isEqualTo: restaurantId)
+          .where('foodId', isEqualTo: foodId)
           .limit(1)
           .get();
 
@@ -141,13 +101,13 @@ class FavoriteRepository {
     }
   }
 
-  /// Check if restaurant is favorited
-  Future<bool> isFavorited(String userId, String restaurantId) async {
+  /// Check if food is favorited
+  Future<bool> isFavorited(String userId, String foodId) async {
     try {
       final snapshot = await _firebaseService.firestore
           .collection('favorites')
           .where('userId', isEqualTo: userId)
-          .where('restaurantId', isEqualTo: restaurantId)
+          .where('foodId', isEqualTo: foodId)
           .limit(1)
           .get();
 

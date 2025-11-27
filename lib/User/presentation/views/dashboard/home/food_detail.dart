@@ -54,7 +54,7 @@ class _FoodDetailState extends State<FoodDetail> {
 
     favoriteController.setUserId(authController.currentUser!.userId);
     final isFavorited =
-        await favoriteController.isFavorited(widget.food.restaurantId);
+        await favoriteController.isFavorited(widget.food.id);
 
     if (mounted) {
       setState(() {
@@ -72,7 +72,7 @@ class _FoodDetailState extends State<FoodDetail> {
     if (authController.currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Vui lòng đăng nhập để thêm vào yêu thích'),
+          content: Text('Please sign in to add favorites'),
           backgroundColor: Colors.red,
         ),
       );
@@ -86,8 +86,8 @@ class _FoodDetailState extends State<FoodDetail> {
     });
 
     final success = _isFavorited
-        ? await favoriteController.addFavorite(widget.food.restaurantId)
-        : await favoriteController.removeFavorite(widget.food.restaurantId);
+        ? await favoriteController.addFavorite(widget.food)
+        : await favoriteController.removeFavorite(widget.food.id);
 
     if (!mounted) return;
 
@@ -95,9 +95,7 @@ class _FoodDetailState extends State<FoodDetail> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            _isFavorited
-                ? 'Đã thêm vào yêu thích'
-                : 'Đã xóa khỏi yêu thích',
+            _isFavorited ? 'Added to favorites' : 'Removed from favorites',
           ),
           duration: const Duration(seconds: 2),
           backgroundColor: primaryColor,
