@@ -99,13 +99,13 @@ class ShipperProfile extends StatelessWidget {
                                   style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
                                   onPressed: () {
                                     final old = _oldCtrl.text.trim();
-                                    final nw = _newCtrl.text.trim();
-                                    final cf = _confirmCtrl.text.trim();
-                                    if (nw.isEmpty || cf.isEmpty || old.isEmpty) {
+                                    final newPassword = _newCtrl.text.trim();
+                                    final confirmPassword = _confirmCtrl.text.trim();
+                                    if (newPassword.isEmpty || confirmPassword.isEmpty || old.isEmpty) {
                                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng điền đủ thông tin')));
                                       return;
                                     }
-                                    if (nw != cf) {
+                                    if (newPassword != confirmPassword) {
                                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mật khẩu mới và xác nhận không khớp')));
                                       return;
                                     }
