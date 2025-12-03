@@ -35,15 +35,24 @@ class UserRepository {
     required String userId,
     String? fullName,
     String? phone,
+    String? address,
     String? profileImageUrl,
   }) async {
     try {
       Map<String, dynamic> updateData = {'updatedAt': DateTime.now()};
 
-      if (fullName != null) updateData['fullName'] = fullName;
-      if (phone != null) updateData['phone'] = phone;
-      if (profileImageUrl != null)
+      if (fullName != null) {
+        updateData['fullName'] = fullName;
+      }
+      if (phone != null) {
+        updateData['phone'] = phone;
+      }
+      if (address != null) {
+        updateData['address'] = address;
+      }
+      if (profileImageUrl != null) {
         updateData['profileImageUrl'] = profileImageUrl;
+      }
 
       await _firebaseService.firestore
           .collection('users')

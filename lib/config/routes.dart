@@ -15,6 +15,8 @@ import 'package:mobile/Owner/presentation/views/dashboard/report/report_screen.d
 import 'package:mobile/Owner/presentation/views/dashboard/support/support_screen.dart';
 import 'package:mobile/Owner/presentation/views/dashboard/profile/edit_profile_screen.dart';
 import 'package:mobile/Owner/presentation/views/dashboard/profile/change_password_screen.dart';
+import 'package:mobile/User/presentation/views/dashboard/profile/edit_profile_screen.dart';
+import 'package:mobile/User/presentation/views/dashboard/profile/change_password_screen.dart';
 
 // Route names
 const String welcomeRoute = '/';
@@ -28,6 +30,8 @@ const String searchResultRoute = '/search-result';
 const String cartRoute = '/cart';
 const String checkoutRoute = '/checkout';
 const String orderHistoryRoute = '/order-history';
+const String userEditProfileRoute = '/user/edit-profile';
+const String userChangePasswordRoute = '/user/change-password';
 
 // Owner routes
 const String ownerDashboardRoute = '/owner-dashboard';
@@ -118,6 +122,15 @@ class AppRouter {
 
       case ownerChangePasswordRoute:
         return MaterialPageRoute(builder: (_) => const ChangePasswordScreen());
+
+      // User profile routes
+      case userEditProfileRoute:
+        return MaterialPageRoute(builder: (_) => const UserEditProfileScreen());
+
+      case userChangePasswordRoute:
+        return MaterialPageRoute(
+          builder: (_) => const UserChangePasswordScreen(),
+        );
 
       default:
         return MaterialPageRoute(
