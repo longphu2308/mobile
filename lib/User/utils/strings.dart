@@ -21,3 +21,4 @@ class FoodieStrings {
   static const String foundResults = 'Found %d results';
 }
 
+
