@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/Shipper/models/shipper_order.dart';
+import 'package:mobile/config/routes.dart';
 
 class ShipperProfile extends StatelessWidget {
   static const routeName = '/shipper/profile';
