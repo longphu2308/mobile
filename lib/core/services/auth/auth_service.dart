@@ -1,11 +1,10 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthException;
 import 'package:mobile/core/models/user_model.dart';
 import 'package:mobile/core/errors/app_exception.dart';
+import 'package:mobile/core/services/supabase/supabase_service.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final SupabaseService _supabase = SupabaseService();
 
   // Sign up
   Future<UserModel> signUp({
@@ -16,24 +15,31 @@ class AuthService {
   }) async {
     try {
       // Check if phone already exists
-      QuerySnapshot phoneQuery = await _firestore
-          .collection('users')
-          .where('phone', isEqualTo: phone)
-          .get();
-      if (phoneQuery.docs.isNotEmpty) {
+      final phoneQuery = await _supabase
+          .from('users')
+          .select()
+          .eq('phone', phone)
+          .maybeSingle();
+
+      if (phoneQuery != null) {
         throw AuthException(
           message: 'Số điện thoại đã được sử dụng',
           code: 'phone-already-in-use',
         );
       }
 
-      UserCredential cred = await _auth.createUserWithEmailAndPassword(
+      // Sign up with Supabase Auth
+      final AuthResponse response = await _supabase.auth.signUp(
         email: email,
         password: password,
       );
 
-      UserModel user = UserModel(
-        userId: cred.user!.uid,
+      if (response.user == null) {
+        throw AuthException(message: 'Không thể tạo tài khoản');
+      }
+
+      final user = UserModel(
+        userId: response.user!.id,
         email: email,
         fullName: fullName,
         phone: phone,
@@ -42,14 +48,18 @@ class AuthService {
         updatedAt: DateTime.now(),
       );
 
-      await _firestore
-          .collection('users')
-          .doc(cred.user!.uid)
-          .set(user.toMap());
+      // Insert user data into users table
+      await _supabase.from('users').insert(user.toMap());
 
       return user;
-    } on FirebaseAuthException catch (e) {
-      throw AuthException(message: _handleFirebaseError(e), code: e.code);
+    } on AuthException catch (e) {
+      if (e.message.contains('already registered')) {
+        throw AuthException(
+          message: 'Email đã được sử dụng',
+          code: 'email-already-in-use',
+        );
+      }
+      rethrow;
     } catch (e) {
       if (e is AuthException) rethrow;
       throw AuthException(message: 'Đã có lỗi xảy ra. Vui lòng thử lại.');
@@ -62,55 +72,50 @@ class AuthService {
     required String password,
   }) async {
     try {
-      UserCredential cred = await _auth.signInWithEmailAndPassword(
+      final AuthResponse response = await _supabase.auth.signInWithPassword(
         email: email,
         password: password,
       );
 
-      return await _getUserData(cred.user!.uid);
-    } on FirebaseAuthException catch (e) {
-      throw AuthException(message: _handleFirebaseError(e), code: e.code);
+      if (response.user == null) {
+        throw AuthException(message: 'Email hoặc mật khẩu không đúng');
+      }
+
+      return await _getUserData(response.user!.id);
+    } catch (e) {
+      if (e is AuthException) rethrow;
+      throw AuthException(message: 'Email hoặc mật khẩu không đúng');
     }
   }
 
-  // Get user from Firestore
+  // Get user from Supabase
   Future<UserModel> getUser(String uid) async {
     try {
-      DocumentSnapshot doc = await _firestore
-          .collection('users')
-          .doc(uid)
-          .get();
-      if (!doc.exists) throw AuthException(message: 'User not found');
-      return UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+      final data = await _supabase
+          .from('users')
+          .select()
+          .eq('user_id', uid)
+          .single();
+
+      return UserModel.fromMap(data, uid);
     } catch (e) {
       throw AuthException(message: 'Failed to load user');
     }
   }
 
-  Future<void> signOut() => _auth.signOut();
+  Future<void> signOut() => _supabase.signOut();
 
-  Stream<User?> authStateChanges() => _auth.authStateChanges();
+  Stream<AuthState> authStateChanges() => _supabase.auth.onAuthStateChange;
 
-  User? get currentUser => _auth.currentUser;
-
-  String _handleFirebaseError(FirebaseAuthException e) {
-    switch (e.code) {
-      case 'weak-password':
-        return 'Mật khẩu quá yếu';
-      case 'email-already-in-use':
-        return 'Email đã được sử dụng';
-      case 'user-not-found':
-      case 'wrong-password':
-        return 'Email hoặc mật khẩu không đúng';
-      case 'invalid-email':
-        return 'Email không hợp lệ';
-      default:
-        return 'Đã có lỗi xảy ra. Vui lòng thử lại.';
-    }
-  }
+  User? get currentUser => _supabase.currentUser;
 
   Future<UserModel> _getUserData(String uid) async {
-    DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
-    return UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+    final data = await _supabase
+        .from('users')
+        .select()
+        .eq('user_id', uid)
+        .single();
+
+    return UserModel.fromMap(data, uid);
   }
 }

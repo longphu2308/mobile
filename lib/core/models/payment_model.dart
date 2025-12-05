@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class PaymentModel {
   final String id;
   final String orderId;
@@ -25,26 +23,26 @@ class PaymentModel {
   factory PaymentModel.fromMap(Map<String, dynamic> data, String documentId) {
     return PaymentModel(
       id: documentId,
-      orderId: data['orderId'] ?? '',
-      userId: data['userId'] ?? '',
+      orderId: data['order_id'] ?? '',
+      userId: data['user_id'] ?? '',
       amount: (data['amount'] ?? 0).toDouble(),
       method: data['method'] ?? 'cash',
       status: data['status'] ?? 'pending',
-      transactionId: data['transactionId'],
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      transactionId: data['transaction_id'],
+      createdAt: data['created_at'] != null ? DateTime.parse(data['created_at']) : DateTime.now(),
     );
   }
 
   // Chuyển model sang map để lưu vào Firestore
   Map<String, dynamic> toMap() {
     return {
-      'orderId': orderId,
-      'userId': userId,
+      'order_id': orderId,
+      'user_id': userId,
       'amount': amount,
       'method': method,
       'status': status,
-      'transactionId': transactionId,
-      'createdAt': Timestamp.fromDate(createdAt),
+      'transaction_id': transactionId,
+      'created_at': createdAt.toIso8601String(),
     };
   }
 

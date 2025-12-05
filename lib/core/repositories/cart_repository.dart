@@ -1,16 +1,20 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mobile/core/models/cart_model.dart';
+import 'package:mobile/core/services/supabase/supabase_service.dart';
 
 class CartRepository {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final String _collection = 'carts';
+  final _supabase = SupabaseService().client;
+  final String _table = 'carts';
 
   // Lấy cart của user
   Future<CartModel?> getUserCart(String userId) async {
     try {
-      final doc = await _firestore.collection(_collection).doc(userId).get();
-      if (doc.exists && doc.data() != null) {
-        return CartModel.fromMap(doc.data()!, userId);
+      final data = await _supabase
+          .from(_table)
+          .select()
+          .eq('user_id', userId)
+          .maybeSingle();
+      if (data != null) {
+        return CartModel.fromMap(data, userId);
       }
       return null;
     } catch (e) {
@@ -27,12 +31,9 @@ class CartRepository {
     CartItemModel item,
   ) async {
     try {
-      final cartDoc = await _firestore
-          .collection(_collection)
-          .doc(userId)
-          .get();
+      final cart = await getUserCart(userId);
 
-      if (!cartDoc.exists) {
+      if (cart == null) {
         // Tạo cart mới
         final newCart = CartModel(
           userId: userId,
@@ -41,14 +42,13 @@ class CartRepository {
           items: [item],
           updatedAt: DateTime.now(),
         );
-        await _firestore
-            .collection(_collection)
-            .doc(userId)
-            .set(newCart.toMap());
+        await _supabase
+            .from(_table)
+            .insert({
+              'user_id': userId,
+              ...newCart.toMap(),
+            });
       } else {
-        // Cập nhật cart hiện tại
-        final cart = CartModel.fromMap(cartDoc.data()!, userId);
-
         // Kiểm tra nếu cart từ restaurant khác -> xóa cart cũ
         if (cart.restaurantId != restaurantId) {
           final newCart = CartModel(
@@ -58,10 +58,10 @@ class CartRepository {
             items: [item],
             updatedAt: DateTime.now(),
           );
-          await _firestore
-              .collection(_collection)
-              .doc(userId)
-              .set(newCart.toMap());
+          await _supabase
+              .from(_table)
+              .update(newCart.toMap())
+              .eq('user_id', userId);
         } else {
           // Kiểm tra xem item đã có trong cart chưa
           final existingIndex = cart.items.indexWhere(
@@ -82,10 +82,10 @@ class CartRepository {
             cart.items.add(item);
           }
 
-          await _firestore
-              .collection(_collection)
-              .doc(userId)
-              .update(cart.toMap());
+          await _supabase
+              .from(_table)
+              .update(cart.toMap())
+              .eq('user_id', userId);
         }
       }
 
@@ -103,13 +103,9 @@ class CartRepository {
     int quantity,
   ) async {
     try {
-      final cartDoc = await _firestore
-          .collection(_collection)
-          .doc(userId)
-          .get();
-      if (!cartDoc.exists) return false;
+      final cart = await getUserCart(userId);
+      if (cart == null) return false;
 
-      final cart = CartModel.fromMap(cartDoc.data()!, userId);
       final itemIndex = cart.items.indexWhere((i) => i.foodId == foodId);
 
       if (itemIndex >= 0) {
@@ -127,10 +123,10 @@ class CartRepository {
           );
         }
 
-        await _firestore
-            .collection(_collection)
-            .doc(userId)
-            .update(cart.toMap());
+        await _supabase
+            .from(_table)
+            .update(cart.toMap())
+            .eq('user_id', userId);
         return true;
       }
 
@@ -144,16 +140,15 @@ class CartRepository {
   // Xóa item khỏi cart
   Future<bool> removeItemFromCart(String userId, String foodId) async {
     try {
-      final cartDoc = await _firestore
-          .collection(_collection)
-          .doc(userId)
-          .get();
-      if (!cartDoc.exists) return false;
+      final cart = await getUserCart(userId);
+      if (cart == null) return false;
 
-      final cart = CartModel.fromMap(cartDoc.data()!, userId);
       cart.items.removeWhere((item) => item.foodId == foodId);
 
-      await _firestore.collection(_collection).doc(userId).update(cart.toMap());
+      await _supabase
+          .from(_table)
+          .update(cart.toMap())
+          .eq('user_id', userId);
       return true;
     } catch (e) {
       print('Error removing item from cart: $e');
@@ -164,7 +159,10 @@ class CartRepository {
   // Xóa toàn bộ cart
   Future<bool> clearCart(String userId) async {
     try {
-      await _firestore.collection(_collection).doc(userId).delete();
+      await _supabase
+          .from(_table)
+          .delete()
+          .eq('user_id', userId);
       return true;
     } catch (e) {
       print('Error clearing cart: $e');
@@ -174,13 +172,15 @@ class CartRepository {
 
   // Stream để lắng nghe thay đổi của cart
   Stream<CartModel?> cartStream(String userId) {
-    return _firestore.collection(_collection).doc(userId).snapshots().map((
-      snapshot,
-    ) {
-      if (snapshot.exists && snapshot.data() != null) {
-        return CartModel.fromMap(snapshot.data()!, userId);
-      }
-      return null;
-    });
+    return _supabase
+        .from(_table)
+        .stream(primaryKey: ['user_id'])
+        .eq('user_id', userId)
+        .map((data) {
+          if (data.isNotEmpty) {
+            return CartModel.fromMap(data.first, userId);
+          }
+          return null;
+        });
   }
 }

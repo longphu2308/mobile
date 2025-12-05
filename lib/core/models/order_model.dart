@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class OrderItemModel {
   final String foodId;
   final String foodName;
@@ -15,8 +13,8 @@ class OrderItemModel {
 
   Map<String, dynamic> toMap() {
     return {
-      'foodId': foodId,
-      'foodName': foodName,
+      'food_id': foodId,
+      'food_name': foodName,
       'quantity': quantity,
       'price': price,
     };
@@ -24,8 +22,8 @@ class OrderItemModel {
 
   factory OrderItemModel.fromMap(Map<String, dynamic> data) {
     return OrderItemModel(
-      foodId: data['foodId'] ?? '',
-      foodName: data['foodName'] ?? '',
+      foodId: data['food_id'] ?? '',
+      foodName: data['food_name'] ?? '',
       quantity: data['quantity'] ?? 0,
       price: (data['price'] ?? 0).toDouble(),
     );
@@ -63,8 +61,8 @@ class OrderModel {
   factory OrderModel.fromMap(Map<String, dynamic> data, String documentId) {
     return OrderModel(
       id: documentId,
-      userId: data['userId'] ?? '',
-      restaurantId: data['restaurantId'] ?? '',
+      userId: data['user_id'] ?? '',
+      restaurantId: data['restaurant_id'] ?? '',
       items:
           (data['items'] as List<dynamic>?)
               ?.map(
@@ -72,29 +70,29 @@ class OrderModel {
               )
               .toList() ??
           [],
-      totalAmount: (data['totalAmount'] ?? 0).toDouble(),
+      totalAmount: (data['total_amount'] ?? 0).toDouble(),
       status: data['status'] ?? 'pending',
-      deliveryAddress: data['deliveryAddress'] ?? '',
-      paymentMethod: data['paymentMethod'] ?? 'cash',
+      deliveryAddress: data['delivery_address'] ?? '',
+      paymentMethod: data['payment_method'] ?? 'cash',
       note: data['note'],
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: data['created_at'] != null ? DateTime.parse(data['created_at']) : DateTime.now(),
+      updatedAt: data['updated_at'] != null ? DateTime.parse(data['updated_at']) : DateTime.now(),
     );
   }
 
   // Chuyển model sang map để lưu vào Firestore
   Map<String, dynamic> toMap() {
     return {
-      'userId': userId,
-      'restaurantId': restaurantId,
+      'user_id': userId,
+      'restaurant_id': restaurantId,
       'items': items.map((item) => item.toMap()).toList(),
-      'totalAmount': totalAmount,
+      'total_amount': totalAmount,
       'status': status,
-      'deliveryAddress': deliveryAddress,
-      'paymentMethod': paymentMethod,
+      'delivery_address': deliveryAddress,
+      'payment_method': paymentMethod,
       'note': note,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(DateTime.now()),
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': DateTime.now().toIso8601String(),
     };
   }
 

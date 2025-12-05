@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:mobile/core/services/supabase/supabase_service.dart';
 import 'package:mobile/core/repositories/restaurant_repository.dart';
 import 'package:mobile/core/repositories/order_repository.dart';
 import 'package:mobile/core/models/restaurant_model.dart';
@@ -8,6 +8,7 @@ import 'package:mobile/core/models/order_model.dart';
 class DashboardController extends ChangeNotifier {
   final RestaurantRepository _restaurantRepository = RestaurantRepository();
   final OrderRepository _orderRepository = OrderRepository();
+  final _supabase = SupabaseService();
 
   RestaurantModel? _restaurant;
   List<OrderModel> _recentOrders = [];
@@ -31,7 +32,7 @@ class DashboardController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final userId = FirebaseAuth.instance.currentUser?.uid;
+      final userId = _supabase.currentUser?.id;
       if (userId == null) {
         _error = 'User not authenticated';
         return;

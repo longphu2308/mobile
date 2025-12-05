@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class RestaurantModel {
   final String id;
   final String ownerId;
@@ -23,35 +21,40 @@ class RestaurantModel {
     required this.updatedAt,
   });
 
-  // Chuyển từ Firestore document sang model
+  // Chuyển từ Supabase data sang model
   factory RestaurantModel.fromMap(
     Map<String, dynamic> data,
     String documentId,
   ) {
     return RestaurantModel(
-      id: documentId,
-      ownerId: data['ownerId'] ?? '',
+      id: data['restaurant_id'] ?? documentId,
+      ownerId: data['owner_id'] ?? '',
       name: data['name'] ?? '',
       address: data['address'] ?? '',
       description: data['description'] ?? '',
-      imageUrl: data['imageUrl'] ?? '',
+      imageUrl: data['image_url'] ?? '',
       status: data['status'] ?? 'closed',
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: data['created_at'] != null
+          ? DateTime.parse(data['created_at'])
+          : DateTime.now(),
+      updatedAt: data['updated_at'] != null
+          ? DateTime.parse(data['updated_at'])
+          : DateTime.now(),
     );
   }
 
-  // Chuyển model sang map để lưu vào Firestore
+  // Chuyển model sang map để lưu vào Supabase
   Map<String, dynamic> toMap() {
     return {
-      'ownerId': ownerId,
+      'restaurant_id': id,
+      'owner_id': ownerId,
       'name': name,
       'address': address,
       'description': description,
-      'imageUrl': imageUrl,
+      'image_url': imageUrl,
       'status': status,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(DateTime.now()),
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': DateTime.now().toIso8601String(),
     };
   }
 

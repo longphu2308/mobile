@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'package:mobile/core/repositories/auth_repository.dart';
 import 'package:mobile/core/models/user_model.dart';
 import 'package:mobile/core/errors/app_exception.dart';
@@ -31,16 +31,18 @@ class AuthController extends ChangeNotifier {
     _authRepository.auth.listen(_onAuthStateChanged);
   }
 
-  void _onAuthStateChanged(User? firebaseUser) async {
-    if (firebaseUser != null) {
-      // User is signed in, load user data from Firestore
+  void _onAuthStateChanged(supabase.AuthState authState) async {
+    final user = authState.session?.user;
+
+    if (user != null) {
+      // User is signed in, load user data from Supabase
       try {
-        UserModel? user = await _authRepository.getCurrentUser();
-        if (user != null) {
-          _currentUser = user;
+        UserModel? userData = await _authRepository.getCurrentUser();
+        if (userData != null) {
+          _currentUser = userData;
           _state = AuthState.authenticated;
         } else {
-          // User authenticated but no data in Firestore, sign out
+          // User authenticated but no data in database, sign out
           await _authRepository.signOut();
           _currentUser = null;
           _state = AuthState.unauthenticated;
