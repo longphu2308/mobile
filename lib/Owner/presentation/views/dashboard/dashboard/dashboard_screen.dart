@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/Owner/presentation/controllers/dashboard_controller.dart';
 import 'package:mobile/Owner/presentation/widgets/widgets.dart';
+import 'package:mobile/config/routes.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -48,7 +49,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       builder: (_) => AlertDialog(
         title: Text(c.isOpen ? "Đóng cửa hàng?" : "Mở cửa hàng?"),
         content: Text(
-          "Bạn có chắc muốn ${c.isOpen ? "ĐÓNG" : "MỞ"} cửa hàng?\n(Chỉ được thay đổi 5 lần/ngày)",
+          "Bạn có chắc muốn ${c.isOpen ? "ĐÓNG" : "MỞ"} cửa hàng?",
         ),
         actions: [
           TextButton(
@@ -175,44 +176,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             price: "₫${order.totalAmount.toStringAsFixed(0)}",
                             status: order.status,
                             onTap: () {
-                              // Navigate to order detail - implement custom detail view
-                              showDialog(
-                                context: context,
-                                builder: (_) => AlertDialog(
-                                  title: const Text("Chi tiết đơn hàng"),
-                                  content: SingleChildScrollView(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text("ID: ${order.id}"),
-                                        const SizedBox(height: 8),
-                                        Text("Trạng thái: ${order.status}"),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          "Tổng tiền: ₫${order.totalAmount.toStringAsFixed(0)}",
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          "Địa chỉ: ${order.deliveryAddress}",
-                                        ),
-                                        const SizedBox(height: 8),
-                                        const Text("Các sản phẩm:"),
-                                        ...order.items.map(
-                                          (item) => Text(
-                                            "- ${item.foodName} x${item.quantity}",
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context),
-                                      child: const Text("Đóng"),
-                                    ),
-                                  ],
-                                ),
+                              Navigator.pushNamed(
+                                context,
+                                ownerOrderDetailRoute,
+                                arguments: {'order': order},
                               );
                             },
                           );

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/User/utils/utils.dart';
+import 'package:mobile/core/models/order_model.dart';
 
 class OrderTile extends StatelessWidget {
   final String name;
   final String price;
-  final String status;
+  final OrderStatus status;
   final VoidCallback? onTap;
 
   const OrderTile({
@@ -15,16 +16,28 @@ class OrderTile extends StatelessWidget {
     this.onTap,
   });
 
+  Color _getStatusColor(OrderStatus status) {
+    switch (status) {
+      case OrderStatus.pending:
+        return Colors.orange;
+      case OrderStatus.confirmed:
+        return Colors.blue;
+      case OrderStatus.preparing:
+        return Colors.indigo;
+      case OrderStatus.readyForPickup:
+        return Colors.teal;
+      case OrderStatus.delivering:
+        return Colors.purple;
+      case OrderStatus.delivered:
+        return Colors.green;
+      case OrderStatus.cancelled:
+        return Colors.red;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    Color statusColor;
-    if (status == "Hoàn thành") {
-      statusColor = Colors.green;
-    } else if (status == "Đang giao") {
-      statusColor = Colors.orange;
-    } else {
-      statusColor = Colors.red;
-    }
+    final statusColor = _getStatusColor(status);
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),
@@ -35,7 +48,7 @@ class OrderTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: ListTile(
           leading: CircleAvatar(
-            backgroundColor: primaryColor.withOpacity(0.2),
+            backgroundColor: primaryColor.withValues(alpha: 0.2),
             child: const Icon(Icons.fastfood, color: primaryColor),
           ),
           title: Text(
@@ -44,7 +57,7 @@ class OrderTile extends StatelessWidget {
           ),
           subtitle: Text(price),
           trailing: Text(
-            status,
+            status.displayName,
             style: TextStyle(
               color: statusColor,
               fontWeight: FontWeight.bold,

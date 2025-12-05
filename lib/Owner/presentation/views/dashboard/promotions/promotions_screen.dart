@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile/Owner/presentation/controllers/promotions_controller.dart';
 import 'package:mobile/Owner/presentation/widgets/widgets.dart';
 import 'package:mobile/User/utils/utils.dart';
+import 'package:mobile/Owner/presentation/views/dashboard/promotions/add_edit_promo_screen.dart';
 import 'package:provider/provider.dart';
 
 class PromotionsScreen extends StatefulWidget {
@@ -22,7 +23,17 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
   }
 
   void _createPromo() {
-    showCreatePromoDialog(context, _controller.addPromo);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChangeNotifierProvider.value(
+          value: _controller,
+          child: const AddEditPromoScreen(),
+        ),
+      ),
+    ).then((_) {
+      _controller.loadPromos();
+    });
   }
 
   @override

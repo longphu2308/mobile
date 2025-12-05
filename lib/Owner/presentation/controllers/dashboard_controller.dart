@@ -86,7 +86,7 @@ class DashboardController extends ChangeNotifier {
     revenueThisMonth = 0;
 
     for (var order in orders) {
-      if (order.status != "completed") continue;
+      if (order.status != OrderStatus.delivered) continue;
       final date = order.createdAt;
 
       // Today
