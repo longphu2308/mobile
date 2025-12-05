@@ -23,6 +23,7 @@ import 'package:mobile/User/presentation/views/dashboard/profile/change_password
 import 'package:mobile/core/models/user_model.dart';
 import 'package:mobile/core/models/order_model.dart';
 import 'package:mobile/core/models/promo_model.dart';
+import 'package:mobile/core/models/restaurant_model.dart';
 // Shipper views
 import 'package:mobile/Shipper/views/shipper_dashboard.dart';
 import 'package:mobile/Shipper/views/order_detail.dart';
@@ -141,7 +142,10 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const SupportScreen());
 
       case ownerEditProfileRoute:
-        return MaterialPageRoute(builder: (_) => const EditProfileScreen());
+        final restaurantArg = settings.arguments as RestaurantModel?;
+        return MaterialPageRoute(
+          builder: (_) => EditProfileScreen(restaurant: restaurantArg),
+        );
 
       case ownerChangePasswordRoute:
         return MaterialPageRoute(builder: (_) => const ChangePasswordScreen());

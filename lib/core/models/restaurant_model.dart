@@ -5,6 +5,8 @@ class RestaurantModel {
   final String address;
   final String description;
   final String imageUrl;
+  final String phone;
+  final double rating;
   final String status; // 'open' hoặc 'closed'
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -16,6 +18,8 @@ class RestaurantModel {
     required this.address,
     required this.description,
     required this.imageUrl,
+    required this.phone,
+    required this.rating,
     required this.status,
     required this.createdAt,
     required this.updatedAt,
@@ -33,6 +37,8 @@ class RestaurantModel {
       address: data['address'] ?? '',
       description: data['description'] ?? '',
       imageUrl: data['image_url'] ?? '',
+      phone: data['phone'] ?? '',
+      rating: (data['rating'] ?? 0).toDouble(),
       status: data['status'] ?? 'closed',
       createdAt: data['created_at'] != null
           ? DateTime.parse(data['created_at'])
@@ -52,6 +58,8 @@ class RestaurantModel {
       'address': address,
       'description': description,
       'image_url': imageUrl,
+      'phone': phone,
+      'rating': rating,
       'status': status,
       'created_at': createdAt.toIso8601String(),
       'updated_at': DateTime.now().toIso8601String(),
@@ -65,6 +73,8 @@ class RestaurantModel {
     String? address,
     String? description,
     String? imageUrl,
+    String? phone,
+    double? rating,
     String? status,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -76,6 +86,8 @@ class RestaurantModel {
       address: address ?? this.address,
       description: description ?? this.description,
       imageUrl: imageUrl ?? this.imageUrl,
+      phone: phone ?? this.phone,
+      rating: rating ?? this.rating,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
