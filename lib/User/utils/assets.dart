@@ -4,5 +4,6 @@ class FoodieAssets {
   static const String toyFace49 = 'assets/images/ToyFaces_Tansparent_BG_49@2x.png';
   static const String notFound = 'assets/images/not_found.png';
   static const String welcome = 'assets/images/welcome.png';
+  static const String login = 'assets/images/login mobile.png';
 }
 
