@@ -12,20 +12,31 @@ class DashboardController extends ChangeNotifier {
 
   RestaurantModel? _restaurant;
   List<OrderModel> _recentOrders = [];
-  Map<String, int> _orderStats = {};
-  double _revenue = 0.0;
+
+  // Stats
+  int ordersToday = 0;
+  int ordersThisWeek = 0;
+  int ordersThisMonth = 0;
+
+  double revenueToday = 0;
+  double revenueThisWeek = 0;
+  double revenueThisMonth = 0;
+
+  // Toggle limit
+  int toggleCountToday = 0;
+  DateTime lastToggleDate = DateTime.now();
+
   bool _isLoading = false;
   String? _error;
 
   RestaurantModel? get restaurant => _restaurant;
   List<OrderModel> get recentOrders => _recentOrders;
-  Map<String, int> get orderStats => _orderStats;
-  double get revenue => _revenue;
   bool get isLoading => _isLoading;
   String? get error => _error;
+
   bool get isOpen => _restaurant?.status == 'open';
 
-  // Load dữ liệu dashboard
+  // Load dashboard data
   Future<void> loadDashboardData() async {
     _isLoading = true;
     _error = null;
@@ -34,45 +45,84 @@ class DashboardController extends ChangeNotifier {
     try {
       final userId = _supabase.currentUser?.id;
       if (userId == null) {
-        _error = 'User not authenticated';
+        _error = "User not authenticated";
         return;
       }
 
-      // Lấy thông tin restaurant của owner
+      // Get restaurant info
       _restaurant = await _restaurantRepository.getRestaurantByOwnerId(userId);
 
       if (_restaurant == null) {
-        _error = 'Restaurant not found';
+        _error = "Restaurant not found";
         return;
       }
 
-      // Lấy orders gần đây
-      final allOrders = await _orderRepository.getRestaurantOrders(
+      final orders = await _orderRepository.getRestaurantOrders(
         _restaurant!.id,
       );
-      _recentOrders = allOrders.take(5).toList();
 
-      // Tính thống kê orders
-      _orderStats = await _orderRepository.countOrdersByStatus(_restaurant!.id);
+      _recentOrders = orders.take(5).toList();
 
-      // Tính doanh thu
-      _revenue = await _orderRepository.calculateRestaurantRevenue(
-        _restaurant!.id,
-      );
+      _calculateStats(orders);
     } catch (e) {
-      _error = 'Error loading dashboard: $e';
-      print(_error);
+      _error = "Dashboard error: $e";
+      debugPrint(_error);
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  // Toggle trạng thái quán (open/closed)
-  Future<void> toggleOpen() async {
-    if (_restaurant == null) return;
+  // Calculate daily/weekly/monthly stats
+  void _calculateStats(List<OrderModel> orders) {
+    final now = DateTime.now();
 
-    final newStatus = _restaurant!.status == 'open' ? 'closed' : 'open';
+    ordersToday = 0;
+    ordersThisWeek = 0;
+    ordersThisMonth = 0;
+
+    revenueToday = 0;
+    revenueThisWeek = 0;
+    revenueThisMonth = 0;
+
+    for (var order in orders) {
+      if (order.status != "completed") continue;
+      final date = order.createdAt;
+
+      // Today
+      if (date.year == now.year &&
+          date.month == now.month &&
+          date.day == now.day) {
+        ordersToday++;
+        revenueToday += order.totalAmount;
+      }
+
+      // Last 7 days
+      if (date.isAfter(now.subtract(const Duration(days: 7)))) {
+        ordersThisWeek++;
+        revenueThisWeek += order.totalAmount;
+      }
+
+      // Month
+      if (date.year == now.year && date.month == now.month) {
+        ordersThisMonth++;
+        revenueThisMonth += order.totalAmount;
+      }
+    }
+  }
+
+  // Toggle open/close with limit + confirmation
+  Future<bool> toggleOpenConfirm() async {
+    final now = DateTime.now();
+
+    // Reset limit if day changes
+    if (now.day != lastToggleDate.day) {
+      toggleCountToday = 0;
+    }
+
+    if (toggleCountToday >= 5) return false;
+
+    final newStatus = isOpen ? "closed" : "open";
 
     try {
       final success = await _restaurantRepository.updateRestaurantStatus(
@@ -81,16 +131,18 @@ class DashboardController extends ChangeNotifier {
       );
 
       if (success) {
+        toggleCountToday++;
+        lastToggleDate = now;
         _restaurant = _restaurant!.copyWith(status: newStatus);
         notifyListeners();
       }
+
+      return success;
     } catch (e) {
-      print('Error toggling restaurant status: $e');
+      debugPrint("Error toggle: $e");
+      return false;
     }
   }
 
-  // Refresh data
-  Future<void> refresh() async {
-    await loadDashboardData();
-  }
+  Future<void> refresh() async => loadDashboardData();
 }

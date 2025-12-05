@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/Owner/presentation/controllers/dashboard_controller.dart';
 import 'package:mobile/Owner/presentation/widgets/widgets.dart';
-import 'package:mobile/User/utils/utils.dart';
-import 'package:provider/provider.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -11,8 +11,7 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen>
-    with SingleTickerProviderStateMixin {
+class _DashboardScreenState extends State<DashboardScreen> {
   late DashboardController _controller;
 
   @override
@@ -22,156 +21,205 @@ class _DashboardScreenState extends State<DashboardScreen>
     _controller.loadDashboardData();
   }
 
+  Future<void> _confirmToggle(BuildContext context) async {
+    final c = _controller;
+
+    if (c.toggleCountToday >= 5) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text("Giới hạn thao tác"),
+          content: const Text(
+            "Bạn đã mở/đóng cửa hàng 5 lần hôm nay.\nVui lòng thử lại ngày mai.",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("OK"),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(c.isOpen ? "Đóng cửa hàng?" : "Mở cửa hàng?"),
+        content: Text(
+          "Bạn có chắc muốn ${c.isOpen ? "ĐÓNG" : "MỞ"} cửa hàng?\n(Chỉ được thay đổi 5 lần/ngày)",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Hủy"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Xác nhận"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await c.toggleOpenConfirm();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
       value: _controller,
       child: Consumer<DashboardController>(
-        builder: (context, controller, child) {
+        builder: (context, c, child) {
           return Scaffold(
             backgroundColor: Colors.grey[100],
             appBar: AppBar(
               backgroundColor: orangeLight,
               title: const Text(
-                'Dashboard',
+                "Dashboard",
                 style: TextStyle(
                   color: whiteColor,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               centerTitle: true,
-              elevation: 0,
             ),
-            body: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 🔹 TRẠNG THÁI CỬA HÀNG
-                  Center(
-                    child: Column(
-                      children: [
-                        AnimatedDefaultTextStyle(
-                          duration: const Duration(milliseconds: 400),
-                          curve: Curves.easeInOut,
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: controller.isOpen
-                                ? Colors.green[700]
-                                : Colors.red[700],
-                            letterSpacing: 1.2,
-                          ),
-                          child: Text(
-                            controller.isOpen
-                                ? "CỬA HÀNG ĐANG MỞ"
-                                : "CỬA HÀNG ĐÃ ĐÓNG",
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Switch(
-                          value: controller.isOpen,
-                          onChanged: (_) => controller.toggleOpen(),
-                          activeColor: Colors.green,
-                          inactiveThumbColor: Colors.red,
-                        ),
-                      ],
-                    ),
-                  ),
 
-                  const SizedBox(height: 30),
-
-                  // 🔹 THÔNG TIN NHANH
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      InfoCard(
-                        title: "Đơn hôm nay",
-                        value: "25",
-                        icon: Icons.receipt_long,
-                        color: Colors.blue,
-                      ),
-                      InfoCard(
-                        title: "Doanh thu",
-                        value: "₫15,200",
-                        icon: Icons.attach_money,
-                        color: Colors.green,
-                      ),
-                      InfoCard(
-                        title: "Lượt xem",
-                        value: "1,280",
-                        icon: Icons.visibility,
-                        color: Colors.purple,
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 25),
-
-                  // 🔹 DOANH THU TUẦN
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: whiteColor,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
+            body: c.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          "Tổng quan doanh thu",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
+                      children: [
+                        // ==========================
+                        // STORE STATUS
+                        // ==========================
+                        Center(
+                          child: Column(
+                            children: [
+                              Text(
+                                c.isOpen
+                                    ? "CỬA HÀNG ĐANG MỞ"
+                                    : "CỬA HÀNG ĐÃ ĐÓNG",
+                                style: TextStyle(
+                                  fontSize: 30,
+                                  fontWeight: FontWeight.bold,
+                                  color: c.isOpen ? Colors.green : Colors.red,
+                                ),
+                              ),
+                              Switch(
+                                value: c.isOpen,
+                                onChanged: (_) => _confirmToggle(context),
+                              ),
+                            ],
                           ),
                         ),
-                        SizedBox(height: 12),
-                        LinearProgressIndicator(
-                          value: 0.7,
-                          color: orangeLight,
-                          backgroundColor: Colors.orange,
+
+                        const SizedBox(height: 25),
+
+                        // ==========================
+                        // ORDER + REVENUE STATS
+                        // ==========================
+                        Row(
+                          children: [
+                            Expanded(
+                              child: InfoCard(
+                                title: "Đơn hôm nay",
+                                value: "${c.ordersToday}",
+                                icon: Icons.today,
+                                color: Colors.blue,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: InfoCard(
+                                title: "Đơn tuần",
+                                value: "${c.ordersThisWeek}",
+                                icon: Icons.view_week,
+                                color: Colors.orange,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: InfoCard(
+                                title: "Đơn tháng",
+                                value: "${c.ordersThisMonth}",
+                                icon: Icons.calendar_month,
+                                color: Colors.teal,
+                              ),
+                            ),
+                          ],
                         ),
-                        SizedBox(height: 8),
-                        Text("Đã đạt 70% mục tiêu trong tuần này"),
+
+                        const SizedBox(height: 30),
+
+                        // ==========================
+                        // RECENT ORDERS
+                        // ==========================
+                        const Text(
+                          "Đơn hàng gần đây",
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        ...c.recentOrders.map((order) {
+                          return OrderTile(
+                            name: order.items.first.foodName,
+                            price: "₫${order.totalAmount.toStringAsFixed(0)}",
+                            status: order.status,
+                            onTap: () {
+                              // Navigate to order detail - implement custom detail view
+                              showDialog(
+                                context: context,
+                                builder: (_) => AlertDialog(
+                                  title: const Text("Chi tiết đơn hàng"),
+                                  content: SingleChildScrollView(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text("ID: ${order.id}"),
+                                        const SizedBox(height: 8),
+                                        Text("Trạng thái: ${order.status}"),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          "Tổng tiền: ₫${order.totalAmount.toStringAsFixed(0)}",
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          "Địa chỉ: ${order.deliveryAddress}",
+                                        ),
+                                        const SizedBox(height: 8),
+                                        const Text("Các sản phẩm:"),
+                                        ...order.items.map(
+                                          (item) => Text(
+                                            "- ${item.foodName} x${item.quantity}",
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text("Đóng"),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          );
+                        }).toList(),
                       ],
                     ),
                   ),
-
-                  const SizedBox(height: 25),
-
-                  // 🔹 ĐƠN HÀNG GẦN ĐÂY
-                  const Text(
-                    "Đơn hàng gần đây",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  OrderTile(
-                    name: "Bánh mì thịt",
-                    price: "₫25,000",
-                    status: "Hoàn thành",
-                  ),
-                  OrderTile(
-                    name: "Trà sữa trân châu",
-                    price: "₫45,000",
-                    status: "Đang giao",
-                  ),
-                  OrderTile(name: "Cơm gà", price: "₫50,000", status: "Đã hủy"),
-                  OrderTile(
-                    name: "Phở bò đặc biệt",
-                    price: "₫65,000",
-                    status: "Hoàn thành",
-                  ),
-                ],
-              ),
-            ),
           );
         },
       ),

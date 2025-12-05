@@ -5,12 +5,14 @@ class OrderTile extends StatelessWidget {
   final String name;
   final String price;
   final String status;
+  final VoidCallback? onTap;
 
   const OrderTile({
     super.key,
     required this.name,
     required this.price,
     required this.status,
+    this.onTap,
   });
 
   @override
@@ -28,19 +30,26 @@ class OrderTile extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 6),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 2,
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: primaryColor.withOpacity(0.2),
-          child: const Icon(Icons.fastfood, color: primaryColor),
-        ),
-        title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(price),
-        trailing: Text(
-          status,
-          style: TextStyle(
-            color: statusColor,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: ListTile(
+          leading: CircleAvatar(
+            backgroundColor: primaryColor.withOpacity(0.2),
+            child: const Icon(Icons.fastfood, color: primaryColor),
+          ),
+          title: Text(
+            name,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          subtitle: Text(price),
+          trailing: Text(
+            status,
+            style: TextStyle(
+              color: statusColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
           ),
         ),
       ),
