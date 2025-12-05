@@ -98,129 +98,158 @@ class PromoCard extends StatelessWidget {
               ],
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
 
-            // ===== DISCOUNT & MIN ORDER =====
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Chiết khấu',
-                      style: TextStyle(fontSize: 11, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${promo.discountPercent.toStringAsFixed(0)}%',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
-                    ),
-                  ],
+            // ===== DESCRIPTION =====
+            if (promo.description.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Text(
+                  promo.description,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                    height: 1.4,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Đơn tối thiểu',
-                      style: TextStyle(fontSize: 11, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '₫${(promo.minOrderAmount).toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-                if (promo.maxDiscountAmount != null)
+              ),
+
+            // ===== DISCOUNT & CONDITIONS =====
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Tối đa',
+                        'Giảm',
                         style: TextStyle(fontSize: 11, color: Colors.grey),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '₫${promo.maxDiscountAmount!.toStringAsFixed(0)}',
+                        '${promo.discountPercent.toStringAsFixed(0)}%',
                         style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
                         ),
                       ),
                     ],
                   ),
-              ],
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Đơn tối thiểu',
+                        style: TextStyle(fontSize: 10, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '₫${(promo.minOrderAmount / 1000).toStringAsFixed(0)}K',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (promo.maxDiscountAmount != null &&
+                      promo.maxDiscountAmount! > 0)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Tối đa',
+                          style: TextStyle(fontSize: 10, color: Colors.grey),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '₫${(promo.maxDiscountAmount! / 1000).toStringAsFixed(0)}K',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
 
-            // ===== TIME RANGE & USAGE =====
+            // ===== TIME & USAGE INFO =====
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Thời gian',
-                        style: TextStyle(fontSize: 11, color: Colors.grey),
+                        'Thời gian áp dụng',
+                        style: TextStyle(fontSize: 10, color: Colors.grey),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${promo.startDate.day}/${promo.startDate.month} - ${promo.endDate.day}/${promo.endDate.month}',
-                        style: const TextStyle(fontSize: 11),
-                      ),
-                      if (promo.isExpired)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.red.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Text(
-                              'Hết hạn',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.red,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: promo.isExpired
+                              ? Colors.red.withValues(alpha: 0.1)
+                              : Colors.blue.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '${promo.startDate.day}/${promo.startDate.month} - ${promo.endDate.day}/${promo.endDate.month}/${promo.endDate.year}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: promo.isExpired ? Colors.red : Colors.blue,
                           ),
                         ),
+                      ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Sử dụng',
-                      style: TextStyle(fontSize: 11, color: Colors.grey),
+                      'Lượt sử dụng',
+                      style: TextStyle(fontSize: 10, color: Colors.grey),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${promo.usedCount}/${promo.usageLimit}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
                         color: promo.isUsageLimitReached
-                            ? Colors.red
-                            : Colors.black,
+                            ? Colors.orange.withValues(alpha: 0.1)
+                            : Colors.purple.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '${promo.usedCount}/${promo.usageLimit}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: promo.isUsageLimitReached
+                              ? Colors.orange
+                              : Colors.purple,
+                        ),
                       ),
                     ),
                   ],
@@ -230,7 +259,44 @@ class PromoCard extends StatelessWidget {
 
             const SizedBox(height: 10),
 
-            // ===== ACTION BUTTONS =====
+            // ===== USAGE PROGRESS BAR =====
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LinearProgressIndicator(
+                    value: promo.usedCount / promo.usageLimit,
+                    minHeight: 6,
+                    backgroundColor: Colors.grey.shade300,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      promo.isUsageLimitReached ? Colors.red : Colors.green,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${((promo.usedCount / promo.usageLimit) * 100).toStringAsFixed(0)}% đã sử dụng',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    Text(
+                      'Còn ${promo.usageLimit - promo.usedCount} lượt',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [

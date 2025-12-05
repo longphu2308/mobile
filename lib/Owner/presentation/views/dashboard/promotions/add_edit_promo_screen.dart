@@ -26,6 +26,7 @@ class _AddEditPromoScreenState extends State<AddEditPromoScreen> {
   DateTime? endDate;
   bool isActive = true;
   bool isLoading = false;
+  String selectedType = 'user'; // Loại voucher: user, owner, both
 
   @override
   void initState() {
@@ -50,6 +51,7 @@ class _AddEditPromoScreenState extends State<AddEditPromoScreen> {
     startDate = widget.promo?.startDate;
     endDate = widget.promo?.endDate;
     isActive = widget.promo?.active ?? true;
+    selectedType = widget.promo?.type ?? 'user';
   }
 
   @override
@@ -131,7 +133,7 @@ class _AddEditPromoScreenState extends State<AddEditPromoScreen> {
         discountPercent: discount,
         maxDiscountAmount: maxDiscount,
         minOrderAmount: minOrder,
-        type: 'owner',
+        type: selectedType,
         restaurantId: widget.restaurantId ?? widget.promo?.restaurantId,
         startDate: startDate!,
         endDate: endDate!,
@@ -241,6 +243,64 @@ class _AddEditPromoScreenState extends State<AddEditPromoScreen> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // ===== VOUCHER TYPE =====
+            const Text(
+              'Loại voucher',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: DropdownButton<String>(
+                value: selectedType,
+                isExpanded: true,
+                underline: const SizedBox(),
+                items: [
+                  DropdownMenuItem(
+                    value: 'user',
+                    child: Row(
+                      children: const [
+                        Icon(Icons.person, size: 18, color: Colors.blue),
+                        SizedBox(width: 8),
+                        Text('👤 Khách hàng'),
+                      ],
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'owner',
+                    child: Row(
+                      children: const [
+                        Icon(Icons.store, size: 18, color: Colors.orange),
+                        SizedBox(width: 8),
+                        Text('🏪 Chủ quán'),
+                      ],
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'both',
+                    child: Row(
+                      children: const [
+                        Icon(Icons.group, size: 18, color: Colors.green),
+                        SizedBox(width: 8),
+                        Text('👥 Cả hai'),
+                      ],
+                    ),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => selectedType = value);
+                  }
+                },
               ),
             ),
 
