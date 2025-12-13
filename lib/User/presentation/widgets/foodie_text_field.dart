@@ -41,6 +41,7 @@ class FoodieTextField extends StatelessWidget {
           enabled: enabled,
           keyboardType: keyboardType,
           obscureText: obscureText,
+          onTap: () => debugPrint('FoodieTextField tapped: $label'),
           onChanged: onChanged,
           decoration: InputDecoration(
             hintText: hint,

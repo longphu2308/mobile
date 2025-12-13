@@ -44,13 +44,12 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'YOUR_WEB_API_KEY',
-    appId: 'YOUR_WEB_APP_ID',
-    messagingSenderId: 'YOUR_WEB_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    authDomain: 'YOUR_PROJECT_ID.firebaseapp.com',
-    databaseURL: 'https://YOUR_PROJECT_ID.firebaseio.com',
-    storageBucket: 'YOUR_PROJECT_ID.appspot.com',
+   apiKey: 'AIzaSyDbBNkBjvovy8UclA98MR10P8T85eg589g',
+appId: '1:80120188434:android:bbd7f3fb1998bdd73d92cb',
+messagingSenderId: '80120188434',
+projectId: 'food-booking-app-f4bf5',
+databaseURL: 'https://food-booking-app-f4bf5.firebaseio.com',
+storageBucket: 'food-booking-app-f4bf5.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(

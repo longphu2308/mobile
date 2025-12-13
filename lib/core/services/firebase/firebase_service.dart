@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart' show DefaultFirebaseOptions;
 
 class FirebaseService {
   static final FirebaseService _instance = FirebaseService._internal();
@@ -30,6 +31,8 @@ class FirebaseService {
   String? get userId => currentUser?.uid;
 
   static Future<void> initialize() async {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
   }
 }
