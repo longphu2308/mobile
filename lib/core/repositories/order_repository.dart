@@ -114,10 +114,7 @@ class OrderRepository {
   Future<bool> updateOrder(String orderId, Map<String, dynamic> data) async {
     try {
       data['updated_at'] = DateTime.now().toIso8601String();
-      await _supabase
-          .from(_table)
-          .update(data)
-          .eq('order_id', orderId);
+      await _supabase.from(_table).update(data).eq('order_id', orderId);
       return true;
     } catch (e) {
       print('Error updating order: $e');
@@ -149,9 +146,11 @@ class OrderRepository {
         .stream(primaryKey: ['order_id'])
         .eq('user_id', userId)
         .order('created_at', ascending: false)
-        .map((data) => data
-            .map((item) => OrderModel.fromMap(item, item['order_id']))
-            .toList());
+        .map(
+          (data) => data
+              .map((item) => OrderModel.fromMap(item, item['order_id']))
+              .toList(),
+        );
   }
 
   // Stream để lắng nghe orders của restaurant
@@ -161,9 +160,11 @@ class OrderRepository {
         .stream(primaryKey: ['order_id'])
         .eq('restaurant_id', restaurantId)
         .order('created_at', ascending: false)
-        .map((data) => data
-            .map((item) => OrderModel.fromMap(item, item['order_id']))
-            .toList());
+        .map(
+          (data) => data
+              .map((item) => OrderModel.fromMap(item, item['order_id']))
+              .toList(),
+        );
   }
 
   // Tính tổng doanh thu của restaurant
@@ -204,7 +205,8 @@ class OrderRepository {
 
       for (var item in data) {
         final order = OrderModel.fromMap(item, item['order_id']);
-        counts[order.status] = (counts[order.status] ?? 0) + 1;
+        final statusKey = order.status.value;
+        counts[statusKey] = (counts[statusKey] ?? 0) + 1;
       }
 
       return counts;

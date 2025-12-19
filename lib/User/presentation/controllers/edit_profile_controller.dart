@@ -16,12 +16,9 @@ class UserEditProfileController {
 
   void initFromUser(BuildContext context) {
     final authController = Provider.of<AuthController>(context, listen: false);
-    final user = authController.currentUser;
-    if (user != null) {
-      nameCtrl.text = user.fullName ?? '';
-      phoneCtrl.text = user.phone ?? '';
-      addressCtrl.text = user.address ?? '';
-    }
+    nameCtrl.text = authController.fullName ?? '';
+    phoneCtrl.text = authController.phone ?? '';
+    addressCtrl.text = authController.address ?? '';
   }
 
   Future<bool> save(BuildContext context) async {
@@ -40,15 +37,23 @@ class UserEditProfileController {
     }
 
     try {
+      // Update profile first (fullName, phone)
       final success = await userController.updateUserProfile(
         userId: user.userId,
         fullName: nameCtrl.text.trim().isEmpty ? null : nameCtrl.text.trim(),
         phone: phoneCtrl.text.trim().isEmpty ? null : phoneCtrl.text.trim(),
-        address: addressCtrl.text.trim().isEmpty ? null : addressCtrl.text.trim(),
       );
 
-      if (success) {
+      // Update address separately if provided
+      if (addressCtrl.text.trim().isNotEmpty) {
+        await userController.upsertAddress(
+          userId: user.userId,
+          address: addressCtrl.text.trim(),
+          isDefault: true,
+        );
+      }
 
+      if (success) {
         // Reload user data
         await authController.loadCurrentUser();
 
@@ -88,4 +93,3 @@ class UserEditProfileController {
     }
   }
 }
-

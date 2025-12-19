@@ -3,19 +3,66 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Users table (without restaurant_id first)
+-- ============================================
+-- USERS TABLE (Auth only - tách riêng cho authentication)
+-- ============================================
 CREATE TABLE users (
   user_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   email TEXT UNIQUE NOT NULL,
-  full_name TEXT,
-  phone TEXT UNIQUE,
-  role TEXT DEFAULT 'user' CHECK (role IN ('user', 'owner')),
-  address TEXT,
+  role TEXT DEFAULT 'user' CHECK (role IN ('user', 'owner', 'shipper')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Restaurants table
+-- ============================================
+-- USER_PROFILES TABLE (Thông tin profile)
+-- ============================================
+CREATE TABLE user_profiles (
+  profile_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES users(user_id) ON DELETE CASCADE UNIQUE NOT NULL,
+  full_name TEXT,
+  phone TEXT UNIQUE,
+  avatar_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ============================================
+-- USER_ADDRESSES TABLE (Địa chỉ - có thể có nhiều)
+-- ============================================
+CREATE TABLE user_addresses (
+  address_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES users(user_id) ON DELETE CASCADE NOT NULL,
+  label TEXT DEFAULT 'home' CHECK (label IN ('home', 'work', 'other')),
+  address TEXT NOT NULL,
+  latitude DECIMAL(10, 8),
+  longitude DECIMAL(11, 8),
+  is_default BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ============================================
+-- SHIPPER_PROFILES TABLE (Thông tin riêng cho shipper)
+-- ============================================
+CREATE TABLE shipper_profiles (
+  shipper_profile_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES users(user_id) ON DELETE CASCADE UNIQUE NOT NULL,
+  vehicle_type TEXT CHECK (vehicle_type IN ('bike', 'motorbike', 'car')),
+  vehicle_plate TEXT,
+  license_number TEXT,
+  is_available BOOLEAN DEFAULT false,
+  current_latitude DECIMAL(10, 8),
+  current_longitude DECIMAL(11, 8),
+  rating DECIMAL(2,1) DEFAULT 5.0,
+  total_deliveries INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ============================================
+-- RESTAURANTS TABLE
+-- ============================================
 CREATE TABLE restaurants (
   restaurant_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   owner_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
@@ -33,7 +80,9 @@ CREATE TABLE restaurants (
 -- Add restaurant_id column to users after restaurants table is created
 ALTER TABLE users ADD COLUMN restaurant_id UUID REFERENCES restaurants(restaurant_id);
 
--- Foods table
+-- ============================================
+-- FOODS TABLE
+-- ============================================
 CREATE TABLE foods (
   food_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   restaurant_id UUID REFERENCES restaurants(restaurant_id) ON DELETE CASCADE,
@@ -47,21 +96,28 @@ CREATE TABLE foods (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Orders table
+-- ============================================
+-- ORDERS TABLE (thêm shipper_id)
+-- ============================================
 CREATE TABLE orders (
   order_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
   restaurant_id UUID REFERENCES restaurants(restaurant_id),
+  shipper_id UUID REFERENCES users(user_id),
   total_amount DECIMAL(10,2) NOT NULL,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'preparing', 'delivering', 'delivered', 'cancelled')),
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'preparing', 'ready_for_pickup', 'delivering', 'delivered', 'cancelled')),
   delivery_address TEXT NOT NULL,
+  delivery_latitude DECIMAL(10, 8),
+  delivery_longitude DECIMAL(11, 8),
   payment_method TEXT DEFAULT 'cash',
   note TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Order items table
+-- ============================================
+-- ORDER_ITEMS TABLE
+-- ============================================
 CREATE TABLE order_items (
   order_item_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   order_id UUID REFERENCES orders(order_id) ON DELETE CASCADE,
@@ -72,7 +128,9 @@ CREATE TABLE order_items (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Carts table
+-- ============================================
+-- CARTS TABLE
+-- ============================================
 CREATE TABLE carts (
   cart_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES users(user_id) ON DELETE CASCADE UNIQUE,
@@ -82,7 +140,9 @@ CREATE TABLE carts (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Cart items table
+-- ============================================
+-- CART_ITEMS TABLE
+-- ============================================
 CREATE TABLE cart_items (
   cart_item_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   cart_id UUID REFERENCES carts(cart_id) ON DELETE CASCADE,
@@ -94,7 +154,9 @@ CREATE TABLE cart_items (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Promos table
+-- ============================================
+-- PROMOS TABLE
+-- ============================================
 CREATE TABLE promos (
   promo_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   restaurant_id UUID REFERENCES restaurants(restaurant_id) ON DELETE CASCADE,
@@ -110,7 +172,9 @@ CREATE TABLE promos (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Favorites table
+-- ============================================
+-- FAVORITES TABLE
+-- ============================================
 CREATE TABLE favorites (
   favorite_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
@@ -119,7 +183,9 @@ CREATE TABLE favorites (
   UNIQUE(user_id, food_id)
 );
 
--- Payments table
+-- ============================================
+-- PAYMENTS TABLE
+-- ============================================
 CREATE TABLE payments (
   payment_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   order_id UUID REFERENCES orders(order_id) ON DELETE CASCADE,
@@ -131,19 +197,31 @@ CREATE TABLE payments (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Indexes for better query performance
+-- ============================================
+-- INDEXES
+-- ============================================
 CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_phone ON users(phone);
+CREATE INDEX idx_user_profiles_user ON user_profiles(user_id);
+CREATE INDEX idx_user_profiles_phone ON user_profiles(phone);
+CREATE INDEX idx_user_addresses_user ON user_addresses(user_id);
+CREATE INDEX idx_shipper_profiles_user ON shipper_profiles(user_id);
+CREATE INDEX idx_shipper_profiles_available ON shipper_profiles(is_available);
 CREATE INDEX idx_foods_restaurant ON foods(restaurant_id);
 CREATE INDEX idx_orders_user ON orders(user_id);
 CREATE INDEX idx_orders_restaurant ON orders(restaurant_id);
+CREATE INDEX idx_orders_shipper ON orders(shipper_id);
 CREATE INDEX idx_order_items_order ON order_items(order_id);
 CREATE INDEX idx_cart_items_cart ON cart_items(cart_id);
 CREATE INDEX idx_promos_restaurant ON promos(restaurant_id);
 CREATE INDEX idx_favorites_user ON favorites(user_id);
 
--- Row Level Security (RLS) Policies
+-- ============================================
+-- ROW LEVEL SECURITY (RLS)
+-- ============================================
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_addresses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE shipper_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE restaurants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE foods ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
@@ -169,6 +247,78 @@ CREATE POLICY "Users can read own data" ON users
 
 -- Users can update their own data
 CREATE POLICY "Users can update own data" ON users
+  FOR UPDATE TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- ============================================
+-- USER_PROFILES TABLE POLICIES
+-- ============================================
+-- Users can read their own profile
+CREATE POLICY "Users can read own profile" ON user_profiles
+  FOR SELECT TO authenticated
+  USING (auth.uid() = user_id);
+
+-- Anyone can read profiles for display (name, avatar)
+CREATE POLICY "Anyone can read profiles for display" ON user_profiles
+  FOR SELECT TO authenticated
+  USING (true);
+
+-- Users can insert their own profile
+CREATE POLICY "Users can insert own profile" ON user_profiles
+  FOR INSERT TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+
+-- Users can update their own profile
+CREATE POLICY "Users can update own profile" ON user_profiles
+  FOR UPDATE TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- ============================================
+-- USER_ADDRESSES TABLE POLICIES
+-- ============================================
+-- Users can read their own addresses
+CREATE POLICY "Users can read own addresses" ON user_addresses
+  FOR SELECT TO authenticated
+  USING (auth.uid() = user_id);
+
+-- Users can insert their own addresses
+CREATE POLICY "Users can insert own addresses" ON user_addresses
+  FOR INSERT TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+
+-- Users can update their own addresses
+CREATE POLICY "Users can update own addresses" ON user_addresses
+  FOR UPDATE TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- Users can delete their own addresses
+CREATE POLICY "Users can delete own addresses" ON user_addresses
+  FOR DELETE TO authenticated
+  USING (auth.uid() = user_id);
+
+-- ============================================
+-- SHIPPER_PROFILES TABLE POLICIES
+-- ============================================
+-- Shippers can read their own profile
+CREATE POLICY "Shippers can read own shipper profile" ON shipper_profiles
+  FOR SELECT TO authenticated
+  USING (auth.uid() = user_id);
+
+-- Anyone can read available shippers (for order assignment)
+CREATE POLICY "Anyone can read available shippers" ON shipper_profiles
+  FOR SELECT TO authenticated
+  USING (true);
+
+-- Shippers can insert their own profile
+CREATE POLICY "Shippers can insert own shipper profile" ON shipper_profiles
+  FOR INSERT TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+
+-- Shippers can update their own profile
+CREATE POLICY "Shippers can update own shipper profile" ON shipper_profiles
   FOR UPDATE TO authenticated
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
@@ -252,6 +402,11 @@ CREATE POLICY "Owners can read restaurant orders" ON orders
     )
   );
 
+-- Shippers can read orders assigned to them
+CREATE POLICY "Shippers can read assigned orders" ON orders
+  FOR SELECT TO authenticated
+  USING (auth.uid() = shipper_id);
+
 -- Users can create their own orders
 CREATE POLICY "Users can create orders" ON orders
   FOR INSERT TO authenticated
@@ -272,6 +427,11 @@ CREATE POLICY "Owners can update restaurant orders" ON orders
     )
   );
 
+-- Shippers can update orders assigned to them
+CREATE POLICY "Shippers can update assigned orders" ON orders
+  FOR UPDATE TO authenticated
+  USING (auth.uid() = shipper_id);
+
 -- ============================================
 -- ORDER_ITEMS TABLE POLICIES
 -- ============================================
@@ -291,6 +451,13 @@ CREATE POLICY "Owners can read restaurant order items" ON order_items
       JOIN restaurants r ON o.restaurant_id = r.restaurant_id
       WHERE r.owner_id = auth.uid()
     )
+  );
+
+-- Shippers can read items from their assigned orders
+CREATE POLICY "Shippers can read assigned order items" ON order_items
+  FOR SELECT TO authenticated
+  USING (
+    order_id IN (SELECT order_id FROM orders WHERE shipper_id = auth.uid())
   );
 
 -- Users can insert items when creating orders

@@ -26,13 +26,53 @@ class UserRepository {
     }
   }
 
-  /// Update user profile
+  /// Get user profile by user ID
+  Future<UserProfileModel?> getUserProfile(String userId) async {
+    try {
+      final data = await _supabase
+          .from('user_profiles')
+          .select()
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (data != null) {
+        return UserProfileModel.fromMap(data);
+      }
+      return null;
+    } catch (e) {
+      throw FirestoreException(
+        message: 'Lỗi lấy profile người dùng: ${e.toString()}',
+        code: 'get_profile_error',
+      );
+    }
+  }
+
+  /// Get user addresses by user ID
+  Future<List<UserAddressModel>> getUserAddresses(String userId) async {
+    try {
+      final data = await _supabase
+          .from('user_addresses')
+          .select()
+          .eq('user_id', userId)
+          .order('is_default', ascending: false);
+
+      return (data as List)
+          .map((item) => UserAddressModel.fromMap(item))
+          .toList();
+    } catch (e) {
+      throw FirestoreException(
+        message: 'Lỗi lấy địa chỉ người dùng: ${e.toString()}',
+        code: 'get_addresses_error',
+      );
+    }
+  }
+
+  /// Update user profile (now in user_profiles table)
   Future<void> updateUserProfile({
     required String userId,
     String? fullName,
     String? phone,
-    String? address,
-    String? profileImageUrl,
+    String? avatarUrl,
   }) async {
     try {
       Map<String, dynamic> updateData = {
@@ -45,18 +85,92 @@ class UserRepository {
       if (phone != null) {
         updateData['phone'] = phone;
       }
-      if (address != null) {
-        updateData['address'] = address;
-      }
-      if (profileImageUrl != null) {
-        updateData['profile_image_url'] = profileImageUrl;
+      if (avatarUrl != null) {
+        updateData['avatar_url'] = avatarUrl;
       }
 
-      await _supabase.from('users').update(updateData).eq('user_id', userId);
+      // Check if profile exists
+      final existing = await _supabase
+          .from('user_profiles')
+          .select('profile_id')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (existing != null) {
+        await _supabase
+            .from('user_profiles')
+            .update(updateData)
+            .eq('user_id', userId);
+      } else {
+        // Create new profile
+        updateData['user_id'] = userId;
+        await _supabase.from('user_profiles').insert(updateData);
+      }
     } catch (e) {
       throw FirestoreException(
         message: 'Lỗi cập nhật hồ sơ: ${e.toString()}',
         code: 'update_profile_error',
+      );
+    }
+  }
+
+  /// Add or update user address
+  Future<void> upsertUserAddress({
+    required String userId,
+    String? addressId,
+    required String address,
+    String? label,
+    double? latitude,
+    double? longitude,
+    bool isDefault = false,
+  }) async {
+    try {
+      Map<String, dynamic> addressData = {
+        'user_id': userId,
+        'address': address,
+        'label': label ?? 'other',
+        'latitude': latitude,
+        'longitude': longitude,
+        'is_default': isDefault,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      if (addressId != null) {
+        // Update existing
+        await _supabase
+            .from('user_addresses')
+            .update(addressData)
+            .eq('address_id', addressId);
+      } else {
+        // Insert new
+        // If this is set as default, unset others first
+        if (isDefault) {
+          await _supabase
+              .from('user_addresses')
+              .update({'is_default': false})
+              .eq('user_id', userId);
+        }
+        await _supabase.from('user_addresses').insert(addressData);
+      }
+    } catch (e) {
+      throw FirestoreException(
+        message: 'Lỗi cập nhật địa chỉ: ${e.toString()}',
+        code: 'update_address_error',
+      );
+    }
+  }
+
+  /// Delete user address
+  Future<void> deleteUserAddress(String addressId) async {
+    try {
+      await _supabase
+          .from('user_addresses')
+          .delete()
+          .eq('address_id', addressId);
+    } catch (e) {
+      throw FirestoreException(
+        message: 'Lỗi xóa địa chỉ: ${e.toString()}',
+        code: 'delete_address_error',
       );
     }
   }

@@ -17,6 +17,7 @@ import 'package:mobile/Owner/presentation/views/dashboard/profile/edit_profile_s
 import 'package:mobile/Owner/presentation/views/dashboard/profile/change_password_screen.dart';
 import 'package:mobile/User/presentation/views/dashboard/profile/edit_profile_screen.dart';
 import 'package:mobile/User/presentation/views/dashboard/profile/change_password_screen.dart';
+import 'package:mobile/core/models/user_model.dart';
 // Shipper views
 import 'package:mobile/Shipper/views/shipper_dashboard.dart';
 import 'package:mobile/Shipper/views/order_detail.dart';
@@ -63,8 +64,10 @@ class AppRouter {
             builder: (context, authController, _) {
               if (authController.state == AuthState.authenticated) {
                 final user = authController.currentUser;
-                if (user != null && user.role == 'owner') {
+                if (user != null && user.role == UserRole.owner) {
                   return const OwnerDashboardScreen();
+                } else if (user != null && user.role == UserRole.shipper) {
+                  return const ShipperDashboard();
                 } else {
                   return const UserDashboardScreen();
                 }
@@ -85,9 +88,8 @@ class AppRouter {
       case userDashboardRoute:
         final args = settings.arguments as Map<String, dynamic>?;
         return MaterialPageRoute(
-          builder: (_) => UserDashboardScreen(
-            initialIndex: args?['initialIndex'] ?? 0,
-          ),
+          builder: (_) =>
+              UserDashboardScreen(initialIndex: args?['initialIndex'] ?? 0),
         );
 
       case ownerDashboardRoute:
@@ -148,7 +150,9 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const OrderHistory());
 
       case shipperProfileRoute:
-        return MaterialPageRoute(builder: (_) => const shipper_profile.ShipperProfile());
+        return MaterialPageRoute(
+          builder: (_) => const shipper_profile.ShipperProfile(),
+        );
 
       case shipperTrackingRoute:
         return MaterialPageRoute(builder: (_) => const LiveTracking());

@@ -50,10 +50,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 return OrderCard(
                   order: order,
                   statusColor: controller.statusColor(order.status),
-                  onUpdateStatus: () => controller.updateStatus(
-                    order.id,
-                    _getNextStatus(order.status),
-                  ),
+                  onUpdateStatus: () =>
+                      controller.updateStatus(order.id, order.status),
                   onCancel: () => controller.cancelOrder(order.id),
                   onShowDetail: () => _showOrderDetail(context, order),
                 );
@@ -63,21 +61,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
         },
       ),
     );
-  }
-
-  String _getNextStatus(String currentStatus) {
-    switch (currentStatus) {
-      case 'pending':
-        return 'confirmed';
-      case 'confirmed':
-        return 'preparing';
-      case 'preparing':
-        return 'delivering';
-      case 'delivering':
-        return 'delivered';
-      default:
-        return currentStatus;
-    }
   }
 
   void _showOrderDetail(BuildContext context, OrderModel order) {

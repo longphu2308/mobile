@@ -149,11 +149,18 @@ class _OrderCard extends StatelessWidget {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(Icons.access_time_rounded, size: 14, color: Colors.grey[600]),
+                        Icon(
+                          Icons.access_time_rounded,
+                          size: 14,
+                          color: Colors.grey[600],
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           formatDate(order.createdAt),
-                          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
                         ),
                       ],
                     ),
@@ -253,10 +260,7 @@ class _OrderCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       '${formatPrice(item.price)} đ x ${item.quantity}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -277,11 +281,10 @@ class _OrderCard extends StatelessWidget {
 
     return widgets;
   }
-
 }
 
 class _StatusChip extends StatelessWidget {
-  final String status;
+  final OrderStatus status;
 
   const _StatusChip({required this.status});
 
@@ -293,13 +296,10 @@ class _StatusChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: color.withValues(alpha: 0.3),
-          width: 1,
-        ),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
       ),
       child: Text(
-        _getLabel(status),
+        status.displayName,
         style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.bold,
@@ -309,40 +309,21 @@ class _StatusChip extends StatelessWidget {
     );
   }
 
-  static Color _getColor(String status) {
+  static Color _getColor(OrderStatus status) {
     switch (status) {
-      case 'pending':
+      case OrderStatus.pending:
         return const Color(0xFFFFB347);
-      case 'confirmed':
-      case 'preparing':
+      case OrderStatus.confirmed:
+      case OrderStatus.preparing:
         return primaryColor;
-      case 'delivering':
+      case OrderStatus.readyForPickup:
         return const Color(0xFF2EC4B6);
-      case 'delivered':
+      case OrderStatus.delivering:
+        return const Color(0xFF2EC4B6);
+      case OrderStatus.delivered:
         return const Color(0xFF4CAF50);
-      case 'cancelled':
+      case OrderStatus.cancelled:
         return Colors.redAccent;
-      default:
-        return primaryColor;
-    }
-  }
-
-  static String _getLabel(String status) {
-    switch (status) {
-      case 'pending':
-        return 'Chờ xác nhận';
-      case 'confirmed':
-        return 'Đã xác nhận';
-      case 'preparing':
-        return 'Đang chuẩn bị';
-      case 'delivering':
-        return 'Đang giao';
-      case 'delivered':
-        return 'Hoàn thành';
-      case 'cancelled':
-        return 'Đã hủy';
-      default:
-        return status;
     }
   }
 }
