@@ -52,7 +52,7 @@ class SearchResultScreen extends StatelessWidget {
 class _SearchFound extends StatelessWidget {
   final List<FoodModel> foodList;
 
-  const _SearchFound({super.key, required this.foodList});
+  const _SearchFound({required this.foodList});
 
   String _formatPrice(double price) {
     final priceStr = price.toStringAsFixed(0);

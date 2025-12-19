@@ -32,6 +32,7 @@ class MenuScreenController extends ChangeNotifier {
   List<FoodModel> get menu => _menu;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  RestaurantModel? get restaurant => _restaurant;
 
   List<FoodModel> get filteredMenu {
     if (_selectedCategory == 'Tất cả') return _menu;

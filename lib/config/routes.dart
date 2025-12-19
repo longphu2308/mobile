@@ -15,9 +15,15 @@ import 'package:mobile/Owner/presentation/views/dashboard/report/report_screen.d
 import 'package:mobile/Owner/presentation/views/dashboard/support/support_screen.dart';
 import 'package:mobile/Owner/presentation/views/dashboard/profile/edit_profile_screen.dart';
 import 'package:mobile/Owner/presentation/views/dashboard/profile/change_password_screen.dart';
+import 'package:mobile/Owner/presentation/views/dashboard/orders/order_detail_screen.dart';
+import 'package:mobile/Owner/presentation/views/dashboard/promotions/add_edit_promo_screen.dart';
+import 'package:mobile/Owner/presentation/views/dashboard/promotions/promo_detail_screen.dart';
 import 'package:mobile/User/presentation/views/dashboard/profile/edit_profile_screen.dart';
 import 'package:mobile/User/presentation/views/dashboard/profile/change_password_screen.dart';
 import 'package:mobile/core/models/user_model.dart';
+import 'package:mobile/core/models/order_model.dart';
+import 'package:mobile/core/models/promo_model.dart';
+import 'package:mobile/core/models/restaurant_model.dart';
 // Shipper views
 import 'package:mobile/Shipper/views/shipper_dashboard.dart';
 import 'package:mobile/Shipper/views/order_detail.dart';
@@ -47,6 +53,9 @@ const String ownerReportRoute = '/owner/report';
 const String ownerSupportRoute = '/owner/support';
 const String ownerEditProfileRoute = '/owner/edit-profile';
 const String ownerChangePasswordRoute = '/owner/change-password';
+const String ownerOrderDetailRoute = '/owner/order-detail';
+const String ownerAddEditPromoRoute = '/owner/add-edit-promo';
+const String ownerPromoDetailRoute = '/owner/promo-detail';
 
 // Shipper routes
 const String shipperDashboardRoute = '/shipper/dashboard';
@@ -133,10 +142,34 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const SupportScreen());
 
       case ownerEditProfileRoute:
-        return MaterialPageRoute(builder: (_) => const EditProfileScreen());
+        final restaurantArg = settings.arguments as RestaurantModel?;
+        return MaterialPageRoute(
+          builder: (_) => EditProfileScreen(restaurant: restaurantArg),
+        );
 
       case ownerChangePasswordRoute:
         return MaterialPageRoute(builder: (_) => const ChangePasswordScreen());
+
+      case ownerOrderDetailRoute:
+        final args = settings.arguments as Map<String, dynamic>;
+        return MaterialPageRoute(
+          builder: (_) => OrderDetailScreen(order: args['order'] as OrderModel),
+        );
+
+      case ownerAddEditPromoRoute:
+        final args = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          builder: (_) => AddEditPromoScreen(
+            promo: args?['promo'] as PromoModel?,
+            restaurantId: args?['restaurantId'] as String?,
+          ),
+        );
+
+      case ownerPromoDetailRoute:
+        final args = settings.arguments as Map<String, dynamic>;
+        return MaterialPageRoute(
+          builder: (_) => PromoDetailScreen(promo: args['promo'] as PromoModel),
+        );
 
       // Shipper routes
       case shipperDashboardRoute:
