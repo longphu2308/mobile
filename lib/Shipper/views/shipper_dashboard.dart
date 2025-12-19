@@ -213,27 +213,50 @@ class _ShipperDashboardState extends State<ShipperDashboard> {
 
               // Orders list
               Expanded(
-                child: isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : ListView.builder(
-                        itemCount: orders.length,
-                        itemBuilder: (ctx, i) {
-                          final o = orders[i];
-                          final avatarLetter = (o.customerName.isNotEmpty ? o.customerName[0] : '?');
-                          return Card(
-                            margin: const EdgeInsets.symmetric(vertical: 8),
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: orangeLight,
-                                child: Text(avatarLetter),
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView.builder(
+                      padding: EdgeInsets.only(
+                        bottom: MediaQuery.of(context).padding.bottom +
+                            kBottomNavigationBarHeight +
+                            24,
+                      ),
+                      itemCount: orders.length,
+                      itemBuilder: (ctx, i) {
+                        final o = orders[i];
+                        final avatarLetter =
+                            (o.customerName.isNotEmpty ? o.customerName[0] : '?');
+
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: orangeLight,
+                              child: Text(
+                                avatarLetter,
+                                style: const TextStyle(color: whiteColor),
                               ),
-                              title: Text('${o.id} • ${o.customerName}'),
-                              subtitle: Text(
-                                '${o.restaurantName ?? ''}\n${o.distanceKm.toStringAsFixed(1)} km • ${o.eta}',
-                              ),
-                              isThreeLine: true,
-                              trailing: Column(
-                                mainAxisSize: MainAxisSize.min,
+                            ),
+
+                            /// TITLE
+                            title: Text(
+                              '${o.id} • ${o.customerName}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+
+                            /// SUBTITLE (đã đưa status xuống đây)
+                            subtitle: Text(
+                              '${o.restaurantName ?? ''}\n'
+                              '${o.distanceKm.toStringAsFixed(1)} km • ${o.eta}\n'
+                              '${o.status}',
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                            isThreeLine: true,
+                            trailing: SizedBox(
+                              width: 90,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   ElevatedButton(
                                     onPressed: () => Navigator.pushNamed(
@@ -243,21 +266,29 @@ class _ShipperDashboardState extends State<ShipperDashboard> {
                                     ),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: primaryColor,
+                                      padding: EdgeInsets.zero,
+                                      minimumSize: const Size(70, 30),
+                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                     ),
-                                    child: const Text('Chi tiết'),
+                                    child: const Text(
+                                      'Chi tiết',
+                                      style: TextStyle(fontSize: 11),
+                                    ),
                                   ),
-                                  const SizedBox(height: 6),
+                                  const SizedBox(height: 4),
                                   Text(
                                     o.status,
-                                    style: const TextStyle(fontSize: 12),
+                                    style: const TextStyle(fontSize: 10),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
                               ),
                             ),
-                          );
-                        },
-                      ),
-              ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
             ],
           ),
         ),
