@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class PromoModel {
   final String id;
   final String code;
@@ -37,13 +35,21 @@ class PromoModel {
       description: data['description'] ?? '',
       discount: (data['discount'] ?? 0).toDouble(),
       type: data['type'] ?? 'user',
-      restaurantId: data['restaurantId'],
-      startDate: (data['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      endDate: (data['endDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      restaurantId: data['restaurant_id'],
+      startDate: data['start_date'] != null
+          ? DateTime.parse(data['start_date'])
+          : DateTime.now(),
+      endDate: data['end_date'] != null
+          ? DateTime.parse(data['end_date'])
+          : DateTime.now(),
       active: data['active'] ?? true,
-      usedCount: data['usedCount'] ?? 0,
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      usedCount: data['used_count'] ?? 0,
+      createdAt: data['created_at'] != null
+          ? DateTime.parse(data['created_at'])
+          : DateTime.now(),
+      updatedAt: data['updated_at'] != null
+          ? DateTime.parse(data['updated_at'])
+          : DateTime.now(),
     );
   }
 
@@ -54,13 +60,13 @@ class PromoModel {
       'description': description,
       'discount': discount,
       'type': type,
-      'restaurantId': restaurantId,
-      'startDate': Timestamp.fromDate(startDate),
-      'endDate': Timestamp.fromDate(endDate),
+      'restaurant_id': restaurantId,
+      'start_date': startDate.toIso8601String(),
+      'end_date': endDate.toIso8601String(),
       'active': active,
-      'usedCount': usedCount,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(DateTime.now()),
+      'used_count': usedCount,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': DateTime.now().toIso8601String(),
     };
   }
 

@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class CartItemModel {
   final String foodId;
   final String foodName;
@@ -17,20 +15,20 @@ class CartItemModel {
 
   Map<String, dynamic> toMap() {
     return {
-      'foodId': foodId,
-      'foodName': foodName,
+      'food_id': foodId,
+      'food_name': foodName,
       'price': price,
-      'imageUrl': imageUrl,
+      'image_url': imageUrl,
       'quantity': quantity,
     };
   }
 
   factory CartItemModel.fromMap(Map<String, dynamic> data) {
     return CartItemModel(
-      foodId: data['foodId'] ?? '',
-      foodName: data['foodName'] ?? '',
+      foodId: data['food_id'] ?? '',
+      foodName: data['food_name'] ?? '',
       price: (data['price'] ?? 0).toDouble(),
-      imageUrl: data['imageUrl'] ?? '',
+      imageUrl: data['image_url'] ?? '',
       quantity: data['quantity'] ?? 1,
     );
   }
@@ -57,8 +55,8 @@ class CartModel {
   factory CartModel.fromMap(Map<String, dynamic> data, String userId) {
     return CartModel(
       userId: userId,
-      restaurantId: data['restaurantId'] ?? '',
-      restaurantName: data['restaurantName'] ?? '',
+      restaurantId: data['restaurant_id'] ?? '',
+      restaurantName: data['restaurant_name'] ?? '',
       items:
           (data['items'] as List<dynamic>?)
               ?.map(
@@ -66,17 +64,19 @@ class CartModel {
               )
               .toList() ??
           [],
-      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt: data['updated_at'] != null
+          ? DateTime.parse(data['updated_at'])
+          : DateTime.now(),
     );
   }
 
   // Chuyển model sang map để lưu vào Firestore
   Map<String, dynamic> toMap() {
     return {
-      'restaurantId': restaurantId,
-      'restaurantName': restaurantName,
+      'restaurant_id': restaurantId,
+      'restaurant_name': restaurantName,
       'items': items.map((item) => item.toMap()).toList(),
-      'updatedAt': Timestamp.fromDate(DateTime.now()),
+      'updated_at': DateTime.now().toIso8601String(),
     };
   }
 

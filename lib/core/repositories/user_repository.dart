@@ -1,25 +1,21 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mobile/core/errors/app_exception.dart';
-import 'package:mobile/core/services/firebase/firebase_service.dart';
+import 'package:mobile/core/services/supabase/supabase_service.dart';
 import 'package:mobile/core/models/user_model.dart';
 
 class UserRepository {
-  final FirebaseService _firebaseService;
-
-  UserRepository({FirebaseService? firebaseService})
-    : _firebaseService = firebaseService ?? FirebaseService();
+  final _supabase = SupabaseService().client;
 
   /// Get user by ID
   Future<UserModel?> getUserById(String userId) async {
     try {
-      DocumentSnapshot<Map<String, dynamic>> doc = await _firebaseService
-          .firestore
-          .collection('users')
-          .doc(userId)
-          .get();
+      final data = await _supabase
+          .from('users')
+          .select()
+          .eq('user_id', userId)
+          .maybeSingle();
 
-      if (doc.exists) {
-        return UserModel.fromMap(doc.data()!, userId);
+      if (data != null) {
+        return UserModel.fromMap(data, userId);
       }
       return null;
     } catch (e) {
@@ -39,10 +35,12 @@ class UserRepository {
     String? profileImageUrl,
   }) async {
     try {
-      Map<String, dynamic> updateData = {'updatedAt': DateTime.now()};
+      Map<String, dynamic> updateData = {
+        'updated_at': DateTime.now().toIso8601String(),
+      };
 
       if (fullName != null) {
-        updateData['fullName'] = fullName;
+        updateData['full_name'] = fullName;
       }
       if (phone != null) {
         updateData['phone'] = phone;
@@ -51,13 +49,10 @@ class UserRepository {
         updateData['address'] = address;
       }
       if (profileImageUrl != null) {
-        updateData['profileImageUrl'] = profileImageUrl;
+        updateData['profile_image_url'] = profileImageUrl;
       }
 
-      await _firebaseService.firestore
-          .collection('users')
-          .doc(userId)
-          .update(updateData);
+      await _supabase.from('users').update(updateData).eq('user_id', userId);
     } catch (e) {
       throw FirestoreException(
         message: 'Lỗi cập nhật hồ sơ: ${e.toString()}',
@@ -69,13 +64,10 @@ class UserRepository {
   /// Get all users (có thể dùng cho admin)
   Future<List<UserModel>> getAllUsers() async {
     try {
-      QuerySnapshot<Map<String, dynamic>> snapshot = await _firebaseService
-          .firestore
-          .collection('users')
-          .get();
+      final data = await _supabase.from('users').select();
 
-      return snapshot.docs
-          .map((doc) => UserModel.fromMap(doc.data(), doc.id))
+      return (data as List)
+          .map((item) => UserModel.fromMap(item, item['user_id']))
           .toList();
     } catch (e) {
       throw FirestoreException(
@@ -88,21 +80,18 @@ class UserRepository {
   /// Search users by email
   Future<UserModel?> getUserByEmail(String email) async {
     try {
-      QuerySnapshot<Map<String, dynamic>> snapshot = await _firebaseService
-          .firestore
-          .collection('users')
-          .where('email', isEqualTo: email)
+      final data = await _supabase
+          .from('users')
+          .select()
+          .eq('email', email)
           .limit(1)
-          .get();
+          .maybeSingle();
 
-      if (snapshot.docs.isEmpty) {
+      if (data == null) {
         return null;
       }
 
-      return UserModel.fromMap(
-        snapshot.docs.first.data(),
-        snapshot.docs.first.id,
-      );
+      return UserModel.fromMap(data, data['user_id']);
     } catch (e) {
       throw FirestoreException(
         message: 'Lỗi tìm kiếm người dùng: ${e.toString()}',
@@ -114,7 +103,7 @@ class UserRepository {
   /// Delete user
   Future<void> deleteUser(String userId) async {
     try {
-      await _firebaseService.firestore.collection('users').doc(userId).delete();
+      await _supabase.from('users').delete().eq('user_id', userId);
     } catch (e) {
       throw FirestoreException(
         message: 'Lỗi xóa người dùng: ${e.toString()}',

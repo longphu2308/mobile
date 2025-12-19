@@ -1,16 +1,16 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mobile/core/models/promo_model.dart';
+import 'package:mobile/core/services/supabase/supabase_service.dart';
 
 class PromoRepository {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final String _collection = 'promos';
+  final _supabase = SupabaseService().client;
+  final String _table = 'promos';
 
   // Lấy tất cả promos
   Future<List<PromoModel>> getAllPromos() async {
     try {
-      final snapshot = await _firestore.collection(_collection).get();
-      return snapshot.docs
-          .map((doc) => PromoModel.fromMap(doc.data(), doc.id))
+      final data = await _supabase.from(_table).select();
+      return (data as List)
+          .map((item) => PromoModel.fromMap(item, item['promo_id']))
           .toList();
     } catch (e) {
       print('Error getting all promos: $e');
@@ -24,30 +24,23 @@ class PromoRepository {
     String? restaurantId,
   }) async {
     try {
-      Query query = _firestore
-          .collection(_collection)
-          .where('active', isEqualTo: true);
+      var query = _supabase.from(_table).select().eq('active', true);
 
-      if (type != null) {
-        query = query.where('type', whereIn: [type, 'both']);
+      if (type != null && restaurantId != null) {
+        query = query.or('type.eq.$type,type.eq.both').eq('restaurant_id', restaurantId);
+      } else if (type != null) {
+        query = query.or('type.eq.$type,type.eq.both');
+      } else if (restaurantId != null) {
+        query = query.eq('restaurant_id', restaurantId);
       }
 
-      if (restaurantId != null) {
-        query = query.where('restaurantId', isEqualTo: restaurantId);
-      }
-
-      final snapshot = await query.get();
+      final data = await query;
       final now = DateTime.now();
 
-      return snapshot.docs
-          .map(
-            (doc) =>
-                PromoModel.fromMap(doc.data() as Map<String, dynamic>, doc.id),
-          )
-          .where(
-            (promo) =>
-                now.isAfter(promo.startDate) && now.isBefore(promo.endDate),
-          )
+      return (data as List)
+          .map((item) => PromoModel.fromMap(item, item['promo_id']))
+          .where((promo) =>
+              now.isAfter(promo.startDate) && now.isBefore(promo.endDate))
           .toList();
     } catch (e) {
       print('Error getting active promos: $e');
@@ -58,12 +51,12 @@ class PromoRepository {
   // Lấy promos của restaurant (cho owner)
   Future<List<PromoModel>> getRestaurantPromos(String restaurantId) async {
     try {
-      final snapshot = await _firestore
-          .collection(_collection)
-          .where('restaurantId', isEqualTo: restaurantId)
-          .get();
-      return snapshot.docs
-          .map((doc) => PromoModel.fromMap(doc.data(), doc.id))
+      final data = await _supabase
+          .from(_table)
+          .select()
+          .eq('restaurant_id', restaurantId);
+      return (data as List)
+          .map((item) => PromoModel.fromMap(item, item['promo_id']))
           .toList();
     } catch (e) {
       print('Error getting restaurant promos: $e');
@@ -74,17 +67,15 @@ class PromoRepository {
   // Lấy promo theo code
   Future<PromoModel?> getPromoByCode(String code) async {
     try {
-      final snapshot = await _firestore
-          .collection(_collection)
-          .where('code', isEqualTo: code)
+      final data = await _supabase
+          .from(_table)
+          .select()
+          .eq('code', code)
           .limit(1)
-          .get();
+          .maybeSingle();
 
-      if (snapshot.docs.isNotEmpty) {
-        return PromoModel.fromMap(
-          snapshot.docs.first.data(),
-          snapshot.docs.first.id,
-        );
+      if (data != null) {
+        return PromoModel.fromMap(data, data['promo_id']);
       }
       return null;
     } catch (e) {
@@ -96,9 +87,13 @@ class PromoRepository {
   // Lấy promo theo ID
   Future<PromoModel?> getPromoById(String promoId) async {
     try {
-      final doc = await _firestore.collection(_collection).doc(promoId).get();
-      if (doc.exists) {
-        return PromoModel.fromMap(doc.data()!, doc.id);
+      final data = await _supabase
+          .from(_table)
+          .select()
+          .eq('promo_id', promoId)
+          .maybeSingle();
+      if (data != null) {
+        return PromoModel.fromMap(data, data['promo_id']);
       }
       return null;
     } catch (e) {
@@ -110,10 +105,12 @@ class PromoRepository {
   // Tạo promo mới
   Future<String?> createPromo(PromoModel promo) async {
     try {
-      final docRef = await _firestore
-          .collection(_collection)
-          .add(promo.toMap());
-      return docRef.id;
+      final data = await _supabase
+          .from(_table)
+          .insert(promo.toMap())
+          .select()
+          .single();
+      return data['promo_id'];
     } catch (e) {
       print('Error creating promo: $e');
       return null;
@@ -123,10 +120,11 @@ class PromoRepository {
   // Cập nhật promo
   Future<bool> updatePromo(String promoId, Map<String, dynamic> data) async {
     try {
-      await _firestore.collection(_collection).doc(promoId).update({
-        ...data,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      data['updated_at'] = DateTime.now().toIso8601String();
+      await _supabase
+          .from(_table)
+          .update(data)
+          .eq('promo_id', promoId);
       return true;
     } catch (e) {
       print('Error updating promo: $e');
@@ -134,37 +132,13 @@ class PromoRepository {
     }
   }
 
-  // Toggle active status
-  Future<bool> togglePromoActive(String promoId, bool active) async {
-    try {
-      await _firestore.collection(_collection).doc(promoId).update({
-        'active': active,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-      return true;
-    } catch (e) {
-      print('Error toggling promo active: $e');
-      return false;
-    }
-  }
-
-  // Tăng used count khi user sử dụng promo
-  Future<bool> incrementUsedCount(String promoId) async {
-    try {
-      await _firestore.collection(_collection).doc(promoId).update({
-        'usedCount': FieldValue.increment(1),
-      });
-      return true;
-    } catch (e) {
-      print('Error incrementing used count: $e');
-      return false;
-    }
-  }
-
   // Xóa promo
   Future<bool> deletePromo(String promoId) async {
     try {
-      await _firestore.collection(_collection).doc(promoId).delete();
+      await _supabase
+          .from(_table)
+          .delete()
+          .eq('promo_id', promoId);
       return true;
     } catch (e) {
       print('Error deleting promo: $e');
@@ -172,16 +146,50 @@ class PromoRepository {
     }
   }
 
-  // Stream để lắng nghe promos của restaurant
-  Stream<List<PromoModel>> restaurantPromosStream(String restaurantId) {
-    return _firestore
-        .collection(_collection)
-        .where('restaurantId', isEqualTo: restaurantId)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => PromoModel.fromMap(doc.data(), doc.id))
-              .toList(),
-        );
+  // Tăng used_count
+  Future<bool> incrementUsedCount(String promoId) async {
+    try {
+      final promo = await getPromoById(promoId);
+      if (promo != null) {
+        await updatePromo(promoId, {'used_count': promo.usedCount + 1});
+      }
+      return true;
+    } catch (e) {
+      print('Error incrementing used count: $e');
+      return false;
+    }
+  }
+
+  // Validate promo
+  Future<bool> validatePromo(
+    String code,
+    String? restaurantId,
+    String userType,
+  ) async {
+    try {
+      final promo = await getPromoByCode(code);
+      if (promo == null || !promo.active) return false;
+
+      final now = DateTime.now();
+      if (now.isBefore(promo.startDate) || now.isAfter(promo.endDate)) {
+        return false;
+      }
+
+      // Check if promo is for specific restaurant
+      if (promo.restaurantId != null &&
+          promo.restaurantId != restaurantId) {
+        return false;
+      }
+
+      // Check if promo is for user type
+      if (promo.type != 'both' && promo.type != userType) {
+        return false;
+      }
+
+      return true;
+    } catch (e) {
+      print('Error validating promo: $e');
+      return false;
+    }
   }
 }

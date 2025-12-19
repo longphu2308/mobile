@@ -1,20 +1,20 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mobile/core/models/order_model.dart';
+import 'package:mobile/core/services/supabase/supabase_service.dart';
 
 class OrderRepository {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final String _collection = 'orders';
+  final _supabase = SupabaseService().client;
+  final String _table = 'orders';
 
   // Lấy tất cả orders của user
   Future<List<OrderModel>> getUserOrders(String userId) async {
     try {
-      final snapshot = await _firestore
-          .collection(_collection)
-          .where('userId', isEqualTo: userId)
-          .orderBy('createdAt', descending: true)
-          .get();
-      return snapshot.docs
-          .map((doc) => OrderModel.fromMap(doc.data(), doc.id))
+      final data = await _supabase
+          .from(_table)
+          .select()
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
+      return (data as List)
+          .map((item) => OrderModel.fromMap(item, item['order_id']))
           .toList();
     } catch (e) {
       print('Error getting user orders: $e');
@@ -25,13 +25,13 @@ class OrderRepository {
   // Lấy tất cả orders của restaurant (cho owner)
   Future<List<OrderModel>> getRestaurantOrders(String restaurantId) async {
     try {
-      final snapshot = await _firestore
-          .collection(_collection)
-          .where('restaurantId', isEqualTo: restaurantId)
-          .orderBy('createdAt', descending: true)
-          .get();
-      return snapshot.docs
-          .map((doc) => OrderModel.fromMap(doc.data(), doc.id))
+      final data = await _supabase
+          .from(_table)
+          .select()
+          .eq('restaurant_id', restaurantId)
+          .order('created_at', ascending: false);
+      return (data as List)
+          .map((item) => OrderModel.fromMap(item, item['order_id']))
           .toList();
     } catch (e) {
       print('Error getting restaurant orders: $e');
@@ -45,14 +45,14 @@ class OrderRepository {
     String status,
   ) async {
     try {
-      final snapshot = await _firestore
-          .collection(_collection)
-          .where('restaurantId', isEqualTo: restaurantId)
-          .where('status', isEqualTo: status)
-          .orderBy('createdAt', descending: true)
-          .get();
-      return snapshot.docs
-          .map((doc) => OrderModel.fromMap(doc.data(), doc.id))
+      final data = await _supabase
+          .from(_table)
+          .select()
+          .eq('restaurant_id', restaurantId)
+          .eq('status', status)
+          .order('created_at', ascending: false);
+      return (data as List)
+          .map((item) => OrderModel.fromMap(item, item['order_id']))
           .toList();
     } catch (e) {
       print('Error getting restaurant orders by status: $e');
@@ -63,9 +63,13 @@ class OrderRepository {
   // Lấy order theo ID
   Future<OrderModel?> getOrderById(String orderId) async {
     try {
-      final doc = await _firestore.collection(_collection).doc(orderId).get();
-      if (doc.exists) {
-        return OrderModel.fromMap(doc.data()!, doc.id);
+      final data = await _supabase
+          .from(_table)
+          .select()
+          .eq('order_id', orderId)
+          .maybeSingle();
+      if (data != null) {
+        return OrderModel.fromMap(data, data['order_id']);
       }
       return null;
     } catch (e) {
@@ -77,10 +81,12 @@ class OrderRepository {
   // Tạo order mới
   Future<String?> createOrder(OrderModel order) async {
     try {
-      final docRef = await _firestore
-          .collection(_collection)
-          .add(order.toMap());
-      return docRef.id;
+      final data = await _supabase
+          .from(_table)
+          .insert(order.toMap())
+          .select()
+          .single();
+      return data['order_id'];
     } catch (e) {
       print('Error creating order: $e');
       return null;
@@ -90,10 +96,13 @@ class OrderRepository {
   // Cập nhật status của order
   Future<bool> updateOrderStatus(String orderId, String status) async {
     try {
-      await _firestore.collection(_collection).doc(orderId).update({
-        'status': status,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      await _supabase
+          .from(_table)
+          .update({
+            'status': status,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('order_id', orderId);
       return true;
     } catch (e) {
       print('Error updating order status: $e');
@@ -104,10 +113,11 @@ class OrderRepository {
   // Cập nhật order
   Future<bool> updateOrder(String orderId, Map<String, dynamic> data) async {
     try {
-      await _firestore.collection(_collection).doc(orderId).update({
-        ...data,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      data['updated_at'] = DateTime.now().toIso8601String();
+      await _supabase
+          .from(_table)
+          .update(data)
+          .eq('order_id', orderId);
       return true;
     } catch (e) {
       print('Error updating order: $e');
@@ -118,10 +128,13 @@ class OrderRepository {
   // Hủy order
   Future<bool> cancelOrder(String orderId) async {
     try {
-      await _firestore.collection(_collection).doc(orderId).update({
-        'status': 'cancelled',
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      await _supabase
+          .from(_table)
+          .update({
+            'status': 'cancelled',
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('order_id', orderId);
       return true;
     } catch (e) {
       print('Error cancelling order: $e');
@@ -131,44 +144,40 @@ class OrderRepository {
 
   // Stream để lắng nghe orders của user
   Stream<List<OrderModel>> userOrdersStream(String userId) {
-    return _firestore
-        .collection(_collection)
-        .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => OrderModel.fromMap(doc.data(), doc.id))
-              .toList(),
-        );
+    return _supabase
+        .from(_table)
+        .stream(primaryKey: ['order_id'])
+        .eq('user_id', userId)
+        .order('created_at', ascending: false)
+        .map((data) => data
+            .map((item) => OrderModel.fromMap(item, item['order_id']))
+            .toList());
   }
 
   // Stream để lắng nghe orders của restaurant
   Stream<List<OrderModel>> restaurantOrdersStream(String restaurantId) {
-    return _firestore
-        .collection(_collection)
-        .where('restaurantId', isEqualTo: restaurantId)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => OrderModel.fromMap(doc.data(), doc.id))
-              .toList(),
-        );
+    return _supabase
+        .from(_table)
+        .stream(primaryKey: ['order_id'])
+        .eq('restaurant_id', restaurantId)
+        .order('created_at', ascending: false)
+        .map((data) => data
+            .map((item) => OrderModel.fromMap(item, item['order_id']))
+            .toList());
   }
 
   // Tính tổng doanh thu của restaurant
   Future<double> calculateRestaurantRevenue(String restaurantId) async {
     try {
-      final snapshot = await _firestore
-          .collection(_collection)
-          .where('restaurantId', isEqualTo: restaurantId)
-          .where('status', isEqualTo: 'delivered')
-          .get();
+      final data = await _supabase
+          .from(_table)
+          .select()
+          .eq('restaurant_id', restaurantId)
+          .eq('status', 'delivered');
 
       double total = 0;
-      for (var doc in snapshot.docs) {
-        final order = OrderModel.fromMap(doc.data(), doc.id);
+      for (var item in data) {
+        final order = OrderModel.fromMap(item, item['order_id']);
         total += order.totalAmount;
       }
       return total;
@@ -181,10 +190,10 @@ class OrderRepository {
   // Đếm số orders theo status
   Future<Map<String, int>> countOrdersByStatus(String restaurantId) async {
     try {
-      final snapshot = await _firestore
-          .collection(_collection)
-          .where('restaurantId', isEqualTo: restaurantId)
-          .get();
+      final data = await _supabase
+          .from(_table)
+          .select()
+          .eq('restaurant_id', restaurantId);
 
       Map<String, int> counts = {
         'pending': 0,
@@ -193,8 +202,8 @@ class OrderRepository {
         'cancelled': 0,
       };
 
-      for (var doc in snapshot.docs) {
-        final order = OrderModel.fromMap(doc.data(), doc.id);
+      for (var item in data) {
+        final order = OrderModel.fromMap(item, item['order_id']);
         counts[order.status] = (counts[order.status] ?? 0) + 1;
       }
 

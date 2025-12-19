@@ -1,24 +1,22 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mobile/core/models/payment_model.dart';
+import 'package:mobile/core/services/supabase/supabase_service.dart';
 
 class PaymentRepository {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final String _collection = 'payments';
+  final _supabase = SupabaseService().client;
+  final String _table = 'payments';
 
   // Lấy payment theo order ID
   Future<PaymentModel?> getPaymentByOrderId(String orderId) async {
     try {
-      final snapshot = await _firestore
-          .collection(_collection)
-          .where('orderId', isEqualTo: orderId)
+      final data = await _supabase
+          .from(_table)
+          .select()
+          .eq('order_id', orderId)
           .limit(1)
-          .get();
+          .maybeSingle();
 
-      if (snapshot.docs.isNotEmpty) {
-        return PaymentModel.fromMap(
-          snapshot.docs.first.data(),
-          snapshot.docs.first.id,
-        );
+      if (data != null) {
+        return PaymentModel.fromMap(data, data['payment_id']);
       }
       return null;
     } catch (e) {
@@ -30,13 +28,13 @@ class PaymentRepository {
   // Lấy tất cả payments của user
   Future<List<PaymentModel>> getUserPayments(String userId) async {
     try {
-      final snapshot = await _firestore
-          .collection(_collection)
-          .where('userId', isEqualTo: userId)
-          .orderBy('createdAt', descending: true)
-          .get();
-      return snapshot.docs
-          .map((doc) => PaymentModel.fromMap(doc.data(), doc.id))
+      final data = await _supabase
+          .from(_table)
+          .select()
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
+      return (data as List)
+          .map((item) => PaymentModel.fromMap(item, item['payment_id']))
           .toList();
     } catch (e) {
       print('Error getting user payments: $e');
@@ -47,9 +45,13 @@ class PaymentRepository {
   // Lấy payment theo ID
   Future<PaymentModel?> getPaymentById(String paymentId) async {
     try {
-      final doc = await _firestore.collection(_collection).doc(paymentId).get();
-      if (doc.exists) {
-        return PaymentModel.fromMap(doc.data()!, doc.id);
+      final data = await _supabase
+          .from(_table)
+          .select()
+          .eq('payment_id', paymentId)
+          .maybeSingle();
+      if (data != null) {
+        return PaymentModel.fromMap(data, data['payment_id']);
       }
       return null;
     } catch (e) {
@@ -61,10 +63,12 @@ class PaymentRepository {
   // Tạo payment mới
   Future<String?> createPayment(PaymentModel payment) async {
     try {
-      final docRef = await _firestore
-          .collection(_collection)
-          .add(payment.toMap());
-      return docRef.id;
+      final data = await _supabase
+          .from(_table)
+          .insert(payment.toMap())
+          .select()
+          .single();
+      return data['payment_id'];
     } catch (e) {
       print('Error creating payment: $e');
       return null;
@@ -74,9 +78,10 @@ class PaymentRepository {
   // Cập nhật payment status
   Future<bool> updatePaymentStatus(String paymentId, String status) async {
     try {
-      await _firestore.collection(_collection).doc(paymentId).update({
-        'status': status,
-      });
+      await _supabase
+          .from(_table)
+          .update({'status': status})
+          .eq('payment_id', paymentId);
       return true;
     } catch (e) {
       print('Error updating payment status: $e');
@@ -84,33 +89,34 @@ class PaymentRepository {
     }
   }
 
-  // Cập nhật payment với transaction ID
-  Future<bool> updatePaymentTransaction(
+  // Cập nhật payment
+  Future<bool> updatePayment(
     String paymentId,
-    String transactionId,
+    Map<String, dynamic> data,
   ) async {
     try {
-      await _firestore.collection(_collection).doc(paymentId).update({
-        'transactionId': transactionId,
-      });
+      await _supabase
+          .from(_table)
+          .update(data)
+          .eq('payment_id', paymentId);
       return true;
     } catch (e) {
-      print('Error updating payment transaction: $e');
+      print('Error updating payment: $e');
       return false;
     }
   }
 
-  // Stream để lắng nghe payments của user
-  Stream<List<PaymentModel>> userPaymentsStream(String userId) {
-    return _firestore
-        .collection(_collection)
-        .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => PaymentModel.fromMap(doc.data(), doc.id))
-              .toList(),
-        );
+  // Stream để lắng nghe thay đổi của payment
+  Stream<PaymentModel?> paymentStream(String paymentId) {
+    return _supabase
+        .from(_table)
+        .stream(primaryKey: ['payment_id'])
+        .eq('payment_id', paymentId)
+        .map((data) {
+          if (data.isNotEmpty) {
+            return PaymentModel.fromMap(data.first, data.first['payment_id']);
+          }
+          return null;
+        });
   }
 }

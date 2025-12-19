@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class FavoriteModel {
   final String id;
   final String userId;
@@ -26,27 +24,29 @@ class FavoriteModel {
   factory FavoriteModel.fromMap(Map<String, dynamic> data, String documentId) {
     return FavoriteModel(
       id: documentId,
-      userId: data['userId'] ?? '',
-      foodId: data['foodId'] ?? '',
-      foodName: data['foodName'] ?? '',
-      foodImageUrl: data['foodImageUrl'] ?? '',
+      userId: data['user_id'] ?? '',
+      foodId: data['food_id'] ?? '',
+      foodName: data['food_name'] ?? '',
+      foodImageUrl: data['food_image_url'] ?? '',
       price: (data['price'] ?? 0).toDouble(),
-      restaurantId: data['restaurantId'],
-      restaurantName: data['restaurantName'],
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      restaurantId: data['restaurant_id'],
+      restaurantName: data['restaurant_name'],
+      createdAt: data['created_at'] != null
+          ? DateTime.parse(data['created_at'])
+          : DateTime.now(),
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
-      'userId': userId,
-      'foodId': foodId,
-      'foodName': foodName,
-      'foodImageUrl': foodImageUrl,
+      'user_id': userId,
+      'food_id': foodId,
+      'food_name': foodName,
+      'food_image_url': foodImageUrl,
       'price': price,
-      'restaurantId': restaurantId,
-      'restaurantName': restaurantName,
-      'createdAt': Timestamp.fromDate(createdAt),
+      'restaurant_id': restaurantId,
+      'restaurant_name': restaurantName,
+      'created_at': createdAt.toIso8601String(),
     };
   }
 
@@ -74,5 +74,3 @@ class FavoriteModel {
     );
   }
 }
-
-

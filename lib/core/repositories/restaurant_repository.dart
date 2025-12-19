@@ -1,19 +1,21 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mobile/core/models/restaurant_model.dart';
+import 'package:mobile/core/services/supabase/supabase_service.dart';
 
 class RestaurantRepository {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final String _collection = 'restaurants';
+  final _supabase = SupabaseService().client;
+  final String _table = 'restaurants';
 
   // Lấy thông tin quán theo ID
   Future<RestaurantModel?> getRestaurantById(String restaurantId) async {
     try {
-      final doc = await _firestore
-          .collection(_collection)
-          .doc(restaurantId)
-          .get();
-      if (doc.exists) {
-        return RestaurantModel.fromMap(doc.data()!, doc.id);
+      final data = await _supabase
+          .from(_table)
+          .select()
+          .eq('restaurant_id', restaurantId)
+          .maybeSingle();
+
+      if (data != null) {
+        return RestaurantModel.fromMap(data, data['restaurant_id']);
       }
       return null;
     } catch (e) {
@@ -25,17 +27,15 @@ class RestaurantRepository {
   // Lấy quán của owner
   Future<RestaurantModel?> getRestaurantByOwnerId(String ownerId) async {
     try {
-      final snapshot = await _firestore
-          .collection(_collection)
-          .where('ownerId', isEqualTo: ownerId)
+      final data = await _supabase
+          .from(_table)
+          .select()
+          .eq('owner_id', ownerId)
           .limit(1)
-          .get();
+          .maybeSingle();
 
-      if (snapshot.docs.isNotEmpty) {
-        return RestaurantModel.fromMap(
-          snapshot.docs.first.data(),
-          snapshot.docs.first.id,
-        );
+      if (data != null) {
+        return RestaurantModel.fromMap(data, data['restaurant_id']);
       }
       return null;
     } catch (e) {
@@ -47,9 +47,9 @@ class RestaurantRepository {
   // Lấy tất cả quán
   Future<List<RestaurantModel>> getAllRestaurants() async {
     try {
-      final snapshot = await _firestore.collection(_collection).get();
-      return snapshot.docs
-          .map((doc) => RestaurantModel.fromMap(doc.data(), doc.id))
+      final data = await _supabase.from(_table).select();
+      return (data as List)
+          .map((item) => RestaurantModel.fromMap(item, item['restaurant_id']))
           .toList();
     } catch (e) {
       print('Error getting all restaurants: $e');
@@ -60,12 +60,9 @@ class RestaurantRepository {
   // Lấy các quán đang mở
   Future<List<RestaurantModel>> getOpenRestaurants() async {
     try {
-      final snapshot = await _firestore
-          .collection(_collection)
-          .where('status', isEqualTo: 'open')
-          .get();
-      return snapshot.docs
-          .map((doc) => RestaurantModel.fromMap(doc.data(), doc.id))
+      final data = await _supabase.from(_table).select().eq('status', 'open');
+      return (data as List)
+          .map((item) => RestaurantModel.fromMap(item, item['restaurant_id']))
           .toList();
     } catch (e) {
       print('Error getting open restaurants: $e');
@@ -76,10 +73,12 @@ class RestaurantRepository {
   // Tạo quán mới
   Future<String?> createRestaurant(RestaurantModel restaurant) async {
     try {
-      final docRef = await _firestore
-          .collection(_collection)
-          .add(restaurant.toMap());
-      return docRef.id;
+      final data = await _supabase
+          .from(_table)
+          .insert(restaurant.toMap())
+          .select()
+          .single();
+      return data['restaurant_id'];
     } catch (e) {
       print('Error creating restaurant: $e');
       return null;
@@ -92,7 +91,11 @@ class RestaurantRepository {
     Map<String, dynamic> data,
   ) async {
     try {
-      await _firestore.collection(_collection).doc(restaurantId).update(data);
+      data['updated_at'] = DateTime.now().toIso8601String();
+      await _supabase
+          .from(_table)
+          .update(data)
+          .eq('restaurant_id', restaurantId);
       return true;
     } catch (e) {
       print('Error updating restaurant: $e');
@@ -106,10 +109,13 @@ class RestaurantRepository {
     String status,
   ) async {
     try {
-      await _firestore.collection(_collection).doc(restaurantId).update({
-        'status': status,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      await _supabase
+          .from(_table)
+          .update({
+            'status': status,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('restaurant_id', restaurantId);
       return true;
     } catch (e) {
       print('Error updating restaurant status: $e');
@@ -120,7 +126,7 @@ class RestaurantRepository {
   // Xóa quán
   Future<bool> deleteRestaurant(String restaurantId) async {
     try {
-      await _firestore.collection(_collection).doc(restaurantId).delete();
+      await _supabase.from(_table).delete().eq('restaurant_id', restaurantId);
       return true;
     } catch (e) {
       print('Error deleting restaurant: $e');
@@ -130,13 +136,18 @@ class RestaurantRepository {
 
   // Stream để lắng nghe thay đổi của quán
   Stream<RestaurantModel?> restaurantStream(String restaurantId) {
-    return _firestore.collection(_collection).doc(restaurantId).snapshots().map(
-      (snapshot) {
-        if (snapshot.exists) {
-          return RestaurantModel.fromMap(snapshot.data()!, snapshot.id);
-        }
-        return null;
-      },
-    );
+    return _supabase
+        .from(_table)
+        .stream(primaryKey: ['restaurant_id'])
+        .eq('restaurant_id', restaurantId)
+        .map((data) {
+          if (data.isNotEmpty) {
+            return RestaurantModel.fromMap(
+              data.first,
+              data.first['restaurant_id'],
+            );
+          }
+          return null;
+        });
   }
 }

@@ -1,20 +1,19 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mobile/core/models/food_model.dart';
+import 'package:mobile/core/services/supabase/supabase_service.dart';
 
 class FoodRepository {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final String _collection = 'foods';
+  final SupabaseService _supabase = SupabaseService();
 
   // Lấy tất cả món ăn
   Future<List<FoodModel>> getAllFoods() async {
     try {
-      print('FoodRepository: Fetching foods from Firestore...');
-      final snapshot = await _firestore.collection(_collection).get();
-      print('FoodRepository: Received ${snapshot.docs.length} documents');
+      print('FoodRepository: Fetching foods from Supabase...');
+      final response = await _supabase.from('foods').select();
+      print('FoodRepository: Received ${response.length} rows');
 
-      final foods = snapshot.docs.map((doc) {
-        print('  - Food ID: ${doc.id}, Name: ${doc.data()['name']}');
-        return FoodModel.fromMap(doc.data(), doc.id);
+      final foods = (response as List).map((data) {
+        print('  - Food ID: ${data['food_id']}, Name: ${data['name']}');
+        return FoodModel.fromMap(data, data['food_id']);
       }).toList();
 
       print('FoodRepository: Converted to ${foods.length} FoodModel objects');
@@ -28,12 +27,13 @@ class FoodRepository {
   // Lấy món ăn theo restaurant
   Future<List<FoodModel>> getFoodsByRestaurant(String restaurantId) async {
     try {
-      final snapshot = await _firestore
-          .collection(_collection)
-          .where('restaurantId', isEqualTo: restaurantId)
-          .get();
-      return snapshot.docs
-          .map((doc) => FoodModel.fromMap(doc.data(), doc.id))
+      final response = await _supabase
+          .from('foods')
+          .select()
+          .eq('restaurant_id', restaurantId);
+
+      return (response as List)
+          .map((data) => FoodModel.fromMap(data, data['food_id']))
           .toList();
     } catch (e) {
       print('Error getting foods by restaurant: $e');
@@ -47,13 +47,14 @@ class FoodRepository {
     String category,
   ) async {
     try {
-      final snapshot = await _firestore
-          .collection(_collection)
-          .where('restaurantId', isEqualTo: restaurantId)
-          .where('category', isEqualTo: category)
-          .get();
-      return snapshot.docs
-          .map((doc) => FoodModel.fromMap(doc.data(), doc.id))
+      final response = await _supabase
+          .from('foods')
+          .select()
+          .eq('restaurant_id', restaurantId)
+          .eq('category', category);
+
+      return (response as List)
+          .map((data) => FoodModel.fromMap(data, data['food_id']))
           .toList();
     } catch (e) {
       print('Error getting foods by category: $e');
@@ -64,13 +65,14 @@ class FoodRepository {
   // Lấy món ăn còn hàng
   Future<List<FoodModel>> getAvailableFoods(String restaurantId) async {
     try {
-      final snapshot = await _firestore
-          .collection(_collection)
-          .where('restaurantId', isEqualTo: restaurantId)
-          .where('available', isEqualTo: true)
-          .get();
-      return snapshot.docs
-          .map((doc) => FoodModel.fromMap(doc.data(), doc.id))
+      final response = await _supabase
+          .from('foods')
+          .select()
+          .eq('restaurant_id', restaurantId)
+          .eq('available', true);
+
+      return (response as List)
+          .map((data) => FoodModel.fromMap(data, data['food_id']))
           .toList();
     } catch (e) {
       print('Error getting available foods: $e');
@@ -81,9 +83,14 @@ class FoodRepository {
   // Lấy món ăn theo ID
   Future<FoodModel?> getFoodById(String foodId) async {
     try {
-      final doc = await _firestore.collection(_collection).doc(foodId).get();
-      if (doc.exists) {
-        return FoodModel.fromMap(doc.data()!, doc.id);
+      final response = await _supabase
+          .from('foods')
+          .select()
+          .eq('food_id', foodId)
+          .maybeSingle();
+
+      if (response != null) {
+        return FoodModel.fromMap(response, foodId);
       }
       return null;
     } catch (e) {
@@ -98,22 +105,16 @@ class FoodRepository {
     String? restaurantId,
   }) async {
     try {
-      Query queryRef = _firestore.collection(_collection);
+      var queryBuilder = _supabase.from('foods').select();
 
       if (restaurantId != null) {
-        queryRef = queryRef.where('restaurantId', isEqualTo: restaurantId);
+        queryBuilder = queryBuilder.eq('restaurant_id', restaurantId);
       }
 
-      final snapshot = await queryRef
-          .where('name', isGreaterThanOrEqualTo: query)
-          .where('name', isLessThanOrEqualTo: '$query\uf8ff')
-          .get();
+      final response = await queryBuilder.ilike('name', '%$query%');
 
-      return snapshot.docs
-          .map(
-            (doc) =>
-                FoodModel.fromMap(doc.data() as Map<String, dynamic>, doc.id),
-          )
+      return (response as List)
+          .map((data) => FoodModel.fromMap(data, data['food_id']))
           .toList();
     } catch (e) {
       print('Error searching foods: $e');
@@ -124,8 +125,13 @@ class FoodRepository {
   // Tạo món ăn mới
   Future<String?> createFood(FoodModel food) async {
     try {
-      final docRef = await _firestore.collection(_collection).add(food.toMap());
-      return docRef.id;
+      final response = await _supabase
+          .from('foods')
+          .insert(food.toMap())
+          .select()
+          .single();
+
+      return response['food_id'];
     } catch (e) {
       print('Error creating food: $e');
       return null;
@@ -135,10 +141,20 @@ class FoodRepository {
   // Cập nhật món ăn
   Future<bool> updateFood(String foodId, Map<String, dynamic> data) async {
     try {
-      await _firestore.collection(_collection).doc(foodId).update({
-        ...data,
-        'updatedAt': FieldValue.serverTimestamp(),
+      // Convert camelCase to snake_case if needed
+      final snakeCaseData = <String, dynamic>{};
+      data.forEach((key, value) {
+        final snakeKey = key.replaceAllMapped(
+          RegExp(r'[A-Z]'),
+          (match) => '_${match.group(0)!.toLowerCase()}',
+        );
+        snakeCaseData[snakeKey] = value;
       });
+
+      snakeCaseData['updated_at'] = DateTime.now().toIso8601String();
+
+      await _supabase.from('foods').update(snakeCaseData).eq('food_id', foodId);
+
       return true;
     } catch (e) {
       print('Error updating food: $e');
@@ -149,10 +165,14 @@ class FoodRepository {
   // Cập nhật trạng thái available
   Future<bool> updateFoodAvailability(String foodId, bool available) async {
     try {
-      await _firestore.collection(_collection).doc(foodId).update({
-        'available': available,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      await _supabase
+          .from('foods')
+          .update({
+            'available': available,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('food_id', foodId);
+
       return true;
     } catch (e) {
       print('Error updating food availability: $e');
@@ -163,7 +183,8 @@ class FoodRepository {
   // Xóa món ăn
   Future<bool> deleteFood(String foodId) async {
     try {
-      await _firestore.collection(_collection).doc(foodId).delete();
+      await _supabase.from('foods').delete().eq('food_id', foodId);
+
       return true;
     } catch (e) {
       print('Error deleting food: $e');
@@ -173,13 +194,13 @@ class FoodRepository {
 
   // Stream để lắng nghe thay đổi món ăn của quán
   Stream<List<FoodModel>> foodsStream(String restaurantId) {
-    return _firestore
-        .collection(_collection)
-        .where('restaurantId', isEqualTo: restaurantId)
-        .snapshots()
+    return _supabase
+        .from('foods')
+        .stream(primaryKey: ['food_id'])
+        .eq('restaurant_id', restaurantId)
         .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => FoodModel.fromMap(doc.data(), doc.id))
+          (data) => (data as List)
+              .map((item) => FoodModel.fromMap(item, item['food_id']))
               .toList(),
         );
   }
