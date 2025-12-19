@@ -128,7 +128,11 @@ class UserProfileScreen extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.email_outlined, size: 16, color: Colors.grey[600]),
+                          Icon(
+                            Icons.email_outlined,
+                            size: 16,
+                            color: Colors.grey[600],
+                          ),
                           const SizedBox(width: 6),
                           Text(
                             user.email,
@@ -144,7 +148,11 @@ class UserProfileScreen extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.phone_outlined, size: 16, color: Colors.grey[600]),
+                            Icon(
+                              Icons.phone_outlined,
+                              size: 16,
+                              color: Colors.grey[600],
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               user.phone!,
@@ -241,16 +249,13 @@ class UserProfileScreen extends StatelessWidget {
     );
   }
 
-  void _showLogoutDialog(
-    BuildContext context,
-    AuthController authController,
-  ) {
+  void _showLogoutDialog(BuildContext context, AuthController authController) {
+    final navigator = Navigator.of(context);
+    
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
             Container(
@@ -259,15 +264,16 @@ class UserProfileScreen extends StatelessWidget {
                 color: Colors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.logout_rounded, color: Colors.red, size: 24),
+              child: const Icon(
+                Icons.logout_rounded,
+                color: Colors.red,
+                size: 24,
+              ),
             ),
             const SizedBox(width: 12),
             const Text(
               'Đăng xuất',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -277,7 +283,7 @@ class UserProfileScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
@@ -291,8 +297,12 @@ class UserProfileScreen extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               await authController.signOut();
+              navigator.pushNamedAndRemoveUntil(
+                welcomeRoute,
+                (route) => false,
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
@@ -312,5 +322,3 @@ class UserProfileScreen extends StatelessWidget {
     );
   }
 }
-
-
