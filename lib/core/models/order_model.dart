@@ -75,8 +75,12 @@ class OrderModel {
       deliveryAddress: data['delivery_address'] ?? '',
       paymentMethod: data['payment_method'] ?? 'cash',
       note: data['note'],
-      createdAt: data['created_at'] != null ? DateTime.parse(data['created_at']) : DateTime.now(),
-      updatedAt: data['updated_at'] != null ? DateTime.parse(data['updated_at']) : DateTime.now(),
+      createdAt: data['created_at'] != null
+          ? DateTime.parse(data['created_at'])
+          : DateTime.now(),
+      updatedAt: data['updated_at'] != null
+          ? DateTime.parse(data['updated_at'])
+          : DateTime.now(),
     );
   }
 

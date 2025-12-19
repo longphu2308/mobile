@@ -13,7 +13,7 @@ class RestaurantRepository {
           .select()
           .eq('restaurant_id', restaurantId)
           .maybeSingle();
-      
+
       if (data != null) {
         return RestaurantModel.fromMap(data, data['restaurant_id']);
       }
@@ -60,10 +60,7 @@ class RestaurantRepository {
   // Lấy các quán đang mở
   Future<List<RestaurantModel>> getOpenRestaurants() async {
     try {
-      final data = await _supabase
-          .from(_table)
-          .select()
-          .eq('status', 'open');
+      final data = await _supabase.from(_table).select().eq('status', 'open');
       return (data as List)
           .map((item) => RestaurantModel.fromMap(item, item['restaurant_id']))
           .toList();
@@ -129,10 +126,7 @@ class RestaurantRepository {
   // Xóa quán
   Future<bool> deleteRestaurant(String restaurantId) async {
     try {
-      await _supabase
-          .from(_table)
-          .delete()
-          .eq('restaurant_id', restaurantId);
+      await _supabase.from(_table).delete().eq('restaurant_id', restaurantId);
       return true;
     } catch (e) {
       print('Error deleting restaurant: $e');
@@ -148,7 +142,10 @@ class RestaurantRepository {
         .eq('restaurant_id', restaurantId)
         .map((data) {
           if (data.isNotEmpty) {
-            return RestaurantModel.fromMap(data.first, data.first['restaurant_id']);
+            return RestaurantModel.fromMap(
+              data.first,
+              data.first['restaurant_id'],
+            );
           }
           return null;
         });

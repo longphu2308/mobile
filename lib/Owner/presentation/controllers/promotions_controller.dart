@@ -53,10 +53,9 @@ class PromotionsController extends ChangeNotifier {
 
   Future<void> toggleActive(String promoId, bool currentActive) async {
     try {
-      final success = await _promoRepository.updatePromo(
-        promoId,
-        {'active': !currentActive},
-      );
+      final success = await _promoRepository.updatePromo(promoId, {
+        'active': !currentActive,
+      });
 
       if (success) {
         final index = _promos.indexWhere((p) => p.id == promoId);

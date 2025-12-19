@@ -58,9 +58,7 @@ class UserChangePasswordController {
 
     try {
       // Supabase updateUser for password change
-      await _supabase.auth.updateUser(
-        UserAttributes(password: newCtrl.text),
-      );
+      await _supabase.auth.updateUser(UserAttributes(password: newCtrl.text));
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -77,14 +75,10 @@ class UserChangePasswordController {
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
         );
       }
       return false;
     }
   }
 }
-

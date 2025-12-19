@@ -64,7 +64,9 @@ class CartModel {
               )
               .toList() ??
           [],
-      updatedAt: data['updated_at'] != null ? DateTime.parse(data['updated_at']) : DateTime.now(),
+      updatedAt: data['updated_at'] != null
+          ? DateTime.parse(data['updated_at'])
+          : DateTime.now(),
     );
   }
 

@@ -35,7 +35,9 @@ class UserRepository {
     String? profileImageUrl,
   }) async {
     try {
-      Map<String, dynamic> updateData = {'updated_at': DateTime.now().toIso8601String()};
+      Map<String, dynamic> updateData = {
+        'updated_at': DateTime.now().toIso8601String(),
+      };
 
       if (fullName != null) {
         updateData['full_name'] = fullName;
@@ -50,10 +52,7 @@ class UserRepository {
         updateData['profile_image_url'] = profileImageUrl;
       }
 
-      await _supabase
-          .from('users')
-          .update(updateData)
-          .eq('user_id', userId);
+      await _supabase.from('users').update(updateData).eq('user_id', userId);
     } catch (e) {
       throw FirestoreException(
         message: 'Lỗi cập nhật hồ sơ: ${e.toString()}',
@@ -65,9 +64,7 @@ class UserRepository {
   /// Get all users (có thể dùng cho admin)
   Future<List<UserModel>> getAllUsers() async {
     try {
-      final data = await _supabase
-          .from('users')
-          .select();
+      final data = await _supabase.from('users').select();
 
       return (data as List)
           .map((item) => UserModel.fromMap(item, item['user_id']))
@@ -106,10 +103,7 @@ class UserRepository {
   /// Delete user
   Future<void> deleteUser(String userId) async {
     try {
-      await _supabase
-          .from('users')
-          .delete()
-          .eq('user_id', userId);
+      await _supabase.from('users').delete().eq('user_id', userId);
     } catch (e) {
       throw FirestoreException(
         message: 'Lỗi xóa người dùng: ${e.toString()}',

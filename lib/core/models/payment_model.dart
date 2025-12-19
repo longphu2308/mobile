@@ -29,7 +29,9 @@ class PaymentModel {
       method: data['method'] ?? 'cash',
       status: data['status'] ?? 'pending',
       transactionId: data['transaction_id'],
-      createdAt: data['created_at'] != null ? DateTime.parse(data['created_at']) : DateTime.now(),
+      createdAt: data['created_at'] != null
+          ? DateTime.parse(data['created_at'])
+          : DateTime.now(),
     );
   }
 

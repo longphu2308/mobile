@@ -36,12 +36,20 @@ class PromoModel {
       discount: (data['discount'] ?? 0).toDouble(),
       type: data['type'] ?? 'user',
       restaurantId: data['restaurant_id'],
-      startDate: data['start_date'] != null ? DateTime.parse(data['start_date']) : DateTime.now(),
-      endDate: data['end_date'] != null ? DateTime.parse(data['end_date']) : DateTime.now(),
+      startDate: data['start_date'] != null
+          ? DateTime.parse(data['start_date'])
+          : DateTime.now(),
+      endDate: data['end_date'] != null
+          ? DateTime.parse(data['end_date'])
+          : DateTime.now(),
       active: data['active'] ?? true,
       usedCount: data['used_count'] ?? 0,
-      createdAt: data['created_at'] != null ? DateTime.parse(data['created_at']) : DateTime.now(),
-      updatedAt: data['updated_at'] != null ? DateTime.parse(data['updated_at']) : DateTime.now(),
+      createdAt: data['created_at'] != null
+          ? DateTime.parse(data['created_at'])
+          : DateTime.now(),
+      updatedAt: data['updated_at'] != null
+          ? DateTime.parse(data['updated_at'])
+          : DateTime.now(),
     );
   }
 

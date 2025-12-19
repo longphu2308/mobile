@@ -31,7 +31,9 @@ class FavoriteModel {
       price: (data['price'] ?? 0).toDouble(),
       restaurantId: data['restaurant_id'],
       restaurantName: data['restaurant_name'],
-      createdAt: data['created_at'] != null ? DateTime.parse(data['created_at']) : DateTime.now(),
+      createdAt: data['created_at'] != null
+          ? DateTime.parse(data['created_at'])
+          : DateTime.now(),
     );
   }
 
@@ -72,5 +74,3 @@ class FavoriteModel {
     );
   }
 }
-
-

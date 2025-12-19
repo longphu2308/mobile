@@ -28,6 +28,18 @@ class AuthService {
         );
       }
 
+      // Check if email already exists in auth
+      final existingUser = await _supabase
+          .from('users')
+          .select()
+          .eq('email', email)
+          .maybeSingle();
+
+      if (existingUser != null) {
+        // User exists in DB, try to sign in instead
+        return await signIn(email: email, password: password);
+      }
+
       // Sign up with Supabase Auth
       final AuthResponse response = await _supabase.auth.signUp(
         email: email,
@@ -53,7 +65,47 @@ class AuthService {
 
       return user;
     } on AuthException catch (e) {
-      if (e.message.contains('already registered')) {
+      if (e.message.contains('already registered') || e.message.contains('User already registered')) {
+        // User exists in auth but not in DB, try to get auth user and create DB record
+        try {
+          final AuthResponse response = await _supabase.auth.signInWithPassword(
+            email: email,
+            password: password,
+          );
+
+          if (response.user != null) {
+            // Check if user exists in DB
+            final dbUser = await _supabase
+                .from('users')
+                .select()
+                .eq('user_id', response.user!.id)
+                .maybeSingle();
+
+            if (dbUser != null) {
+              // User exists in both, return it
+              return UserModel.fromMap(dbUser, dbUser['user_id']);
+            } else {
+              // User exists in auth but not in DB, create DB record
+              final user = UserModel(
+                userId: response.user!.id,
+                email: email,
+                fullName: fullName,
+                phone: phone,
+                role: 'user',
+                createdAt: DateTime.now(),
+                updatedAt: DateTime.now(),
+              );
+
+              await _supabase.from('users').insert(user.toMap());
+              return user;
+            }
+          }
+        } catch (loginError) {
+          throw AuthException(
+            message: 'Email đã được sử dụng với mật khẩu khác',
+            code: 'email-already-in-use',
+          );
+        }
         throw AuthException(
           message: 'Email đã được sử dụng',
           code: 'email-already-in-use',
