@@ -1,32 +1,23 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mobile/core/errors/app_exception.dart';
-import 'package:mobile/core/services/firebase/firebase_service.dart';
+import 'package:mobile/core/services/supabase/supabase_service.dart';
 import 'package:mobile/core/models/favorite_model.dart';
 import 'package:mobile/core/models/food_model.dart';
 
 class FavoriteRepository {
-  final FirebaseService _firebaseService;
-
-  FavoriteRepository({FirebaseService? firebaseService})
-      : _firebaseService = firebaseService ?? FirebaseService();
+  final _supabase = SupabaseService().client;
 
   /// Get all favorites for a user
   Future<List<FavoriteModel>> getUserFavorites(String userId) async {
     try {
-      QuerySnapshot<Map<String, dynamic>> snapshot = await _firebaseService
-          .firestore
-          .collection('favorites')
-          .where('userId', isEqualTo: userId)
-          .get();
+      final data = await _supabase
+          .from('favorites')
+          .select()
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
 
-      final favorites = snapshot.docs
-          .map((doc) => FavoriteModel.fromMap(doc.data(), doc.id))
+      return (data as List)
+          .map((item) => FavoriteModel.fromMap(item, item['favorite_id']))
           .toList();
-
-      // Sort by createdAt descending in memory to avoid needing composite index
-      favorites.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-      return favorites;
     } catch (e) {
       throw FirestoreException(
         message: 'Lỗi lấy danh sách yêu thích: ${e.toString()}',
@@ -39,30 +30,29 @@ class FavoriteRepository {
   Future<bool> addFavorite(String userId, FoodModel food) async {
     try {
       // Check if already favorited
-      final existing = await _firebaseService.firestore
-          .collection('favorites')
-          .where('userId', isEqualTo: userId)
-          .where('foodId', isEqualTo: food.id)
+      final existing = await _supabase
+          .from('favorites')
+          .select()
+          .eq('user_id', userId)
+          .eq('food_id', food.id)
           .limit(1)
-          .get();
+          .maybeSingle();
 
-      if (existing.docs.isNotEmpty) {
+      if (existing != null) {
         return false; // Already favorited
       }
 
       final favoriteData = {
-        'userId': userId,
-        'foodId': food.id,
-        'foodName': food.name,
-        'foodImageUrl': food.imageUrl,
+        'user_id': userId,
+        'food_id': food.id,
+        'food_name': food.name,
+        'food_image_url': food.imageUrl,
         'price': food.price,
-        'restaurantId': food.restaurantId,
-        'createdAt': DateTime.now(),
+        'restaurant_id': food.restaurantId,
+        'created_at': DateTime.now().toIso8601String(),
       };
 
-      await _firebaseService.firestore
-          .collection('favorites')
-          .add(favoriteData);
+      await _supabase.from('favorites').insert(favoriteData);
 
       return true;
     } catch (e) {
@@ -76,22 +66,11 @@ class FavoriteRepository {
   /// Remove food from favorites
   Future<bool> removeFavorite(String userId, String foodId) async {
     try {
-      final snapshot = await _firebaseService.firestore
-          .collection('favorites')
-          .where('userId', isEqualTo: userId)
-          .where('foodId', isEqualTo: foodId)
-          .limit(1)
-          .get();
-
-      if (snapshot.docs.isEmpty) {
-        return false;
-      }
-
-      await _firebaseService.firestore
-          .collection('favorites')
-          .doc(snapshot.docs.first.id)
-          .delete();
-
+      await _supabase
+          .from('favorites')
+          .delete()
+          .eq('user_id', userId)
+          .eq('food_id', foodId);
       return true;
     } catch (e) {
       throw FirestoreException(
@@ -104,18 +83,39 @@ class FavoriteRepository {
   /// Check if food is favorited
   Future<bool> isFavorited(String userId, String foodId) async {
     try {
-      final snapshot = await _firebaseService.firestore
-          .collection('favorites')
-          .where('userId', isEqualTo: userId)
-          .where('foodId', isEqualTo: foodId)
+      final data = await _supabase
+          .from('favorites')
+          .select()
+          .eq('user_id', userId)
+          .eq('food_id', foodId)
           .limit(1)
-          .get();
+          .maybeSingle();
 
-      return snapshot.docs.isNotEmpty;
+      return data != null;
     } catch (e) {
       return false;
     }
   }
+
+  /// Toggle favorite status
+  Future<bool> toggleFavorite(String userId, FoodModel food) async {
+    final isFav = await isFavorited(userId, food.id);
+    if (isFav) {
+      return await removeFavorite(userId, food.id);
+    } else {
+      return await addFavorite(userId, food);
+    }
+  }
+
+  /// Stream để lắng nghe thay đổi của favorites
+  Stream<List<FavoriteModel>> favoritesStream(String userId) {
+    return _supabase
+        .from('favorites')
+        .stream(primaryKey: ['favorite_id'])
+        .eq('user_id', userId)
+        .order('created_at', ascending: false)
+        .map((data) => data
+            .map((item) => FavoriteModel.fromMap(item, item['favorite_id']))
+            .toList());
+  }
 }
-
-

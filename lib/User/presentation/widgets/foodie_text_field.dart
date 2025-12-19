@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/User/utils/utils.dart';
 
 class FoodieTextField extends StatelessWidget {
   final String label;
@@ -36,27 +37,58 @@ class FoodieTextField extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          enabled: enabled,
-          keyboardType: keyboardType,
-          obscureText: obscureText,
-          onTap: () => debugPrint('FoodieTextField tapped: $label'),
-          onChanged: onChanged,
-          decoration: InputDecoration(
-            hintText: hint,
-            enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.grey[300]!),
+        Container(
+          decoration: BoxDecoration(
+            color: whiteColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.grey[300]!,
+              width: 1,
             ),
-            focusedBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            disabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.grey[200]!),
-            ),
-            contentPadding: const EdgeInsets.symmetric(vertical: 12),
           ),
-          style: const TextStyle(fontSize: 16),
+          child: TextField(
+            controller: controller,
+            enabled: enabled,
+            keyboardType: keyboardType,
+            obscureText: obscureText,
+            onChanged: onChanged,
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(
+                color: Colors.grey[400],
+                fontSize: 16,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: primaryColor,
+                  width: 2,
+                ),
+              ),
+              disabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              filled: true,
+              fillColor: whiteColor,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+            ),
+            style: TextStyle(
+              fontSize: 16,
+              color: blackColor,
+            ),
+          ),
         ),
       ],
     );

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:mobile/core/services/supabase/supabase_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UserChangePasswordController {
   final TextEditingController currentCtrl = TextEditingController();
   final TextEditingController newCtrl = TextEditingController();
   final TextEditingController confirmCtrl = TextEditingController();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final _supabase = SupabaseService().client;
 
   void dispose() {
     currentCtrl.dispose();
@@ -55,29 +56,9 @@ class UserChangePasswordController {
       return false;
     }
 
-    // Get current user
-    final currentUser = _auth.currentUser;
-    if (currentUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error: User not logged in'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return false;
-    }
-
     try {
-      // Re-authenticate user
-      final credential = EmailAuthProvider.credential(
-        email: currentUser.email!,
-        password: currentCtrl.text,
-      );
-
-      await currentUser.reauthenticateWithCredential(credential);
-
-      // Update password
-      await currentUser.updatePassword(newCtrl.text);
+      // Supabase updateUser for password change
+      await _supabase.auth.updateUser(UserAttributes(password: newCtrl.text));
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -89,34 +70,15 @@ class UserChangePasswordController {
         Navigator.pop(context);
       }
       return true;
-    } on FirebaseAuthException catch (e) {
-      String errorMessage = 'Error changing password';
-      if (e.code == 'wrong-password') {
-        errorMessage = 'Current password is incorrect';
-      } else if (e.code == 'weak-password') {
-        errorMessage = 'Password is too weak';
-      }
+    } catch (e) {
+      String errorMessage = 'Error changing password: ${e.toString()}';
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      return false;
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
         );
       }
       return false;
     }
   }
 }
-

@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class UserModel {
   final String userId;
   final String email;
@@ -23,32 +21,37 @@ class UserModel {
     required this.updatedAt,
   });
 
-  // Chuyển từ Firestore document sang model
+  // Chuyển từ Supabase data sang model
   factory UserModel.fromMap(Map<String, dynamic> data, String documentId) {
     return UserModel(
       userId: documentId,
       email: data['email'] ?? '',
-      fullName: data['fullName'],
+      fullName: data['full_name'],
       phone: data['phone'],
       role: data['role'] ?? 'user',
       address: data['address'],
-      restaurantId: data['restaurantId'],
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      restaurantId: data['restaurant_id'],
+      createdAt: data['created_at'] != null
+          ? DateTime.parse(data['created_at'])
+          : DateTime.now(),
+      updatedAt: data['updated_at'] != null
+          ? DateTime.parse(data['updated_at'])
+          : DateTime.now(),
     );
   }
 
-  // Chuyển model sang map để lưu vào Firestore
+  // Chuyển model sang map để lưu vào Supabase (snake_case)
   Map<String, dynamic> toMap() {
     return {
+      'user_id': userId,
       'email': email,
-      'fullName': fullName,
+      'full_name': fullName,
       'phone': phone,
       'role': role,
       'address': address,
-      'restaurantId': restaurantId,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(DateTime.now()),
+      'restaurant_id': restaurantId,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': DateTime.now().toIso8601String(),
     };
   }
 

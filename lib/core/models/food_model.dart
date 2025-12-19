@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class FoodModel {
   final String id;
   final String restaurantId;
@@ -25,7 +23,7 @@ class FoodModel {
     required this.updatedAt,
   });
 
-  // Chuyển từ Firestore document sang model
+  // Chuyển từ Supabase data sang model
   factory FoodModel.fromMap(Map<String, dynamic> data, String documentId) {
     // Helper function to safely parse price from String or num
     double parsePrice(dynamic value) {
@@ -39,31 +37,36 @@ class FoodModel {
     }
 
     return FoodModel(
-      id: documentId,
-      restaurantId: data['restaurantId'] ?? '',
+      id: data['food_id'] ?? documentId,
+      restaurantId: data['restaurant_id'] ?? '',
       name: data['name'] ?? '',
       description: data['description'] ?? '',
       price: parsePrice(data['price']),
-      imageUrl: data['imageUrl'] ?? '',
+      imageUrl: data['image_url'] ?? '',
       category: data['category'] ?? '',
       available: data['available'] ?? true,
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: data['created_at'] != null
+          ? DateTime.parse(data['created_at'])
+          : DateTime.now(),
+      updatedAt: data['updated_at'] != null
+          ? DateTime.parse(data['updated_at'])
+          : DateTime.now(),
     );
   }
 
-  // Chuyển model sang map để lưu vào Firestore
+  // Chuyển model sang map để lưu vào Supabase (snake_case)
   Map<String, dynamic> toMap() {
     return {
-      'restaurantId': restaurantId,
+      'food_id': id,
+      'restaurant_id': restaurantId,
       'name': name,
       'description': description,
       'price': price,
-      'imageUrl': imageUrl,
+      'image_url': imageUrl,
       'category': category,
       'available': available,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(DateTime.now()),
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': DateTime.now().toIso8601String(),
     };
   }
 
