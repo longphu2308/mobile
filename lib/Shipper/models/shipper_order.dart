@@ -1,3 +1,7 @@
+import 'dart:math';
+
+import 'package:mobile/core/services/supabase/supabase_service.dart';
+
 class OrderItem {
   final String name;
   final int qty;
@@ -39,58 +43,120 @@ class ShipperOrder {
     this.restaurantPhone,
   });
 
-  static List<ShipperOrder> mockOrders() {
-    return [
-      ShipperOrder(
-        id: 'SO-1001',
-        customerName: 'Nguyễn Văn A',
-        address: '123 Lê Lợi, Q1, TP. HCM',
-        distanceKm: 2.4,
-        status: 'Assigned',
-        total: 84000,
-        items: [
-          OrderItem(name: 'Bún bò', qty: 1, price: 80000),
-          OrderItem(name: 'Trà đá', qty: 1, price: 4000),
-        ],
-        eta: '15 mins',
-        restaurantName: 'Quán Bún Bò 123',
-        fee: 25000,
-        customerPhone: '090-123-4567',
-        restaurantPhone: '028-3912-3456',
-      ),
-      ShipperOrder(
-        id: 'SO-1002',
-        customerName: 'Trần Thị B',
-        address: '45 Nguyễn Huệ, Q1, TP. HCM',
-        distanceKm: 4.6,
-        status: 'Nearby',
-        total: 75000,
-        items: [
-          OrderItem(name: 'Phở', qty: 1, price: 60000),
-          OrderItem(name: 'Nước cam', qty: 1, price: 15000),
-        ],
-        eta: '22 mins',
-        restaurantName: 'Phở 77',
-        fee: 30000,
-        customerPhone: '091-222-3344',
-        restaurantPhone: '028-3999-7788',
-      ),
-      ShipperOrder(
-        id: 'SO-1003',
-        customerName: 'Lê C',
-        address: '12C Đường A, Q3, TP. HCM',
-        distanceKm: 1.2,
-        status: 'Pickup',
-        total: 45000,
-        items: [OrderItem(name: 'Cơm tấm', qty: 1, price: 45000)],
-        eta: '8 mins',
-        restaurantName: 'Cơm Tấm Sài Gòn',
-        fee: 15000,
-        customerPhone: '092-555-9000',
-        restaurantPhone: '028-3876-4433',
-      ),
-    ];
+  /// Fetch assigned orders for the current shipper (or provided `shipperId`).
+  ///
+  /// This replaces previous mock data and loads data from `orders`,
+  /// `order_items`, `restaurants` and `user_profiles` tables.
+  static Future<List<ShipperOrder>> fetchAssignedOrders({String? shipperId}) async {
+    final supabase = SupabaseService();
+    final currentShipperId = shipperId ?? supabase.userId;
+    if (currentShipperId == null) return [];
+
+    try {
+      final orders = await supabase.from('orders').select().eq('shipper_id', currentShipperId);
+
+      if (orders == null) return [];
+
+      // Try to get shipper current location for distance calculation
+      double? shipperLat;
+      double? shipperLon;
+      try {
+        final shipperProfile = await supabase
+            .from('shipper_profiles')
+            .select()
+            .eq('user_id', currentShipperId)
+            .maybeSingle();
+        if (shipperProfile != null) {
+          shipperLat = (shipperProfile['current_latitude'] as num?)?.toDouble();
+          shipperLon = (shipperProfile['current_longitude'] as num?)?.toDouble();
+        }
+      } catch (_) {}
+
+      final List<ShipperOrder> result = [];
+
+      for (final o in (orders as List)) {
+        final orderId = o['order_id'] as String? ?? '';
+
+        // Items for order
+        final itemsData = await supabase.from('order_items').select().eq('order_id', orderId);
+        final items = (itemsData as List? ?? []).map((i) {
+          final price = (i['price'] as num?)?.toDouble() ?? 0.0;
+          return OrderItem(
+            name: i['food_name'] ?? '',
+            qty: (i['quantity'] as int?) ?? (i['quantity'] as num?)?.toInt() ?? 0,
+            price: price,
+          );
+        }).toList();
+
+        // Restaurant info
+        Map<String, dynamic>? restaurant;
+        try {
+          restaurant = await supabase
+              .from('restaurants')
+              .select()
+              .eq('restaurant_id', o['restaurant_id'])
+              .maybeSingle() as Map<String, dynamic>?;
+        } catch (_) {
+          restaurant = null;
+        }
+
+        // Customer profile
+        Map<String, dynamic>? customerProfile;
+        try {
+          customerProfile = await supabase
+              .from('user_profiles')
+              .select()
+              .eq('user_id', o['user_id'])
+              .maybeSingle() as Map<String, dynamic>?;
+        } catch (_) {
+          customerProfile = null;
+        }
+
+        final deliveryLat = (o['delivery_latitude'] as num?)?.toDouble();
+        final deliveryLon = (o['delivery_longitude'] as num?)?.toDouble();
+
+        double distanceKm = 0.0;
+        if (shipperLat != null && shipperLon != null && deliveryLat != null && deliveryLon != null) {
+          distanceKm = _distanceInKm(shipperLat, shipperLon, deliveryLat, deliveryLon);
+        }
+
+        final eta = distanceKm > 0 ? '${(distanceKm / 30 * 60).round()} mins' : '';
+
+        final total = (o['total_amount'] as num?)?.toDouble() ?? 0.0;
+
+        result.add(ShipperOrder(
+          id: orderId,
+          customerName: customerProfile != null ? (customerProfile['full_name'] ?? '') : '',
+          address: o['delivery_address'] ?? '',
+          distanceKm: distanceKm,
+          status: o['status'] ?? '',
+          total: total,
+          items: items,
+          eta: eta,
+          restaurantName: restaurant != null ? (restaurant['name'] ?? '') : null,
+          fee: null,
+          customerPhone: customerProfile != null ? (customerProfile['phone'] ?? '') : null,
+          restaurantPhone: restaurant != null ? (restaurant['phone'] ?? '') : null,
+        ));
+      }
+
+      return result;
+    } catch (e) {
+      print('Error fetching shipper orders: $e');
+      return [];
+    }
   }
+
+  static double _distanceInKm(double lat1, double lon1, double lat2, double lon2) {
+    const earthRadiusKm = 6371.0;
+    final dLat = _deg2rad(lat2 - lat1);
+    final dLon = _deg2rad(lon2 - lon1);
+    final a = sin(dLat / 2) * sin(dLat / 2) + cos(_deg2rad(lat1)) * cos(_deg2rad(lat2)) * sin(dLon / 2) * sin(dLon / 2);
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return earthRadiusKm * c;
+  }
+
+  static double _deg2rad(double deg) => deg * (pi / 180);
 
   String? get feeString => fee == null ? null : '${fee!.toInt()} VND';
 }

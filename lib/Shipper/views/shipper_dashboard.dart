@@ -13,7 +13,25 @@ class ShipperDashboard extends StatefulWidget {
 
 class _ShipperDashboardState extends State<ShipperDashboard> {
   bool online = true;
-  final orders = ShipperOrder.mockOrders();
+  List<ShipperOrder> orders = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOrders();
+  }
+
+  Future<void> _loadOrders() async {
+    setState(() {
+      isLoading = true;
+    });
+    final fetched = await ShipperOrder.fetchAssignedOrders();
+    setState(() {
+      orders = fetched;
+      isLoading = false;
+    });
+  }
 
   Widget _buildStatCard(String title, String value) {
     return Expanded(
@@ -43,6 +61,11 @@ class _ShipperDashboardState extends State<ShipperDashboard> {
   }
 
   void _showIncoming() {
+    if (orders.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No incoming orders')));
+      return;
+    }
+
     final o = orders.first;
     showDialog(
       context: context,
@@ -50,13 +73,10 @@ class _ShipperDashboardState extends State<ShipperDashboard> {
         order: o,
         seconds: 30,
         onAccept: () {
-          // navigate to detail when accepted
           Navigator.pushNamed(context, '/shipper/order-detail', arguments: o);
         },
         onDecline: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Order declined (mock)')),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order declined')));
         },
       ),
     );
@@ -139,7 +159,7 @@ class _ShipperDashboardState extends State<ShipperDashboard> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildStatCard('Đơn hôm nay', '${orders.length}'),
+                  _buildStatCard('Đơn hôm nay', isLoading ? '...' : '${orders.length}'),
                   _buildStatCard('Thu nhập', '1,250,000 VND'),
                   _buildStatCard('Thời gian', '4h 12m'),
                 ],
@@ -170,47 +190,50 @@ class _ShipperDashboardState extends State<ShipperDashboard> {
 
               // Orders list
               Expanded(
-                child: ListView.builder(
-                  itemCount: orders.length,
-                  itemBuilder: (ctx, i) {
-                    final o = orders[i];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: orangeLight,
-                          child: Text(o.customerName[0]),
-                        ),
-                        title: Text('${o.id} • ${o.customerName}'),
-                        subtitle: Text(
-                          '${o.restaurantName ?? ''}\n${o.distanceKm} km • ${o.eta}',
-                        ),
-                        isThreeLine: true,
-                        trailing: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ElevatedButton(
-                              onPressed: () => Navigator.pushNamed(
-                                context,
-                                '/shipper/order-detail',
-                                arguments: o,
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : ListView.builder(
+                        itemCount: orders.length,
+                        itemBuilder: (ctx, i) {
+                          final o = orders[i];
+                          final avatarLetter = (o.customerName.isNotEmpty ? o.customerName[0] : '?');
+                          return Card(
+                            margin: const EdgeInsets.symmetric(vertical: 8),
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: orangeLight,
+                                child: Text(avatarLetter),
                               ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: primaryColor,
+                              title: Text('${o.id} • ${o.customerName}'),
+                              subtitle: Text(
+                                '${o.restaurantName ?? ''}\n${o.distanceKm.toStringAsFixed(1)} km • ${o.eta}',
                               ),
-                              child: const Text('Chi tiết'),
+                              isThreeLine: true,
+                              trailing: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.pushNamed(
+                                      context,
+                                      '/shipper/order-detail',
+                                      arguments: o,
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: primaryColor,
+                                    ),
+                                    child: const Text('Chi tiết'),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    o.status,
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                ],
+                              ),
                             ),
-                            const SizedBox(height: 6),
-                            Text(
-                              o.status,
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          ],
-                        ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
               ),
             ],
           ),

@@ -9,7 +9,7 @@ class ShipperProfile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final recent = ShipperOrder.mockOrders();
+    // Use FutureBuilder to load recent orders from DB
 
     return Scaffold(
       appBar: AppBar(
@@ -152,21 +152,31 @@ class ShipperProfile extends StatelessWidget {
             ),
             const SizedBox(height: 8),
 
-            Column(
-              children: recent.map((r) {
-                return Card(
-                  child: ListTile(
-                    title: Text('${r.id} • ${r.customerName}'),
-                    subtitle: Text('${r.address}'),
-                    trailing: Text('${r.total.toInt()} VND'),
-                    onTap: () => Navigator.pushNamed(
-                      context,
-                      '/shipper/order-detail',
-                      arguments: r,
-                    ),
-                  ),
+            FutureBuilder<List<ShipperOrder>>(
+              future: ShipperOrder.fetchAssignedOrders(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final recent = snapshot.data ?? [];
+                if (recent.isEmpty) return const Text('No recent deliveries');
+                return Column(
+                  children: recent.map((r) {
+                    return Card(
+                      child: ListTile(
+                        title: Text('${r.id} • ${r.customerName}'),
+                        subtitle: Text('${r.address}'),
+                        trailing: Text('${r.total.toInt()} VND'),
+                        onTap: () => Navigator.pushNamed(
+                          context,
+                          '/shipper/order-detail',
+                          arguments: r,
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 );
-              }).toList(),
+              },
             ),
           ],
         ),

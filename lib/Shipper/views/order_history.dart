@@ -14,12 +14,24 @@ class _OrderHistoryState extends State<OrderHistory> {
   late List<ShipperOrder> allOrders;
   late List<ShipperOrder> filtered;
   String query = '';
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    allOrders = ShipperOrder.mockOrders();
-    filtered = List.from(allOrders);
+    _loadOrders();
+  }
+
+  Future<void> _loadOrders() async {
+    setState(() {
+      isLoading = true;
+    });
+    final fetched = await ShipperOrder.fetchAssignedOrders();
+    setState(() {
+      allOrders = fetched;
+      filtered = List.from(allOrders);
+      isLoading = false;
+    });
   }
 
   void _filter(String q) {
@@ -36,11 +48,8 @@ class _OrderHistoryState extends State<OrderHistory> {
   }
 
   Future<void> _refresh() async {
-    await Future.delayed(const Duration(milliseconds: 400));
-    setState(() {
-      allOrders = ShipperOrder.mockOrders();
-      _filter(query);
-    });
+    await _loadOrders();
+    _filter(query);
   }
 
   @override
@@ -66,23 +75,25 @@ class _OrderHistoryState extends State<OrderHistory> {
             Expanded(
               child: RefreshIndicator(
                 onRefresh: _refresh,
-                child: ListView.builder(
-                  itemCount: filtered.length,
-                  itemBuilder: (ctx, i) => Card(
-                    child: ListTile(
-                      title: Text(filtered[i].id),
-                      subtitle: Text(
-                        '${filtered[i].customerName} • ${filtered[i].total} VND',
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : ListView.builder(
+                        itemCount: filtered.length,
+                        itemBuilder: (ctx, i) => Card(
+                          child: ListTile(
+                            title: Text(filtered[i].id),
+                            subtitle: Text(
+                              '${filtered[i].customerName} • ${filtered[i].total} VND',
+                            ),
+                            trailing: Text(filtered[i].status),
+                            onTap: () => Navigator.pushNamed(
+                              context,
+                              '/shipper/order-detail',
+                              arguments: filtered[i],
+                            ),
+                          ),
+                        ),
                       ),
-                      trailing: Text(filtered[i].status),
-                      onTap: () => Navigator.pushNamed(
-                        context,
-                        '/shipper/order-detail',
-                        arguments: filtered[i],
-                      ),
-                    ),
-                  ),
-                ),
               ),
             ),
           ],
