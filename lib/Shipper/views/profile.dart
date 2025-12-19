@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/User/utils/utils.dart';
+import 'package:mobile/core/services/supabase/supabase_service.dart';
 import 'package:mobile/Shipper/models/shipper_order.dart';
 import 'package:mobile/config/routes.dart';
 
@@ -10,6 +11,14 @@ class ShipperProfile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Use FutureBuilder to load recent orders from DB
+    final Future<Map<String, dynamic>> _profileFuture = (() async {
+      final supabase = SupabaseService();
+      final uid = supabase.userId;
+      if (uid == null) return <String, dynamic>{};
+      final up = await supabase.from('user_profiles').select().eq('user_id', uid).maybeSingle();
+      final sp = await supabase.from('shipper_profiles').select().eq('user_id', uid).maybeSingle();
+      return <String, dynamic>{'user_profile': up ?? <String, dynamic>{}, 'shipper_profile': sp ?? <String, dynamic>{}};
+    })();
 
     return Scaffold(
       appBar: AppBar(
@@ -22,22 +31,35 @@ class ShipperProfile extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Center(
-              child: CircleAvatar(
-                radius: 44,
-                child: Icon(Icons.person, size: 44),
-              ),
+            FutureBuilder<Map<String, dynamic>>(
+              future: _profileFuture,
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final map = snap.data ?? {};
+                final up = map['user_profile'] as Map<String, dynamic>? ?? {};
+                final sp = map['shipper_profile'] as Map<String, dynamic>? ?? {};
+                final displayName = up['full_name'] ?? 'Người giao hàng';
+                final vehicle = sp.isNotEmpty ? '${sp['vehicle_type'] ?? ''} • Plate: ${sp['vehicle_plate'] ?? ''}' : '';
+
+                return Column(
+                  children: [
+                    Center(
+                      child: CircleAvatar(
+                        radius: 44,
+                        child: Text(displayName.isNotEmpty ? displayName[0] : '?', style: const TextStyle(fontSize: 40)),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Center(child: Text(displayName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+                    const SizedBox(height: 6),
+                    if (vehicle.isNotEmpty) Center(child: Text(vehicle)),
+                    const SizedBox(height: 12),
+                  ],
+                );
+              },
             ),
-            const SizedBox(height: 12),
-            const Center(
-              child: Text(
-                'Người giao hàng',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Center(child: Text('Vehicle: Motorbike • Plate: 79A-000.00')),
-            const SizedBox(height: 12),
 
             // Vertical action buttons (full width, consistent height)
             Column(

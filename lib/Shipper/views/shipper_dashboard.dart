@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/Shipper/models/shipper_order.dart';
+import 'package:mobile/core/services/supabase/supabase_service.dart';
 import 'package:mobile/Shipper/widgets/incoming_order_modal.dart';
 import 'package:mobile/User/utils/utils.dart';
 
@@ -15,6 +16,9 @@ class _ShipperDashboardState extends State<ShipperDashboard> {
   bool online = true;
   List<ShipperOrder> orders = [];
   bool isLoading = true;
+  String shipperName = 'Người giao hàng';
+  String shipperRefId = '';
+  String vehicleInfo = '';
 
   @override
   void initState() {
@@ -27,6 +31,24 @@ class _ShipperDashboardState extends State<ShipperDashboard> {
       isLoading = true;
     });
     final fetched = await ShipperOrder.fetchAssignedOrders();
+    // load shipper profile info
+    try {
+      final supabase = SupabaseService();
+      final uid = supabase.userId;
+      if (uid != null) {
+        final up = await supabase.from('user_profiles').select().eq('user_id', uid).maybeSingle();
+        final sp = await supabase.from('shipper_profiles').select().eq('user_id', uid).maybeSingle();
+        setState(() {
+          shipperName = up != null ? (up['full_name'] ?? shipperName) : shipperName;
+          shipperRefId = uid.substring(0, 8);
+          if (sp != null) {
+            final vt = sp['vehicle_type'] ?? '';
+            final plate = sp['vehicle_plate'] ?? '';
+            vehicleInfo = (vt != '' || plate != '') ? '$vt • Plate: $plate' : '';
+          }
+        });
+      }
+    } catch (_) {}
     setState(() {
       orders = fetched;
       isLoading = false;
@@ -103,24 +125,26 @@ class _ShipperDashboardState extends State<ShipperDashboard> {
                   CircleAvatar(
                     radius: 26,
                     backgroundColor: orangeLight,
-                    child: const Icon(Icons.person, color: whiteColor),
+                    child: Text(shipperName.isNotEmpty ? shipperName[0] : '?', style: const TextStyle(color: whiteColor)),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
-                          'Người giao hàng',
-                          style: TextStyle(
+                          shipperName,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+                        const SizedBox(height: 2),
                         Text(
-                          'ID: SH-001',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                          'ID: ${shipperRefId}',
+                          style: const TextStyle(fontSize: 12, color: Colors.grey),
                         ),
+                        if (vehicleInfo.isNotEmpty) Text(vehicleInfo, style: const TextStyle(fontSize: 12, color: Colors.grey)),
                       ],
                     ),
                   ),
@@ -161,7 +185,6 @@ class _ShipperDashboardState extends State<ShipperDashboard> {
                 children: [
                   _buildStatCard('Đơn hôm nay', isLoading ? '...' : '${orders.length}'),
                   _buildStatCard('Thu nhập', '1,250,000 VND'),
-                  _buildStatCard('Thời gian', '4h 12m'),
                 ],
               ),
 

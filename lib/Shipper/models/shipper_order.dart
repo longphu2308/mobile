@@ -24,6 +24,7 @@ class ShipperOrder {
   final List<OrderItem> items;
   final String eta;
   final String? restaurantName;
+  final String? restaurantAddress;
   final double? fee;
   final String? customerPhone;
   final String? restaurantPhone;
@@ -38,6 +39,7 @@ class ShipperOrder {
     required this.items,
     required this.eta,
     this.restaurantName,
+    this.restaurantAddress,
     this.fee,
     this.customerPhone,
     this.restaurantPhone,
@@ -134,6 +136,7 @@ class ShipperOrder {
           items: items,
           eta: eta,
           restaurantName: restaurant != null ? (restaurant['name'] ?? '') : null,
+          restaurantAddress: restaurant != null ? (restaurant['address'] ?? '') : null,
           fee: null,
           customerPhone: customerProfile != null ? (customerProfile['phone'] ?? '') : null,
           restaurantPhone: restaurant != null ? (restaurant['phone'] ?? '') : null,

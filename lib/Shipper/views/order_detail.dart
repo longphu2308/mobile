@@ -61,6 +61,11 @@ class OrderDetail extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 6),
+                              if ((order.restaurantAddress ?? '').isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 6.0),
+                                  child: Text('Địa chỉ: ${order.restaurantAddress}'),
+                                ),
                               Row(
                                 children: [
                                   Expanded(
