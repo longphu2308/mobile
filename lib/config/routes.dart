@@ -17,6 +17,12 @@ import 'package:mobile/Owner/presentation/views/dashboard/profile/edit_profile_s
 import 'package:mobile/Owner/presentation/views/dashboard/profile/change_password_screen.dart';
 import 'package:mobile/User/presentation/views/dashboard/profile/edit_profile_screen.dart';
 import 'package:mobile/User/presentation/views/dashboard/profile/change_password_screen.dart';
+// Shipper views
+import 'package:mobile/Shipper/views/shipper_dashboard.dart';
+import 'package:mobile/Shipper/views/order_detail.dart';
+import 'package:mobile/Shipper/views/order_history.dart';
+import 'package:mobile/Shipper/views/profile.dart' as shipper_profile;
+import 'package:mobile/Shipper/views/live_tracking.dart';
 
 // Route names
 const String welcomeRoute = '/';
@@ -40,6 +46,13 @@ const String ownerReportRoute = '/owner/report';
 const String ownerSupportRoute = '/owner/support';
 const String ownerEditProfileRoute = '/owner/edit-profile';
 const String ownerChangePasswordRoute = '/owner/change-password';
+
+// Shipper routes
+const String shipperDashboardRoute = '/shipper/dashboard';
+const String shipperOrderDetailRoute = '/shipper/order-detail';
+const String shipperHistoryRoute = '/shipper/history';
+const String shipperProfileRoute = '/shipper/profile';
+const String shipperTrackingRoute = '/shipper/tracking';
 
 class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -122,6 +135,23 @@ class AppRouter {
 
       case ownerChangePasswordRoute:
         return MaterialPageRoute(builder: (_) => const ChangePasswordScreen());
+
+      // Shipper routes
+      case shipperDashboardRoute:
+        return MaterialPageRoute(builder: (_) => const ShipperDashboard());
+
+      case shipperOrderDetailRoute:
+        final args = settings.arguments as dynamic;
+        return MaterialPageRoute(builder: (_) => OrderDetail());
+
+      case shipperHistoryRoute:
+        return MaterialPageRoute(builder: (_) => const OrderHistory());
+
+      case shipperProfileRoute:
+        return MaterialPageRoute(builder: (_) => const shipper_profile.ShipperProfile());
+
+      case shipperTrackingRoute:
+        return MaterialPageRoute(builder: (_) => const LiveTracking());
 
       // User profile routes
       case userEditProfileRoute:

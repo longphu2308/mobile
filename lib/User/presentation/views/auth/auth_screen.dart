@@ -215,7 +215,9 @@ class _LogInSectionState extends State<_LogInSection> {
                             final user = authController.currentUser;
                             final route = (user?.role == 'owner')
                                 ? ownerDashboardRoute
-                                : userDashboardRoute;
+                                : (user?.role == 'shipper'
+                                    ? shipperDashboardRoute
+                                    : userDashboardRoute);
 
                             Navigator.pushNamedAndRemoveUntil(
                               context,
@@ -382,7 +384,9 @@ class _SignUpSectionState extends State<_SignUpSection> {
                             final user = authController.currentUser;
                             final route = (user?.role == 'owner')
                                 ? ownerDashboardRoute
-                                : userDashboardRoute;
+                                : (user?.role == 'shipper'
+                                    ? shipperDashboardRoute
+                                    : userDashboardRoute);
 
                             Navigator.pushNamedAndRemoveUntil(
                               context,
