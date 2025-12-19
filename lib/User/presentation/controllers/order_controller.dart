@@ -43,7 +43,7 @@ class OrderController extends ChangeNotifier {
     print('OrderController: Auth state changed - userId: $userId');
     print('OrderController: currentUser: ${_authController?.currentUser}');
     print('OrderController: authController exists: ${_authController != null}');
-    
+
     if (userId != null && userId != _currentUserId) {
       _currentUserId = userId;
       loadUserOrders();
@@ -120,7 +120,7 @@ class OrderController extends ChangeNotifier {
         restaurantId: restaurantId,
         items: orderItems,
         totalAmount: totalAmount,
-        status: 'pending',
+        status: OrderStatus.pending,
         deliveryAddress: deliveryAddress,
         paymentMethod: paymentMethod,
         note: note,
@@ -192,12 +192,12 @@ class OrderController extends ChangeNotifier {
   }
 
   /// Update order status
-  Future<bool> updateOrderStatus(String orderId, String status) async {
+  Future<bool> updateOrderStatus(String orderId, OrderStatus status) async {
     try {
       _setLoading(true);
       _errorMessage = null;
 
-      await _orderRepository.updateOrderStatus(orderId, status);
+      await _orderRepository.updateOrderStatus(orderId, status.value);
 
       // Update local state
       final index = _orders.indexWhere((order) => order.id == orderId);
@@ -224,11 +224,11 @@ class OrderController extends ChangeNotifier {
 
   /// Cancel order
   Future<bool> cancelOrder(String orderId) async {
-    return await updateOrderStatus(orderId, 'cancelled');
+    return await updateOrderStatus(orderId, OrderStatus.cancelled);
   }
 
   /// Get orders by status
-  Future<List<OrderModel>> getOrdersByStatus(String status) async {
+  Future<List<OrderModel>> getOrdersByStatus(OrderStatus status) async {
     try {
       return _orders.where((order) => order.status == status).toList();
     } catch (e) {
@@ -241,28 +241,28 @@ class OrderController extends ChangeNotifier {
 
   /// Get pending orders
   Future<List<OrderModel>> getPendingOrders() async {
-    return await getOrdersByStatus('pending');
+    return await getOrdersByStatus(OrderStatus.pending);
   }
 
   /// Get completed orders
   Future<List<OrderModel>> getCompletedOrders() async {
-    return await getOrdersByStatus('delivered');
+    return await getOrdersByStatus(OrderStatus.delivered);
   }
 
   /// Get cancelled orders
   Future<List<OrderModel>> getCancelledOrders() async {
-    return await getOrdersByStatus('cancelled');
+    return await getOrdersByStatus(OrderStatus.cancelled);
   }
 
   /// Get order count by status
-  int getOrderCountByStatus(String status) {
+  int getOrderCountByStatus(OrderStatus status) {
     return _orders.where((order) => order.status == status).length;
   }
 
   /// Get total spent
   double getTotalSpent() {
     return _orders
-        .where((order) => order.status == 'delivered')
+        .where((order) => order.status == OrderStatus.delivered)
         .fold(0.0, (sum, order) => sum + order.totalAmount);
   }
 

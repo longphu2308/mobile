@@ -7,6 +7,7 @@ import 'package:mobile/User/utils/strings.dart';
 import 'package:mobile/User/utils/assets.dart';
 import 'package:mobile/User/presentation/controllers/auth_controller.dart';
 import 'package:mobile/config/routes.dart';
+import 'package:mobile/core/models/user_model.dart';
 
 class AuthScreen extends StatelessWidget {
   const AuthScreen({super.key});
@@ -187,7 +188,9 @@ class _LogInSectionState extends State<_LogInSection> {
                 authController.isLoading
                     ? const Center(
                         child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            primaryColor,
+                          ),
                         ),
                       )
                     : FoodieButton(
@@ -213,11 +216,11 @@ class _LogInSectionState extends State<_LogInSection> {
                           if (success && mounted) {
                             // Check user role and navigate to appropriate dashboard
                             final user = authController.currentUser;
-                            final route = (user?.role == 'owner')
+                            final route = (user?.role == UserRole.owner)
                                 ? ownerDashboardRoute
-                                : (user?.role == 'shipper'
-                                    ? shipperDashboardRoute
-                                    : userDashboardRoute);
+                                : (user?.role == UserRole.shipper
+                                      ? shipperDashboardRoute
+                                      : userDashboardRoute);
 
                             Navigator.pushNamedAndRemoveUntil(
                               context,
@@ -324,7 +327,9 @@ class _SignUpSectionState extends State<_SignUpSection> {
                 authController.isLoading
                     ? const Center(
                         child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            primaryColor,
+                          ),
                         ),
                       )
                     : FoodieButton(
@@ -348,7 +353,9 @@ class _SignUpSectionState extends State<_SignUpSection> {
                           // Validate email format
                           if (!_isValidEmail(_emailController.text)) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Email không hợp lệ')),
+                              const SnackBar(
+                                content: Text('Email không hợp lệ'),
+                              ),
                             );
                             return;
                           }
@@ -382,11 +389,11 @@ class _SignUpSectionState extends State<_SignUpSection> {
                             );
                             // Check user role and navigate to appropriate dashboard
                             final user = authController.currentUser;
-                            final route = (user?.role == 'owner')
+                            final route = (user?.role == UserRole.owner)
                                 ? ownerDashboardRoute
-                                : (user?.role == 'shipper'
-                                    ? shipperDashboardRoute
-                                    : userDashboardRoute);
+                                : (user?.role == UserRole.shipper
+                                      ? shipperDashboardRoute
+                                      : userDashboardRoute);
 
                             Navigator.pushNamedAndRemoveUntil(
                               context,

@@ -51,45 +51,47 @@ class OrdersController extends ChangeNotifier {
     }
   }
 
-  Color statusColor(String status) {
+  Color statusColor(OrderStatus status) {
     switch (status) {
-      case 'pending':
+      case OrderStatus.pending:
         return Colors.orange;
-      case 'preparing':
+      case OrderStatus.confirmed:
         return Colors.blue;
-      case 'delivered':
+      case OrderStatus.preparing:
+        return Colors.blue;
+      case OrderStatus.readyForPickup:
+        return Colors.teal;
+      case OrderStatus.delivering:
+        return Colors.indigo;
+      case OrderStatus.delivered:
         return Colors.green;
-      case 'cancelled':
+      case OrderStatus.cancelled:
         return Colors.red;
-      default:
-        return Colors.grey;
     }
   }
 
-  String statusText(String status) {
-    switch (status) {
-      case 'pending':
-        return 'Chờ xác nhận';
-      case 'preparing':
-        return 'Đang chuẩn bị';
-      case 'delivered':
-        return 'Hoàn tất';
-      case 'cancelled':
-        return 'Đã hủy';
-      default:
-        return status;
-    }
+  String statusText(OrderStatus status) {
+    return status.displayName;
   }
 
-  Future<void> updateStatus(String orderId, String currentStatus) async {
-    String? newStatus;
+  Future<void> updateStatus(String orderId, OrderStatus currentStatus) async {
+    OrderStatus? newStatus;
 
     switch (currentStatus) {
-      case 'pending':
-        newStatus = 'preparing';
+      case OrderStatus.pending:
+        newStatus = OrderStatus.confirmed;
         break;
-      case 'preparing':
-        newStatus = 'delivered';
+      case OrderStatus.confirmed:
+        newStatus = OrderStatus.preparing;
+        break;
+      case OrderStatus.preparing:
+        newStatus = OrderStatus.readyForPickup;
+        break;
+      case OrderStatus.readyForPickup:
+        newStatus = OrderStatus.delivering;
+        break;
+      case OrderStatus.delivering:
+        newStatus = OrderStatus.delivered;
         break;
       default:
         return;
@@ -98,7 +100,7 @@ class OrdersController extends ChangeNotifier {
     try {
       final success = await _orderRepository.updateOrderStatus(
         orderId,
-        newStatus,
+        newStatus.value,
       );
 
       if (success) {
@@ -120,7 +122,9 @@ class OrdersController extends ChangeNotifier {
       if (success) {
         final index = _orders.indexWhere((o) => o.id == orderId);
         if (index >= 0) {
-          _orders[index] = _orders[index].copyWith(status: 'cancelled');
+          _orders[index] = _orders[index].copyWith(
+            status: OrderStatus.cancelled,
+          );
           notifyListeners();
         }
       }

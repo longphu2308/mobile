@@ -75,7 +75,7 @@ class OrderCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          if (order.status == 'pending') ...[
+          if (order.status == OrderStatus.pending) ...[
             Row(
               children: [
                 ElevatedButton(
@@ -98,8 +98,8 @@ class OrderCard extends StatelessWidget {
                 ),
               ],
             ),
-          ] else if (order.status != 'cancelled' &&
-              order.status != 'delivered') ...[
+          ] else if (order.status != OrderStatus.cancelled &&
+              order.status != OrderStatus.delivered) ...[
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
@@ -113,23 +113,8 @@ class OrderCard extends StatelessWidget {
     );
   }
 
-  String _getStatusText(String status) {
-    switch (status) {
-      case 'pending':
-        return 'Chờ xác nhận';
-      case 'confirmed':
-        return 'Đã xác nhận';
-      case 'preparing':
-        return 'Đang chuẩn bị';
-      case 'delivering':
-        return 'Đang giao';
-      case 'delivered':
-        return 'Hoàn tất';
-      case 'cancelled':
-        return 'Đã hủy';
-      default:
-        return status;
-    }
+  String _getStatusText(OrderStatus status) {
+    return status.displayName;
   }
 }
 
