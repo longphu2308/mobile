@@ -38,124 +38,54 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       child: Scaffold(
         body: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                const Color(0xFFFF4A1C), // Đỏ cam đậm ở trên (giống Figma)
-                primaryColor, // Cam đậm ở dưới
-              ],
-            ),
+            color: primaryColor,
           ),
           child: SafeArea(
-            child: Stack(
+            child: Column(
               children: [
-                // Nội dung chính
+                // Welcome image ở phía trên
+                Expanded(
+                  child: Center(
+                    child: Image.asset(
+                      FoodieAssets.welcome,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        debugPrint('Error loading welcome.png: $error');
+                        return Container(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.image_not_supported_outlined,
+                                color: whiteColor,
+                                size: 64,
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'Welcome',
+                                style: TextStyle(
+                                  color: whiteColor,
+                                  fontSize: 48,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                // Nút "Get started" ở dưới
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: horizontalPadding,
-                    vertical: verticalPadding,
+                    vertical: 40,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Logo ở góc trên trái
-                      Container(
-                        height: 73,
-                        width: 73,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: whiteColor,
-                        ),
-                        child: Center(
-                          child: Image.asset(
-                            FoodieAssets.logo,
-                            width: 55,
-                            height: 55,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                      // Tiêu đề "Food for Everyone" - 2 dòng
-                      RichText(
-                        text: TextSpan(
-                          style: const TextStyle(
-                            color: whiteColor,
-                            fontSize: 55,
-                            fontWeight: FontWeight.bold,
-                            height: 1.2,
-                          ),
-                          children: const [
-                            TextSpan(text: 'Food for\n'),
-                            TextSpan(text: 'Everyone'),
-                          ],
-                        ),
-                      ),
-                      const Spacer(flex: 2),
-                      // Nút "Get started" - nền trắng, chữ cam
-                      _WelcomeButton(
-                        text: FoodieStrings.getStarted,
-                        onPressed: () => Navigator.pushNamed(context, authRoute),
-                      ),
-                    ],
-                  ),
-                ),
-                // Nhân vật 3D ở phần dưới (đặt sau để nằm trên cùng)
-                Positioned(
-                  bottom: 140,
-                  left: 0,
-                  right: 0,
-                  child: SizedBox(
-                    height: 200,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      clipBehavior: Clip.none,
-                      children: [
-                        // Nhân vật 2 - phải (bị che một phần phía sau)
-                        Positioned(
-                          left: 20,
-                          bottom: 0,
-                          child: Image.asset(
-                            FoodieAssets.toyFace49,
-                            width: 120,
-                            height: 120,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) {
-                              debugPrint('Error loading toyFace49: $error');
-                              debugPrint('Path: ${FoodieAssets.toyFace49}');
-                              return Container(
-                                width: 120,
-                                height: 120,
-                                color: Colors.red.withValues(alpha: 0.3),
-                                child: const Icon(Icons.error, color: Colors.white),
-                              );
-                            },
-                          ),
-                        ),
-                        // Nhân vật 1 - nổi bật nhất bên trái (phía trước)
-                        Positioned(
-                          right: 20,
-                          bottom: 0,
-                          child: Image.asset(
-                            FoodieAssets.toyFace29,
-                            width: 150,
-                            height: 150,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) {
-                              debugPrint('Error loading toyFace29: $error');
-                              debugPrint('Path: ${FoodieAssets.toyFace29}');
-                              return Container(
-                                width: 150,
-                                height: 150,
-                                color: Colors.red.withValues(alpha: 0.3),
-                                child: const Icon(Icons.error, color: Colors.white),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
+                  child: _WelcomeButton(
+                    text: FoodieStrings.getStarted,
+                    onPressed: () => Navigator.pushNamed(context, authRoute),
                   ),
                 ),
               ],
@@ -188,15 +118,17 @@ class _WelcomeButton extends StatelessWidget {
           foregroundColor: primaryColor,
           padding: const EdgeInsets.symmetric(vertical: 18),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
-          elevation: 0,
+          elevation: 8,
+          shadowColor: Colors.black.withValues(alpha: 0.2),
         ),
         child: Text(
           text,
           style: const TextStyle(
             fontSize: 18,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
           ),
         ),
       ),

@@ -30,35 +30,76 @@ class CartScreen extends StatelessWidget {
       appBar: AppBar(
         elevation: 0.0,
         backgroundColor: bgColor,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: blackColor),
-          onPressed: () => Navigator.pop(context),
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: whiteColor,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: blackColor, size: 18),
+            onPressed: () => Navigator.pop(context),
+          ),
         ),
-        title: const Text('Cart', style: TextStyle(color: blackColor)),
+        title: const Text(
+          'Giỏ hàng',
+          style: TextStyle(
+            color: blackColor,
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+          ),
+        ),
         centerTitle: true,
       ),
       body: Consumer<CartController>(
         builder: (context, cartController, child) {
           if (cartController.items.isEmpty) {
             return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.shopping_cart_outlined,
-                    size: 64,
-                    color: Colors.grey[400],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Cart is empty',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[600],
+              child: Padding(
+                padding: const EdgeInsets.all(horizontalPadding),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(32),
+                      decoration: BoxDecoration(
+                        color: primaryColor.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.shopping_cart_outlined,
+                        size: 80,
+                        color: primaryColor.withValues(alpha: 0.7),
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 32),
+                    Text(
+                      'Giỏ hàng trống',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Thêm món ăn vào giỏ hàng để bắt đầu đặt hàng',
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.grey[600],
+                        height: 1.5,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
             );
           }
@@ -74,15 +115,27 @@ class CartScreen extends StatelessWidget {
                   horizontal: horizontalPadding,
                   vertical: 16,
                 ),
-                child: Row(
-                  children: [
-                    Icon(Icons.swipe_left, size: 20, color: greyColor),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Swipe left to delete an item',
-                      style: TextStyle(fontSize: 14, color: greyColor),
-                    ),
-                  ],
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: primaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.swipe_left_rounded, size: 20, color: primaryColor),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Vuốt sang trái để xóa món',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: primaryColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
 
@@ -103,18 +156,25 @@ class CartScreen extends StatelessWidget {
                         // Restaurant header
                         Padding(
                           padding: EdgeInsets.only(
-                            bottom: 12,
-                            top: restaurantIndex > 0 ? 8 : 0,
+                            bottom: 16,
+                            top: restaurantIndex > 0 ? 16 : 0,
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.store, size: 18, color: primaryColor),
-                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: primaryColor.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(Icons.store_rounded, size: 18, color: primaryColor),
+                              ),
+                              const SizedBox(width: 12),
                               Text(
                                 restaurantName,
                                 style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
                                   color: blackColor,
                                 ),
                               ),
@@ -178,16 +238,27 @@ class CartScreen extends StatelessWidget {
                             backgroundColor: primaryColor,
                             foregroundColor: whiteColor,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(radius),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                             elevation: 0,
+                            shadowColor: primaryColor.withValues(alpha: 0.3),
+                          ).copyWith(
+                            elevation: WidgetStateProperty.all(8),
                           ),
-                          child: const Text(
-                            'Complete Order',
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text(
+                                'Hoàn tất đặt hàng',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Icon(Icons.arrow_forward_rounded, size: 20),
+                            ],
                           ),
                         ),
                       ),
@@ -227,22 +298,32 @@ class _CartItemCard extends StatelessWidget {
       background: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
-          color: Colors.red,
-          borderRadius: BorderRadius.circular(radius),
+          gradient: LinearGradient(
+            colors: [Colors.red[400]!, Colors.red[600]!],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
         ),
         alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
+        padding: const EdgeInsets.only(right: 24),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             Container(
-              width: 40,
-              height: 40,
-              decoration: const BoxDecoration(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 8,
+                  ),
+                ],
               ),
-              child: const Icon(Icons.close, color: Colors.red),
+              child: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 24),
             ),
           ],
         ),
@@ -255,35 +336,56 @@ class _CartItemCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: whiteColor,
-          borderRadius: BorderRadius.circular(radius),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              offset: const Offset(0, 2),
-              blurRadius: 8,
-              color: Colors.black.withValues(alpha: 0.1),
+              offset: const Offset(0, 4),
+              blurRadius: 12,
+              spreadRadius: 0,
+              color: Colors.black.withValues(alpha: 0.08),
             ),
           ],
         ),
         child: Row(
           children: [
-            // Food image
-            ClipOval(
-              child: Image.network(
-                item.imageUrl,
-                width: 60,
-                height: 60,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    width: 60,
-                    height: 60,
-                    color: Colors.grey[300],
-                    child: Icon(
-                      Icons.image_not_supported_outlined,
-                      color: Colors.grey[600],
-                    ),
-                  );
-                },
+            // Food image with shadow
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+              child: ClipOval(
+                child: Image.network(
+                  item.imageUrl,
+                  width: 70,
+                  height: 70,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      width: 70,
+                      height: 70,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.grey[300]!,
+                            Colors.grey[200]!,
+                          ],
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.image_not_supported_outlined,
+                        color: Colors.grey[600],
+                        size: 32,
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
             const SizedBox(width: 16),
@@ -296,20 +398,28 @@ class _CartItemCard extends StatelessWidget {
                   Text(
                     item.foodName,
                     style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
                       color: blackColor,
+                      height: 1.2,
                     ),
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    formatPrice(item.price),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: primaryColor,
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: primaryColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      formatPrice(item.price),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: primaryColor,
+                      ),
                     ),
                   ),
                 ],
@@ -319,33 +429,59 @@ class _CartItemCard extends StatelessWidget {
             // Quantity controls
             Container(
               decoration: BoxDecoration(
-                color: primaryColor,
-                borderRadius: BorderRadius.circular(20),
+                gradient: LinearGradient(
+                  colors: [primaryColor, primaryColorDark],
+                ),
+                borderRadius: BorderRadius.circular(25),
+                boxShadow: [
+                  BoxShadow(
+                    color: primaryColor.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.remove, color: whiteColor, size: 18),
-                    onPressed: onDecrement,
-                    padding: const EdgeInsets.all(8),
-                    constraints: const BoxConstraints(),
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: onDecrement,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(25),
+                        bottomLeft: Radius.circular(25),
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        child: const Icon(Icons.remove_rounded, color: whiteColor, size: 18),
+                      ),
+                    ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: Text(
                       '${item.quantity}',
                       style: const TextStyle(
                         color: whiteColor,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.add, color: whiteColor, size: 18),
-                    onPressed: onIncrement,
-                    padding: const EdgeInsets.all(8),
-                    constraints: const BoxConstraints(),
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: onIncrement,
+                      borderRadius: const BorderRadius.only(
+                        topRight: Radius.circular(25),
+                        bottomRight: Radius.circular(25),
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        child: const Icon(Icons.add_rounded, color: whiteColor, size: 18),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -356,3 +492,4 @@ class _CartItemCard extends StatelessWidget {
     );
   }
 }
+

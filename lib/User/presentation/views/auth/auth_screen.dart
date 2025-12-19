@@ -18,58 +18,82 @@ class AuthScreen extends StatelessWidget {
       child: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.dark,
         child: Scaffold(
+          backgroundColor: whiteColor,
           body: Column(
             children: [
-              Expanded(
-                flex: 3,
+              // Login image ở phía trên
+              SafeArea(
+                bottom: false,
                 child: Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    boxShadow: [
-                      BoxShadow(
-                        offset: Offset(0, 4.0),
-                        blurRadius: 30.0,
-                        color: blackColor.withValues(alpha: 0.06),
-                      ),
-                    ],
-                    color: whiteColor,
+                    color: primaryColor,
                     borderRadius: BorderRadius.only(
                       bottomLeft: Radius.circular(radius),
                       bottomRight: Radius.circular(radius),
                     ),
                   ),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: horizontalPadding + 10,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Flexible(
-                        child: Center(
-                          child: Image.asset(
-                            FoodieAssets.logo,
-                            width: 100,
-                            height: 100,
-                            fit: BoxFit.contain,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(radius),
+                      bottomRight: Radius.circular(radius),
+                    ),
+                    child: Image.asset(
+                      FoodieAssets.login,
+                      fit: BoxFit.contain,
+                      width: double.infinity,
+                      errorBuilder: (context, error, stackTrace) {
+                        debugPrint('Error loading login.png: $error');
+                        return Container(
+                          height: 200,
+                          padding: const EdgeInsets.all(20),
+                          color: primaryColor,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Image.asset(
+                                FoodieAssets.logo,
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.contain,
+                              ),
+                            ],
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      TabBar(
-                        tabs: [
-                          Tab(text: FoodieStrings.login),
-                          Tab(text: FoodieStrings.signUp),
-                        ],
-                      ),
-                    ],
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
-              YBox(30),
+              // TabBar dưới ảnh
+              Container(
+                color: whiteColor,
+                child: TabBar(
+                  indicatorColor: primaryColor,
+                  indicatorWeight: 3,
+                  labelColor: primaryColor,
+                  unselectedLabelColor: greyColor,
+                  labelStyle: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                  unselectedLabelStyle: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 16,
+                  ),
+                  tabs: [
+                    Tab(text: FoodieStrings.login),
+                    Tab(text: FoodieStrings.signUp),
+                  ],
+                ),
+              ),
+              // Form content với background trắng
               Expanded(
-                flex: 4,
-                child: TabBarView(
-                  children: [_LogInSection(), _SignUpSection()],
+                child: Container(
+                  color: whiteColor,
+                  child: TabBarView(
+                    children: [_LogInSection(), _SignUpSection()],
+                  ),
                 ),
               ),
             ],
@@ -111,7 +135,9 @@ class _LogInSectionState extends State<_LogInSection> {
         child: Consumer<AuthController>(
           builder: (context, authController, _) {
             return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const SizedBox(height: 30),
                 FoodieTextField(
                   label: FoodieStrings.email,
                   hint: 'example@gmail.com',
@@ -123,7 +149,7 @@ class _LogInSectionState extends State<_LogInSection> {
                 FoodieTextField(
                   label: FoodieStrings.password,
                   hint: '**********',
-                  keyboardType: TextInputType.emailAddress,
+                  keyboardType: TextInputType.text,
                   obscureText: true,
                   controller: _passwordController,
                   enabled: !authController.isLoading,
@@ -135,7 +161,7 @@ class _LogInSectionState extends State<_LogInSection> {
                     padding: const EdgeInsets.only(bottom: 15.0),
                     child: Text(
                       authController.errorMessage!,
-                      style: TextStyle(color: Colors.red, fontSize: 14),
+                      style: const TextStyle(color: Colors.red, fontSize: 14),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -148,14 +174,22 @@ class _LogInSectionState extends State<_LogInSection> {
                       padding: const EdgeInsets.fromLTRB(0, 5.0, 0, 5.0),
                       child: Text(
                         FoodieStrings.forgotPasscode,
-                        style: TextStyle(color: primaryColor, fontSize: 15),
+                        style: TextStyle(
+                          color: primaryColor,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ),
                 ),
                 YBox(50),
                 authController.isLoading
-                    ? CircularProgressIndicator()
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+                        ),
+                      )
                     : FoodieButton(
                         text: FoodieStrings.login,
                         onPressed: () async {
@@ -163,7 +197,7 @@ class _LogInSectionState extends State<_LogInSection> {
                           if (_emailController.text.isEmpty ||
                               _passwordController.text.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
+                              const SnackBar(
                                 content: Text('Vui lòng điền đầy đủ thông tin'),
                               ),
                             );
@@ -191,6 +225,7 @@ class _LogInSectionState extends State<_LogInSection> {
                           }
                         },
                       ),
+                const SizedBox(height: 30),
               ],
             );
           },
@@ -237,7 +272,9 @@ class _SignUpSectionState extends State<_SignUpSection> {
         child: Consumer<AuthController>(
           builder: (context, authController, _) {
             return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const SizedBox(height: 30),
                 FoodieTextField(
                   label: FoodieStrings.name,
                   hint: 'Phu Tran',
@@ -265,7 +302,7 @@ class _SignUpSectionState extends State<_SignUpSection> {
                 FoodieTextField(
                   label: FoodieStrings.password,
                   hint: '**********',
-                  keyboardType: TextInputType.emailAddress,
+                  keyboardType: TextInputType.text,
                   obscureText: true,
                   controller: _passwordController,
                   enabled: !authController.isLoading,
@@ -277,13 +314,17 @@ class _SignUpSectionState extends State<_SignUpSection> {
                     padding: const EdgeInsets.only(bottom: 15.0),
                     child: Text(
                       authController.errorMessage!,
-                      style: TextStyle(color: Colors.red, fontSize: 14),
+                      style: const TextStyle(color: Colors.red, fontSize: 14),
                       textAlign: TextAlign.center,
                     ),
                   ),
                 YBox(50),
                 authController.isLoading
-                    ? CircularProgressIndicator()
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+                        ),
+                      )
                     : FoodieButton(
                         text: FoodieStrings.signUp,
                         onPressed: () async {
@@ -293,7 +334,7 @@ class _SignUpSectionState extends State<_SignUpSection> {
                               _phoneController.text.isEmpty ||
                               _passwordController.text.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
+                              const SnackBar(
                                 content: Text(
                                   'Vui lòng điền đầy đủ thông tin bắt buộc',
                                 ),
@@ -305,7 +346,7 @@ class _SignUpSectionState extends State<_SignUpSection> {
                           // Validate email format
                           if (!_isValidEmail(_emailController.text)) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Email không hợp lệ')),
+                              const SnackBar(content: Text('Email không hợp lệ')),
                             );
                             return;
                           }
@@ -313,7 +354,7 @@ class _SignUpSectionState extends State<_SignUpSection> {
                           // Validate password length
                           if (_passwordController.text.length < 6) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
+                              const SnackBar(
                                 content: Text(
                                   'Mật khẩu phải có ít nhất 6 ký tự',
                                 ),
@@ -332,7 +373,7 @@ class _SignUpSectionState extends State<_SignUpSection> {
 
                           if (success && mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
+                              const SnackBar(
                                 content: Text('Đăng ký thành công'),
                                 backgroundColor: Colors.green,
                               ),
@@ -351,6 +392,7 @@ class _SignUpSectionState extends State<_SignUpSection> {
                           }
                         },
                       ),
+                const SizedBox(height: 30),
               ],
             );
           },

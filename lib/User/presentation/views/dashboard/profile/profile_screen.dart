@@ -16,17 +16,54 @@ class UserProfileScreen extends StatelessWidget {
         backgroundColor: whiteColor,
         elevation: 0,
         title: const Text(
-          'Profile',
-          style: TextStyle(color: blackColor, fontWeight: FontWeight.bold),
+          'Hồ sơ',
+          style: TextStyle(
+            color: blackColor,
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+          ),
         ),
+        centerTitle: false,
       ),
       body: Consumer<AuthController>(
         builder: (context, authController, child) {
           final user = authController.currentUser;
 
           if (user == null) {
-            return const Center(
-              child: Text('Please log in'),
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: whiteColor,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withValues(alpha: 0.2),
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.lock_outline,
+                      size: 48,
+                      color: Colors.grey[400],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Vui lòng đăng nhập',
+                    style: TextStyle(
+                      fontSize: 20,
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
             );
           }
 
@@ -36,60 +73,114 @@ class UserProfileScreen extends StatelessWidget {
               children: [
                 // --- USER INFO ---
                 Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(28),
                   decoration: BoxDecoration(
-                    color: whiteColor,
-                    borderRadius: BorderRadius.circular(radius),
-                    boxShadow: const [
-                      BoxShadow(color: Colors.black12, blurRadius: 8),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        primaryColor.withValues(alpha: 0.1),
+                        primaryColor.withValues(alpha: 0.05),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 20,
+                        offset: const Offset(0, 4),
+                      ),
                     ],
                   ),
                   child: Column(
                     children: [
-                      CircleAvatar(
-                        radius: 45,
-                        backgroundColor: primaryColor.withOpacity(0.1),
-                        child: const Icon(
-                          Icons.person,
-                          size: 55,
-                          color: primaryColor,
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: primaryColor.withValues(alpha: 0.3),
+                              blurRadius: 20,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: CircleAvatar(
+                          radius: 50,
+                          backgroundColor: primaryColor,
+                          child: const Icon(
+                            Icons.person_rounded,
+                            size: 60,
+                            color: whiteColor,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 20),
                       Text(
-                        user.fullName ?? 'No name',
+                        user.fullName ?? 'Chưa có tên',
                         style: const TextStyle(
-                          fontSize: 20,
+                          fontSize: 24,
                           fontWeight: FontWeight.bold,
+                          color: blackColor,
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        user.email,
-                        style: const TextStyle(color: Colors.black54),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.email_outlined, size: 16, color: Colors.grey[600]),
+                          const SizedBox(width: 6),
+                          Text(
+                            user.email,
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        ],
                       ),
                       if (user.phone != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          user.phone!,
-                          style: const TextStyle(color: Colors.black54),
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.phone_outlined, size: 16, color: Colors.grey[600]),
+                            const SizedBox(width: 6),
+                            Text(
+                              user.phone!,
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                          ],
                         ),
                       ],
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 16),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 4,
+                          horizontal: 16,
+                          vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: primaryColor.withOpacity(0.15),
+                          gradient: LinearGradient(
+                            colors: [primaryColor, primaryColorDark],
+                          ),
                           borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: primaryColor.withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: const Text(
-                          "User",
+                          "Người dùng",
                           style: TextStyle(
-                            color: primaryColor,
-                            fontWeight: FontWeight.w600,
+                            color: whiteColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
                           ),
                         ),
                       ),
@@ -101,33 +192,39 @@ class UserProfileScreen extends StatelessWidget {
 
                 // --- ACTION MENU ---
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: whiteColor,
-                    borderRadius: BorderRadius.circular(radius),
-                    boxShadow: const [
-                      BoxShadow(color: Colors.black12, blurRadius: 8),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 20,
+                        offset: const Offset(0, 4),
+                      ),
                     ],
                   ),
                   child: Column(
                     children: [
                       ActionTile(
-                        icon: Icons.edit,
-                        title: "Edit Profile",
+                        icon: Icons.edit_rounded,
+                        title: "Chỉnh sửa hồ sơ",
                         onTap: () {
                           Navigator.pushNamed(context, userEditProfileRoute);
                         },
                       ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
                       ActionTile(
-                        icon: Icons.lock,
-                        title: "Change Password",
+                        icon: Icons.lock_outline_rounded,
+                        title: "Đổi mật khẩu",
                         onTap: () {
                           Navigator.pushNamed(context, userChangePasswordRoute);
                         },
                       ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
                       ActionTile(
-                        icon: Icons.logout,
-                        title: "Logout",
+                        icon: Icons.logout_rounded,
+                        title: "Đăng xuất",
                         color: Colors.red,
                         onTap: () {
                           _showLogoutDialog(context, authController);
@@ -151,21 +248,63 @@ class UserProfileScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.logout_rounded, color: Colors.red, size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Đăng xuất',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Bạn có chắc chắn muốn đăng xuất?',
+          style: TextStyle(fontSize: 16),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            child: Text(
+              'Hủy',
+              style: TextStyle(
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
               await authController.signOut();
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: whiteColor,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
             child: const Text(
-              'Logout',
-              style: TextStyle(color: Colors.red),
+              'Đăng xuất',
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
         ],

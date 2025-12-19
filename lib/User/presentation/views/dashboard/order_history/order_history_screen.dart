@@ -30,10 +30,14 @@ class OrderHistoryScreen extends StatelessWidget {
         elevation: 0.0,
         backgroundColor: bgColor,
         title: const Text(
-          'Order History',
-          style: TextStyle(color: blackColor, fontWeight: FontWeight.w600),
+          'Lịch sử đặt hàng',
+          style: TextStyle(
+            color: blackColor,
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+          ),
         ),
-        centerTitle: true,
+        centerTitle: false,
       ),
       body: Consumer<OrderController>(
         builder: (context, orderController, child) {
@@ -49,10 +53,24 @@ class OrderHistoryScreen extends StatelessWidget {
             itemCount: orderController.orders.length,
             itemBuilder: (context, index) {
               final order = orderController.orders[index];
-              return _OrderCard(
-                order: order,
-                formatPrice: _formatPrice,
-                formatDate: _formatDate,
+              return TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.0, end: 1.0),
+                duration: Duration(milliseconds: 300 + (index * 50)),
+                curve: Curves.easeOut,
+                builder: (context, value, child) {
+                  return Opacity(
+                    opacity: value,
+                    child: Transform.translate(
+                      offset: Offset(0, 20 * (1 - value)),
+                      child: child,
+                    ),
+                  );
+                },
+                child: _OrderCard(
+                  order: order,
+                  formatPrice: _formatPrice,
+                  formatDate: _formatDate,
+                ),
               );
             },
           );
@@ -76,16 +94,17 @@ class _OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: whiteColor,
-        borderRadius: BorderRadius.circular(radius),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            offset: const Offset(0, 2),
-            blurRadius: 8,
-            color: Colors.black.withValues(alpha: 0.1),
+            offset: const Offset(0, 4),
+            blurRadius: 12,
+            spreadRadius: 0,
+            color: Colors.black.withValues(alpha: 0.08),
           ),
         ],
       ),
@@ -96,46 +115,89 @@ class _OrderCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Order #${order.id.length >= 6 ? order.id.substring(order.id.length - 6) : order.id}',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: blackColor,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: primaryColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            Icons.receipt_long_rounded,
+                            size: 18,
+                            color: primaryColor,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Đơn hàng #${order.id.length >= 6 ? order.id.substring(order.id.length - 6) : order.id}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: blackColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.access_time_rounded, size: 14, color: Colors.grey[600]),
+                        const SizedBox(width: 6),
+                        Text(
+                          formatDate(order.createdAt),
+                          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
               _StatusChip(status: order.status),
             ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            formatDate(order.createdAt),
-            style: TextStyle(fontSize: 14, color: greyColor),
           ),
           const SizedBox(height: 16),
 
           // Order items grouped by restaurant
           ..._buildGroupedItems(order.items, formatPrice),
 
-          const Divider(height: 24),
+          const Divider(height: 32, thickness: 1),
 
           // Total price
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Total',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-              Text(
-                formatPrice(order.totalAmount),
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: primaryColor,
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: primaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Tổng tiền',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: blackColor,
+                  ),
                 ),
-              ),
-            ],
+                Text(
+                  '${formatPrice(order.totalAmount)} đ',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: primaryColor,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -156,36 +218,54 @@ class _OrderCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  gradient: LinearGradient(
+                    colors: [
+                      primaryColor.withValues(alpha: 0.2),
+                      primaryColor.withValues(alpha: 0.1),
+                    ],
+                  ),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.fastfood, color: Colors.grey[600], size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  item.foodName,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                child: Icon(
+                  Icons.restaurant_rounded,
+                  color: primaryColor,
+                  size: 24,
                 ),
               ),
-              Text(
-                'x${item.quantity}',
-                style: TextStyle(fontSize: 14, color: greyColor),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.foodName,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: blackColor,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${formatPrice(item.price)} đ x ${item.quantity}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(width: 8),
               Text(
                 formatPrice(item.price * item.quantity),
                 style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                   color: primaryColor,
                 ),
               ),
@@ -198,42 +278,6 @@ class _OrderCard extends StatelessWidget {
     return widgets;
   }
 
-  String _getStatusLabel(String status) {
-    switch (status) {
-      case 'pending':
-        return 'Pending confirmation';
-      case 'confirmed':
-        return 'Confirmed';
-      case 'preparing':
-        return 'Preparing';
-      case 'delivering':
-        return 'Out for delivery';
-      case 'delivered':
-        return 'Completed';
-      case 'cancelled':
-        return 'Cancelled';
-      default:
-        return status;
-    }
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'pending':
-        return const Color(0xFFFFB347);
-      case 'confirmed':
-      case 'preparing':
-        return primaryColor;
-      case 'delivering':
-        return const Color(0xFF2EC4B6);
-      case 'delivered':
-        return const Color(0xFF4CAF50);
-      case 'cancelled':
-        return Colors.redAccent;
-      default:
-        return primaryColor;
-    }
-  }
 }
 
 class _StatusChip extends StatelessWidget {
@@ -245,16 +289,20 @@ class _StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = _getColor(status);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(12),
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: color.withValues(alpha: 0.3),
+          width: 1,
+        ),
       ),
       child: Text(
         _getLabel(status),
         style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
           color: color,
         ),
       ),
@@ -282,17 +330,17 @@ class _StatusChip extends StatelessWidget {
   static String _getLabel(String status) {
     switch (status) {
       case 'pending':
-        return 'Pending confirmation';
+        return 'Chờ xác nhận';
       case 'confirmed':
-        return 'Confirmed';
+        return 'Đã xác nhận';
       case 'preparing':
-        return 'Preparing order';
+        return 'Đang chuẩn bị';
       case 'delivering':
-        return 'On the way';
+        return 'Đang giao';
       case 'delivered':
-        return 'Completed';
+        return 'Hoàn thành';
       case 'cancelled':
-        return 'Cancelled';
+        return 'Đã hủy';
       default:
         return status;
     }
@@ -304,28 +352,46 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(Icons.history, size: 64, color: Colors.grey[400]),
-        const SizedBox(height: 16),
-        Text(
-          'No orders yet',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey[600],
-          ),
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(horizontalPadding),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: primaryColor.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.history_rounded,
+                size: 80,
+                color: primaryColor.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 32),
+            Text(
+              'Chưa có đơn hàng',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[800],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Bắt đầu đặt hàng và lịch sử\nsẽ xuất hiện ở đây',
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey[600],
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
-        Text(
-          'Start ordering and your history will appear here.',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey[500],
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
