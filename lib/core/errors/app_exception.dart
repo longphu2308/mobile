@@ -22,3 +22,8 @@ class NetworkException extends AppException {
   NetworkException({required String message, String? code})
     : super(message: message, code: code);
 }
+
+class StorageException extends AppException {
+  StorageException({required String message, String? code})
+    : super(message: message, code: code);
+}

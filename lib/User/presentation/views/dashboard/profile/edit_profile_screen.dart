@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/User/presentation/controllers/edit_profile_controller.dart';
+import 'package:mobile/User/presentation/controllers/auth_controller.dart';
 import 'package:mobile/User/utils/utils.dart';
+import 'package:provider/provider.dart';
 
 class UserEditProfileScreen extends StatefulWidget {
   const UserEditProfileScreen({super.key});
@@ -44,33 +46,74 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
           children: [
             const SizedBox(height: 20),
             // Avatar
-            Center(
-              child: Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 45,
-                    backgroundColor: primaryColor.withOpacity(0.1),
-                    child: const Icon(
-                      Icons.person,
-                      size: 55,
-                      color: primaryColor,
-                    ),
-                  ),
-                  Positioned(
-                    right: 0,
-                    bottom: 0,
-                    child: CircleAvatar(
-                      radius: 16,
-                      backgroundColor: primaryColor,
-                      child: const Icon(
-                        Icons.camera_alt,
-                        color: whiteColor,
-                        size: 18,
+            Consumer<AuthController>(
+              builder: (context, authController, child) {
+                final user = authController.currentUser;
+                final selectedImage = _controller.selectedImage;
+                final currentAvatarUrl = _controller.currentAvatarUrl ?? user?.avatarUrl;
+                
+                return Center(
+                  child: Stack(
+                    children: [
+                      GestureDetector(
+                        onTap: () async {
+                await _controller.showImageSourceDialog(context);
+                if (mounted) {
+                  setState(() {}); // Refresh UI after image selection
+                }
+              },
+                        child: CircleAvatar(
+                          radius: 45,
+                          backgroundColor: primaryColor.withValues(alpha: 0.1),
+                          backgroundImage: selectedImage != null
+                              ? FileImage(selectedImage)
+                              : (currentAvatarUrl != null && currentAvatarUrl.isNotEmpty
+                                  ? NetworkImage(currentAvatarUrl)
+                                  : null),
+                          child: selectedImage == null && 
+                                 (currentAvatarUrl == null || currentAvatarUrl.isEmpty)
+                              ? const Icon(
+                                  Icons.person,
+                                  size: 55,
+                                  color: primaryColor,
+                                )
+                              : null,
+                        ),
                       ),
-                    ),
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: GestureDetector(
+                          onTap: () async {
+                await _controller.showImageSourceDialog(context);
+                if (mounted) {
+                  setState(() {}); // Refresh UI after image selection
+                }
+              },
+                          child: CircleAvatar(
+                            radius: 16,
+                            backgroundColor: primaryColor,
+                            child: _controller.isUploadingImage
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(whiteColor),
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.camera_alt,
+                                    color: whiteColor,
+                                    size: 18,
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
             const SizedBox(height: 30),
             // Name
@@ -108,11 +151,27 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
               height: 50,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
-                onPressed: () => _controller.save(context),
-                child: const Text(
-                  "Save Changes",
-                  style: TextStyle(color: whiteColor, fontSize: 16),
-                ),
+                onPressed: _controller.isUploadingImage
+                    ? null
+                    : () async {
+                        final success = await _controller.save(context);
+                        if (success && mounted) {
+                          setState(() {}); // Refresh UI
+                        }
+                      },
+                child: _controller.isUploadingImage
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(whiteColor),
+                        ),
+                      )
+                    : const Text(
+                        "Lưu thay đổi",
+                        style: TextStyle(color: whiteColor, fontSize: 16),
+                      ),
               ),
             ),
             const SizedBox(height: 16),

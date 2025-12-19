@@ -6,6 +6,7 @@ class UserModel {
   final String role; // 'user' hoặc 'owner'
   final String? address; // địa chỉ mặc định cho user
   final String? restaurantId; // chỉ nếu role == 'owner'
+  final String? avatarUrl; // URL ảnh đại diện
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -17,6 +18,7 @@ class UserModel {
     this.role = 'user',
     this.address,
     this.restaurantId,
+    this.avatarUrl,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -31,6 +33,7 @@ class UserModel {
       role: data['role'] ?? 'user',
       address: data['address'],
       restaurantId: data['restaurant_id'],
+      avatarUrl: data['profile_image_url'],
       createdAt: data['created_at'] != null
           ? DateTime.parse(data['created_at'])
           : DateTime.now(),
@@ -50,6 +53,7 @@ class UserModel {
       'role': role,
       'address': address,
       'restaurant_id': restaurantId,
+      'profile_image_url': avatarUrl,
       'created_at': createdAt.toIso8601String(),
       'updated_at': DateTime.now().toIso8601String(),
     };
@@ -64,6 +68,7 @@ class UserModel {
     String? role,
     String? address,
     String? restaurantId,
+    String? avatarUrl,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -75,6 +80,7 @@ class UserModel {
       role: role ?? this.role,
       address: address ?? this.address,
       restaurantId: restaurantId ?? this.restaurantId,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

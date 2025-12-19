@@ -77,6 +77,7 @@ class UserController extends ChangeNotifier {
           fullName: fullName ?? _user!.fullName,
           phone: phone ?? _user!.phone,
           address: address ?? _user!.address,
+          avatarUrl: profileImageUrl ?? _user!.avatarUrl,
         );
       }
 
