@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mobile/Owner/presentation/controllers/restaurant_controller.dart';
 import 'package:mobile/Owner/presentation/widgets/widgets.dart';
+import 'package:mobile/User/presentation/controllers/auth_controller.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/config/routes.dart';
 import 'package:provider/provider.dart';
@@ -18,7 +18,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final userId = FirebaseAuth.instance.currentUser?.uid;
+      final userId = context.read<AuthController>().currentUser?.userId;
       if (userId != null) {
         context.read<RestaurantController>().loadRestaurantByOwnerId(userId);
       }
