@@ -188,7 +188,7 @@ class _OrderDetailState extends State<OrderDetail> {
                         ),
                       ),
 
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 16),
 
                       // Customer info
                       Card(
@@ -246,7 +246,7 @@ class _OrderDetailState extends State<OrderDetail> {
                         ),
                       ),
 
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 12),
 
                       // Notes
                       if (items.isEmpty && !isLoadingItems) const SizedBox.shrink(),

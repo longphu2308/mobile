@@ -293,13 +293,6 @@ CREATE POLICY "Owners can read restaurant order items" ON order_items
     )
   );
 
--- Shippers can read items from their assigned orders
-CREATE POLICY "Shippers can read assigned order items" ON order_items
-  FOR SELECT TO authenticated
-  USING (
-    order_id IN (SELECT order_id FROM orders WHERE shipper_id = auth.uid())
-  );
-
 -- Users can insert items when creating orders
 CREATE POLICY "Users can create order items" ON order_items
   FOR INSERT TO authenticated
