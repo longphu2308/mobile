@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/core/services/supabase/supabase_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/Shipper/models/shipper_order.dart';
 import 'package:mobile/config/routes.dart';
 
@@ -217,7 +218,7 @@ class _ShipperProfileState extends State<ShipperProfile> {
                                 TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
                                 ElevatedButton(
                                   style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
-                                  onPressed: () {
+                                  onPressed: () async {
                                     final old = _oldCtrl.text.trim();
                                     final newPassword = _newCtrl.text.trim();
                                     final confirmPassword = _confirmCtrl.text.trim();
@@ -229,8 +230,20 @@ class _ShipperProfileState extends State<ShipperProfile> {
                                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mật khẩu mới và xác nhận không khớp')));
                                       return;
                                     }
-                                    Navigator.pop(ctx);
-                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mật khẩu đã được đổi (mock)')));
+
+                                    final supabase = SupabaseService();
+                                    try {
+                                      // Attempt to update password for current user
+                                      final res = await supabase.auth.updateUser(UserAttributes(password: newPassword));
+                                      if (res.user != null) {
+                                        Navigator.pop(ctx);
+                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mật khẩu đã được đổi')));
+                                      } else {
+                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không thể đổi mật khẩu')));
+                                      }
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lỗi khi đổi mật khẩu')));
+                                    }
                                   },
                                   child: const Text('Lưu'),
                                 ),
