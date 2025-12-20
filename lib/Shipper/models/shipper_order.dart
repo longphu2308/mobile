@@ -78,9 +78,29 @@ class ShipperOrder {
 
       for (final o in (orders as List)) {
         final orderId = o['order_id'] as String? ?? '';
+        // DEBUG: log order id to help trace missing items
+        print('ShipperOrder.fetchAssignedOrders: orderId=$orderId');
 
-        // Items for order
-        final itemsData = await supabase.from('order_items').select().eq('order_id', orderId);
+        // Items for order - try direct table first
+        dynamic itemsData = await supabase.from('order_items').select().eq('order_id', orderId);
+        print('ShipperOrder.fetchAssignedOrders: orderId=$orderId itemsData=${(itemsData as List?)?.length ?? 0}');
+
+        // If no items returned, try fetching via parent orders with embedded relation
+        if ((itemsData as List?)?.isEmpty ?? true) {
+          try {
+            final orderWithItems = await supabase.from('orders').select('order_items(*)').eq('order_id', orderId).maybeSingle();
+            final embedded = (orderWithItems != null && orderWithItems['order_items'] != null)
+                ? (orderWithItems['order_items'] as List<dynamic>)
+                : <dynamic>[];
+            if (embedded.isNotEmpty) {
+              itemsData = embedded;
+              print('ShipperOrder.fetchAssignedOrders: fetched items via orders relation, count=${embedded.length}');
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
+
         final items = (itemsData as List? ?? []).map((i) {
           final price = (i['price'] as num?)?.toDouble() ?? 0.0;
           return OrderItem(

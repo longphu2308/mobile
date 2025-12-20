@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/Shipper/models/shipper_order.dart';
+import 'package:mobile/core/services/supabase/supabase_service.dart';
 import 'package:mobile/User/utils/utils.dart';
 
 double _statusProgress(String status) {
@@ -21,16 +22,97 @@ double _statusProgress(String status) {
   }
 }
 
-class OrderDetail extends StatelessWidget {
+class OrderDetail extends StatefulWidget {
   static const routeName = '/shipper/order-detail';
   const OrderDetail({super.key});
 
   @override
+  State<OrderDetail> createState() => _OrderDetailState();
+}
+
+class _OrderDetailState extends State<OrderDetail> {
+  late ShipperOrder order;
+  List<OrderItem> items = [];
+  bool isLoadingItems = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args == null || args is! ShipperOrder) {
+      // Defensive: if called without a proper ShipperOrder, go back.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order data missing')));
+        Navigator.maybePop(context);
+      });
+      return;
+    }
+    order = args as ShipperOrder;
+    items = List.from(order.items);
+    if (items.isEmpty) {
+      _fetchItems();
+    }
+  }
+
+  Future<void> _fetchItems() async {
+    setState(() => isLoadingItems = true);
+    try {
+      final supabase = SupabaseService();
+      // DEBUG: log before querying
+      print('OrderDetail._fetchItems: fetching items for orderId=${order.id}');
+      dynamic itemsData = await supabase.from('order_items').select().eq('order_id', order.id);
+      print('OrderDetail._fetchItems: raw itemsData length=${(itemsData as List?)?.length ?? 0}');
+      if ((itemsData as List?)?.isEmpty ?? true) {
+        try {
+          final orderWithItems = await supabase.from('orders').select('order_items(*)').eq('order_id', order.id).maybeSingle();
+          final embedded = (orderWithItems != null && orderWithItems['order_items'] != null)
+              ? (orderWithItems['order_items'] as List<dynamic>)
+              : <dynamic>[];
+          if (embedded.isNotEmpty) {
+            itemsData = embedded;
+            print('OrderDetail._fetchItems: fetched items via orders relation, count=${embedded.length}');
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+      final fetched = (itemsData as List? ?? []).map((i) {
+        final price = (i['price'] as num?)?.toDouble() ?? 0.0;
+        return OrderItem(
+          name: i['food_name'] ?? '',
+          qty: (i['quantity'] as int?) ?? (i['quantity'] as num?)?.toInt() ?? 0,
+          price: price,
+        );
+      }).toList();
+      setState(() {
+        items = fetched;
+      });
+      print('ORDER.ID = ${order.id}');
+      print('TYPE = ${order.id.runtimeType}');
+
+    } catch (e) {
+      // ignore errors for now
+    } finally {
+      setState(() => isLoadingItems = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final order = ModalRoute.of(context)!.settings.arguments as ShipperOrder;
+    if (order == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Order'),
+          backgroundColor: whiteColor,
+          foregroundColor: primaryColor,
+          elevation: 0,
+        ),
+        body: const SafeArea(child: Center(child: CircularProgressIndicator())),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
-        title: Text('Order ${order.id}'),
+        title: Text('Order ${order!.id}'),
         backgroundColor: whiteColor,
         foregroundColor: primaryColor,
         elevation: 0,
@@ -167,7 +249,7 @@ class OrderDetail extends StatelessWidget {
                       const SizedBox(height: 8),
 
                       // Notes
-                      if (order.items.isEmpty) const SizedBox.shrink(),
+                      if (items.isEmpty && !isLoadingItems) const SizedBox.shrink(),
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 6.0),
                         child: Text('Ghi chú: ${order.status}'),
@@ -187,38 +269,36 @@ class OrderDetail extends StatelessWidget {
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(height: 8),
-                              ...order.items.map(
-                                (i) => Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 4.0,
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
+                              if (isLoadingItems) const Center(child: CircularProgressIndicator()),
+                              if (!isLoadingItems && items.isEmpty)
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                                  child: Text('Không có món hàng.'),
+                                ),
+                              // Items list
+                              ...items.map((i) => Column(
                                     children: [
-                                      Expanded(
-                                        child: Text(
-                                          '${i.name} x${i.qty}',
-                                          style: const TextStyle(fontSize: 14),
+                                      ListTile(
+                                        contentPadding: EdgeInsets.zero,
+                                        leading: CircleAvatar(
+                                          radius: 18,
+                                          backgroundColor: Colors.grey.shade200,
+                                          child: Text('${i.qty}', style: const TextStyle(color: Colors.black)),
                                         ),
+                                        title: Text(i.name, style: const TextStyle(fontSize: 14)),
+                                        subtitle: Text('${i.price.toInt()} VND / cái'),
+                                        trailing: Text('${i.total.toInt()} VND', style: const TextStyle(fontWeight: FontWeight.w600)),
                                       ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        '${i.total.toInt()} VND',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
+                                      const Divider(height: 1),
                                     ],
-                                  ),
-                                ),
-                              ),
+                                  )),
                               const SizedBox(height: 8),
-                              Text(
-                                'Tổng: ${order.total.toInt()} VND',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text('Tổng', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  Text('${order.total.toInt()} VND', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                ],
                               ),
                             ],
                           ),
