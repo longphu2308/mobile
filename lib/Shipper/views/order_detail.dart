@@ -54,19 +54,21 @@ class _OrderDetailState extends State<OrderDetail> {
     super.didChangeDependencies();
     if (_initialized) return;
     _initialized = true;
-    
+
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args == null || args is! ShipperOrder) {
       // Defensive: if called without a proper ShipperOrder, go back.
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order data missing')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Order data missing')));
         Navigator.maybePop(context);
       });
       return;
     }
     order = args;
     items = List.from(order.items);
-    
+
     // Fetch missing data (restaurant info, customer info, items)
     _loadFullOrderData();
   }
@@ -77,10 +79,10 @@ class _OrderDetailState extends State<OrderDetail> {
     if (items.isEmpty) {
       _fetchItems();
     }
-    
+
     // Fetch restaurant and customer info if missing
     await _fetchOrderDetails();
-    
+
     // Load locations for map
     _loadLocations();
   }
@@ -89,14 +91,16 @@ class _OrderDetailState extends State<OrderDetail> {
   Future<void> _fetchOrderDetails() async {
     try {
       final supabase = SupabaseService();
-      
-      // Fetch order with restaurant and customer info
+
+      // Fetch order with restaurant info
       final orderData = await supabase
           .from('orders')
-          .select('*, restaurants(*), user_profiles:user_id(*)')
+          .select('*, restaurants(*)')
           .eq('order_id', order.id)
           .maybeSingle();
-      
+
+      if (!mounted) return;
+
       if (orderData != null) {
         String? restaurantName = order.restaurantName;
         String? restaurantAddress = order.restaurantAddress;
@@ -104,7 +108,7 @@ class _OrderDetailState extends State<OrderDetail> {
         String? restaurantId = order.restaurantId;
         String customerName = order.customerName;
         String? customerPhone = order.customerPhone;
-        
+
         // Get restaurant info
         final restaurant = orderData['restaurants'];
         if (restaurant != null) {
@@ -113,22 +117,40 @@ class _OrderDetailState extends State<OrderDetail> {
           restaurantPhone = restaurant['phone'] ?? restaurantPhone;
           restaurantId = orderData['restaurant_id'] ?? restaurantId;
         }
-        
-        // Get customer info from user_profiles
-        final userProfile = orderData['user_profiles'];
-        if (userProfile != null) {
-          customerName = userProfile['full_name'] ?? customerName;
-          customerPhone = userProfile['phone'] ?? customerPhone;
+
+        // Fetch customer info from user_profiles separately
+        final userId = orderData['user_id'];
+        if (userId != null) {
+          final userProfile = await supabase
+              .from('user_profiles')
+              .select('full_name, phone')
+              .eq('user_id', userId)
+              .maybeSingle();
+
+          if (!mounted) return;
+
+          if (userProfile != null) {
+            customerName = userProfile['full_name'] ?? customerName;
+            customerPhone = userProfile['phone'] ?? customerPhone;
+            print(
+              '📱 Customer info loaded: name=$customerName, phone=$customerPhone',
+            );
+          } else {
+            print('⚠️ No user_profile found for user_id: $userId');
+          }
         }
-        
+
         setState(() {
           order = ShipperOrder(
             id: order.id,
-            customerName: customerName.isNotEmpty ? customerName : order.customerName,
+            customerName: customerName.isNotEmpty
+                ? customerName
+                : order.customerName,
             address: orderData['delivery_address'] ?? order.address,
             distanceKm: order.distanceKm,
             status: orderData['status'] ?? order.status,
-            total: (orderData['total_amount'] as num?)?.toDouble() ?? order.total,
+            total:
+                (orderData['total_amount'] as num?)?.toDouble() ?? order.total,
             items: order.items,
             eta: order.eta,
             restaurantName: restaurantName,
@@ -139,8 +161,10 @@ class _OrderDetailState extends State<OrderDetail> {
             restaurantId: restaurantId,
           );
         });
-        
-        print('✅ Order details loaded: restaurant=${order.restaurantName}, customer=${order.customerName}');
+
+        print(
+          '✅ Order details loaded: restaurant=${order.restaurantName}, customer=${order.customerName}, phone=${order.customerPhone}',
+        );
       }
     } catch (e) {
       print('Error fetching order details: $e');
@@ -150,6 +174,8 @@ class _OrderDetailState extends State<OrderDetail> {
   Future<void> _loadLocations() async {
     // Get shipper current location
     final position = await LocationService().getCurrentLocation();
+    if (!mounted) return;
+
     if (position != null) {
       setState(() {
         _shipperLocation = LatLng(position.latitude, position.longitude);
@@ -169,6 +195,7 @@ class _OrderDetailState extends State<OrderDetail> {
             .select('latitude, longitude')
             .eq('restaurant_id', order.restaurantId!)
             .maybeSingle();
+        if (!mounted) return;
         if (restaurant != null) {
           final lat = (restaurant['latitude'] as num?)?.toDouble();
           final lon = (restaurant['longitude'] as num?)?.toDouble();
@@ -186,6 +213,7 @@ class _OrderDetailState extends State<OrderDetail> {
           .select('delivery_latitude, delivery_longitude')
           .eq('order_id', order.id)
           .maybeSingle();
+      if (!mounted) return;
       if (orderData != null) {
         final lat = (orderData['delivery_latitude'] as num?)?.toDouble();
         final lon = (orderData['delivery_longitude'] as num?)?.toDouble();
@@ -210,17 +238,29 @@ class _OrderDetailState extends State<OrderDetail> {
       final supabase = SupabaseService();
       // DEBUG: log before querying
       print('OrderDetail._fetchItems: fetching items for orderId=${order.id}');
-      dynamic itemsData = await supabase.from('order_items').select().eq('order_id', order.id);
-      print('OrderDetail._fetchItems: raw itemsData length=${(itemsData as List?)?.length ?? 0}');
+      dynamic itemsData = await supabase
+          .from('order_items')
+          .select()
+          .eq('order_id', order.id);
+      print(
+        'OrderDetail._fetchItems: raw itemsData length=${(itemsData as List?)?.length ?? 0}',
+      );
       if (itemsData == null || (itemsData as List).isEmpty) {
         try {
-          final orderWithItems = await supabase.from('orders').select('order_items(*)').eq('order_id', order.id).maybeSingle();
-          final embedded = (orderWithItems != null && orderWithItems['order_items'] != null)
+          final orderWithItems = await supabase
+              .from('orders')
+              .select('order_items(*)')
+              .eq('order_id', order.id)
+              .maybeSingle();
+          final embedded =
+              (orderWithItems != null && orderWithItems['order_items'] != null)
               ? (orderWithItems['order_items'] as List<dynamic>)
               : <dynamic>[];
           if (embedded.isNotEmpty) {
             itemsData = embedded;
-            print('OrderDetail._fetchItems: fetched items via orders relation, count=${embedded.length}');
+            print(
+              'OrderDetail._fetchItems: fetched items via orders relation, count=${embedded.length}',
+            );
           }
         } catch (e) {
           // ignore
@@ -239,7 +279,6 @@ class _OrderDetailState extends State<OrderDetail> {
       });
       print('ORDER.ID = ${order.id}');
       print('TYPE = ${order.id.runtimeType}');
-
     } catch (e) {
       // ignore errors for now
     } finally {
@@ -282,7 +321,7 @@ class _OrderDetailState extends State<OrderDetail> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      
+
                       // Route selection buttons
                       Row(
                         children: [
@@ -290,29 +329,36 @@ class _OrderDetailState extends State<OrderDetail> {
                             child: OutlinedButton.icon(
                               onPressed: () {
                                 setState(() {
-                                  _activeRoute = _activeRoute == RouteDestination.restaurant 
-                                      ? null 
+                                  _activeRoute =
+                                      _activeRoute ==
+                                          RouteDestination.restaurant
+                                      ? null
                                       : RouteDestination.restaurant;
                                 });
                               },
                               icon: Icon(
                                 Icons.restaurant,
-                                color: _activeRoute == RouteDestination.restaurant 
-                                    ? primaryColor 
+                                color:
+                                    _activeRoute == RouteDestination.restaurant
+                                    ? primaryColor
                                     : null,
                               ),
                               label: Text(
                                 'Đến nhà hàng',
                                 style: TextStyle(
-                                  color: _activeRoute == RouteDestination.restaurant 
-                                      ? primaryColor 
+                                  color:
+                                      _activeRoute ==
+                                          RouteDestination.restaurant
+                                      ? primaryColor
                                       : null,
                                 ),
                               ),
                               style: OutlinedButton.styleFrom(
                                 side: BorderSide(
-                                  color: _activeRoute == RouteDestination.restaurant 
-                                      ? primaryColor 
+                                  color:
+                                      _activeRoute ==
+                                          RouteDestination.restaurant
+                                      ? primaryColor
                                       : Colors.grey,
                                 ),
                               ),
@@ -326,30 +372,35 @@ class _OrderDetailState extends State<OrderDetail> {
                                 print('   Shipper: $_shipperLocation');
                                 print('   Customer: $_customerLocation');
                                 setState(() {
-                                  _activeRoute = _activeRoute == RouteDestination.customer 
-                                      ? null 
+                                  _activeRoute =
+                                      _activeRoute == RouteDestination.customer
+                                      ? null
                                       : RouteDestination.customer;
-                                  print('   Active route set to: $_activeRoute');
+                                  print(
+                                    '   Active route set to: $_activeRoute',
+                                  );
                                 });
                               },
                               icon: Icon(
                                 Icons.location_on,
-                                color: _activeRoute == RouteDestination.customer 
-                                    ? primaryColor 
+                                color: _activeRoute == RouteDestination.customer
+                                    ? primaryColor
                                     : null,
                               ),
                               label: Text(
                                 'Đến khách',
                                 style: TextStyle(
-                                  color: _activeRoute == RouteDestination.customer 
-                                      ? primaryColor 
+                                  color:
+                                      _activeRoute == RouteDestination.customer
+                                      ? primaryColor
                                       : null,
                                 ),
                               ),
                               style: OutlinedButton.styleFrom(
                                 side: BorderSide(
-                                  color: _activeRoute == RouteDestination.customer 
-                                      ? primaryColor 
+                                  color:
+                                      _activeRoute == RouteDestination.customer
+                                      ? primaryColor
                                       : Colors.grey,
                                 ),
                               ),
@@ -358,7 +409,7 @@ class _OrderDetailState extends State<OrderDetail> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      
+
                       // Restaurant info
                       Card(
                         child: Padding(
@@ -376,7 +427,9 @@ class _OrderDetailState extends State<OrderDetail> {
                               if ((order.restaurantAddress ?? '').isNotEmpty)
                                 Padding(
                                   padding: const EdgeInsets.only(bottom: 6.0),
-                                  child: Text('Địa chỉ: ${order.restaurantAddress}'),
+                                  child: Text(
+                                    'Địa chỉ: ${order.restaurantAddress}',
+                                  ),
                                 ),
                               Row(
                                 children: [
@@ -479,7 +532,8 @@ class _OrderDetailState extends State<OrderDetail> {
                       const SizedBox(height: 12),
 
                       // Notes
-                      if (items.isEmpty && !isLoadingItems) const SizedBox.shrink(),
+                      if (items.isEmpty && !isLoadingItems)
+                        const SizedBox.shrink(),
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 6.0),
                         child: Text('Ghi chú: ${order.status}'),
@@ -499,35 +553,66 @@ class _OrderDetailState extends State<OrderDetail> {
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(height: 8),
-                              if (isLoadingItems) const Center(child: CircularProgressIndicator()),
+                              if (isLoadingItems)
+                                const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
                               if (!isLoadingItems && items.isEmpty)
                                 const Padding(
                                   padding: EdgeInsets.symmetric(vertical: 8.0),
                                   child: Text('Không có món hàng.'),
                                 ),
                               // Items list
-                              ...items.map((i) => Column(
-                                    children: [
-                                      ListTile(
-                                        contentPadding: EdgeInsets.zero,
-                                        leading: CircleAvatar(
-                                          radius: 18,
-                                          backgroundColor: Colors.grey.shade200,
-                                          child: Text('${i.qty}', style: const TextStyle(color: Colors.black)),
+                              ...items.map(
+                                (i) => Column(
+                                  children: [
+                                    ListTile(
+                                      contentPadding: EdgeInsets.zero,
+                                      leading: CircleAvatar(
+                                        radius: 18,
+                                        backgroundColor: Colors.grey.shade200,
+                                        child: Text(
+                                          '${i.qty}',
+                                          style: const TextStyle(
+                                            color: Colors.black,
+                                          ),
                                         ),
-                                        title: Text(i.name, style: const TextStyle(fontSize: 14)),
-                                        subtitle: Text('${i.price.toInt()} VND / cái'),
-                                        trailing: Text('${i.total.toInt()} VND', style: const TextStyle(fontWeight: FontWeight.w600)),
                                       ),
-                                      const Divider(height: 1),
-                                    ],
-                                  )),
+                                      title: Text(
+                                        i.name,
+                                        style: const TextStyle(fontSize: 14),
+                                      ),
+                                      subtitle: Text(
+                                        '${i.price.toInt()} VND / cái',
+                                      ),
+                                      trailing: Text(
+                                        '${i.total.toInt()} VND',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                    const Divider(height: 1),
+                                  ],
+                                ),
+                              ),
                               const SizedBox(height: 8),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Text('Tổng', style: TextStyle(fontWeight: FontWeight.bold)),
-                                  Text('${order.total.toInt()} VND', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  const Text(
+                                    'Tổng',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${order.total.toInt()} VND',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ],
@@ -578,44 +663,55 @@ class _OrderDetailState extends State<OrderDetail> {
                 padding: EdgeInsets.only(
                   bottom: MediaQuery.of(context).viewInsets.bottom,
                 ),
-                child: Builder(builder: (ctx) {
-                  final status = order.status.toLowerCase();
-                  String? nextStatus;
-                  String buttonLabel = 'No action';
-                  switch (status) {
-                    case 'pending':
-                      nextStatus = 'confirmed';
-                      buttonLabel = 'Confirm Order';
-                      break;
-                    case 'ready_for_pickup':
-                      nextStatus = 'delivering';
-                      buttonLabel = 'Start Delivery';
-                      break;
-                    case 'delivering':
-                      nextStatus = 'delivered';
-                      buttonLabel = 'Mark Delivered';
-                      break;
-                    default:
-                      nextStatus = null;
-                      buttonLabel = 'No action';
-                  }
+                child: Builder(
+                  builder: (ctx) {
+                    final status = order.status.toLowerCase();
+                    String? nextStatus;
+                    String buttonLabel = 'No action';
+                    switch (status) {
+                      case 'pending':
+                        nextStatus = 'confirmed';
+                        buttonLabel = 'Confirm Order';
+                        break;
+                      case 'ready_for_pickup':
+                        nextStatus = 'delivering';
+                        buttonLabel = 'Start Delivery';
+                        break;
+                      case 'delivering':
+                        nextStatus = 'delivered';
+                        buttonLabel = 'Mark Delivered';
+                        break;
+                      default:
+                        nextStatus = null;
+                        buttonLabel = 'No action';
+                    }
 
-                  return Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
-                          onPressed: (nextStatus == null || _isUpdatingStatus)
-                              ? null
-                              : () => _changeStatus(nextStatus!, ctx),
-                          child: _isUpdatingStatus
-                              ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                              : Text(buttonLabel),
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryColor,
+                            ),
+                            onPressed: (nextStatus == null || _isUpdatingStatus)
+                                ? null
+                                : () => _changeStatus(nextStatus!, ctx),
+                            child: _isUpdatingStatus
+                                ? const SizedBox(
+                                    height: 18,
+                                    width: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text(buttonLabel),
+                          ),
                         ),
-                      ),
-                    ],
-                  );
-                }),
+                      ],
+                    );
+                  },
+                ),
               ),
             ],
           ),
@@ -629,7 +725,10 @@ class _OrderDetailState extends State<OrderDetail> {
     setState(() => _isUpdatingStatus = true);
     try {
       final supabase = SupabaseService();
-      await supabase.from('orders').update({'status': nextStatus}).eq('order_id', order.id);
+      await supabase
+          .from('orders')
+          .update({'status': nextStatus})
+          .eq('order_id', order.id);
       // Update local order instance by recreating with new status
       setState(() {
         order = ShipperOrder(
@@ -648,9 +747,13 @@ class _OrderDetailState extends State<OrderDetail> {
           restaurantPhone: order.restaurantPhone,
         );
       });
-      ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Status updated to $nextStatus')));
+      ScaffoldMessenger.of(
+        ctx,
+      ).showSnackBar(SnackBar(content: Text('Status updated to $nextStatus')));
     } catch (e) {
-      ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Failed to update status')));
+      ScaffoldMessenger.of(
+        ctx,
+      ).showSnackBar(const SnackBar(content: Text('Failed to update status')));
     } finally {
       setState(() => _isUpdatingStatus = false);
     }

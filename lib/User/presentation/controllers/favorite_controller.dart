@@ -3,11 +3,13 @@ import 'package:mobile/core/repositories/favorite_repository.dart';
 import 'package:mobile/core/models/favorite_model.dart';
 import 'package:mobile/core/models/food_model.dart';
 import 'package:mobile/core/errors/app_exception.dart';
+import 'package:mobile/core/services/supabase/supabase_service.dart';
 
 enum FavoriteState { initial, loading, success, error }
 
 class FavoriteController extends GetxController {
   final FavoriteRepository _favoriteRepository;
+  final SupabaseService _supabase = SupabaseService();
 
   final RxList<FavoriteModel> _favoriteFoods = <FavoriteModel>[].obs;
   final Rx<FavoriteState> _state = FavoriteState.initial.obs;
@@ -29,21 +31,30 @@ class FavoriteController extends GetxController {
     _currentUserId = userId;
   }
 
+  /// Get user ID with fallback to Supabase
+  String? _getUserId() {
+    return _currentUserId ?? _supabase.currentUser?.id;
+  }
+
   /// Load user's favorite foods
   Future<bool> loadFavorites() async {
-    if (_currentUserId == null) {
+    final userId = _getUserId();
+    if (userId == null) {
+      print('FavoriteController: Cannot load favorites - no user logged in');
       _errorMessage.value = 'User not logged in';
       _state.value = FavoriteState.error;
       return false;
     }
 
+    // Update _currentUserId if it was null
+    _currentUserId ??= userId;
+
     try {
       _isLoading.value = true;
       _errorMessage.value = null;
 
-      final favorites = await _favoriteRepository.getUserFavorites(
-        _currentUserId!,
-      );
+      print('FavoriteController: Loading favorites for user $userId');
+      final favorites = await _favoriteRepository.getUserFavorites(userId);
       _favoriteFoods.assignAll(
         favorites
             .where(
@@ -54,35 +65,50 @@ class FavoriteController extends GetxController {
       );
 
       _state.value = FavoriteState.success;
-      _isLoading.value = false;
+      print('FavoriteController: Loaded ${_favoriteFoods.length} favorites');
       return true;
     } on FirestoreException catch (e) {
       _errorMessage.value = e.message;
       _state.value = FavoriteState.error;
-      _isLoading.value = false;
+      print('FavoriteController: Error loading favorites - ${e.message}');
       return false;
+    } catch (e) {
+      _errorMessage.value = 'Lỗi tải danh sách yêu thích';
+      _state.value = FavoriteState.error;
+      print('FavoriteController: Error loading favorites - $e');
+      return false;
+    } finally {
+      _isLoading.value = false;
     }
   }
 
   /// Add food to favorites
   Future<bool> addFavorite(FoodModel food) async {
-    if (_currentUserId == null) {
+    final userId = _getUserId();
+    if (userId == null) {
+      print('FavoriteController: Cannot add favorite - no user logged in');
       _errorMessage.value = 'User not logged in';
       return false;
     }
+
+    // Update _currentUserId if it was null
+    _currentUserId ??= userId;
 
     try {
       _isLoading.value = true;
       _errorMessage.value = null;
 
-      final success = await _favoriteRepository.addFavorite(
-        _currentUserId!,
-        food,
+      print(
+        'FavoriteController: Adding favorite ${food.name} for user $userId',
       );
+      final success = await _favoriteRepository.addFavorite(userId, food);
 
       if (success) {
+        print('FavoriteController: Successfully added favorite');
         // Reload favorites
         await loadFavorites();
+      } else {
+        print('FavoriteController: Food already in favorites');
       }
 
       _isLoading.value = false;
@@ -90,27 +116,37 @@ class FavoriteController extends GetxController {
     } on FirestoreException catch (e) {
       _errorMessage.value = e.message;
       _isLoading.value = false;
+      print('FavoriteController: Error adding favorite - ${e.message}');
+      return false;
+    } catch (e) {
+      _errorMessage.value = 'Lỗi thêm vào yêu thích';
+      _isLoading.value = false;
+      print('FavoriteController: Error adding favorite - $e');
       return false;
     }
   }
 
   /// Remove food from favorites
   Future<bool> removeFavorite(String foodId) async {
-    if (_currentUserId == null) {
+    final userId = _getUserId();
+    if (userId == null) {
+      print('FavoriteController: Cannot remove favorite - no user logged in');
       _errorMessage.value = 'User not logged in';
       return false;
     }
+
+    // Update _currentUserId if it was null
+    _currentUserId ??= userId;
 
     try {
       _isLoading.value = true;
       _errorMessage.value = null;
 
-      final success = await _favoriteRepository.removeFavorite(
-        _currentUserId!,
-        foodId,
-      );
+      print('FavoriteController: Removing favorite $foodId for user $userId');
+      final success = await _favoriteRepository.removeFavorite(userId, foodId);
 
       if (success) {
+        print('FavoriteController: Successfully removed favorite');
         // Reload favorites
         await loadFavorites();
       }
@@ -120,17 +156,25 @@ class FavoriteController extends GetxController {
     } on FirestoreException catch (e) {
       _errorMessage.value = e.message;
       _isLoading.value = false;
+      print('FavoriteController: Error removing favorite - ${e.message}');
+      return false;
+    } catch (e) {
+      _errorMessage.value = 'Lỗi xóa khỏi yêu thích';
+      _isLoading.value = false;
+      print('FavoriteController: Error removing favorite - $e');
       return false;
     }
   }
 
   /// Check if food is favorited
   Future<bool> isFavorited(String foodId) async {
-    if (_currentUserId == null) return false;
+    final userId = _getUserId();
+    if (userId == null) return false;
 
     try {
-      return await _favoriteRepository.isFavorited(_currentUserId!, foodId);
+      return await _favoriteRepository.isFavorited(userId, foodId);
     } catch (e) {
+      print('FavoriteController: Error checking favorite status - $e');
       return false;
     }
   }
