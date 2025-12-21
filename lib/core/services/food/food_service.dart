@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:mobile/core/models/food_model.dart';
 import 'package:mobile/core/repositories/food_repository.dart';
+import 'package:mobile/core/services/supabase/supabase_service.dart';
 
 class FoodService extends GetxController {
   final FoodRepository _foodRepository;
@@ -9,8 +10,13 @@ class FoodService extends GetxController {
   final RxBool _isLoading = false.obs;
 
   FoodService({FoodRepository? foodRepository})
-    : _foodRepository = foodRepository ?? FoodRepository() {
-    loadFoods();
+    : _foodRepository = foodRepository ?? FoodRepository();
+  
+  @override
+  void onInit() {
+    super.onInit();
+    // Don't load foods in constructor - wait for user to authenticate
+    // Foods will be loaded after successful login or when home screen appears
   }
 
   List<FoodModel> get foods => _foods;
@@ -21,16 +27,52 @@ class FoodService extends GetxController {
     _isLoading.value = true;
 
     try {
-      print('FoodService: Starting to load foods...');
+      print('\n🔄 FoodService.loadFoods START ============');
+      
+      // Check if user is authenticated
+      final supabase = SupabaseService();
+      final currentUser = supabase.auth.currentUser;
+      
+      if (currentUser == null) {
+        print('❌ ERROR: User not authenticated!');
+        print('   Cannot load foods without authentication');
+        print('🔄 FoodService.loadFoods END (no auth) ============\n');
+        return;
+      }
+      
+      print('✅ User authenticated: ${currentUser.email}');
+      print('📞 Calling FoodRepository.getAllFoods()...');
+      
       final foods = await _foodRepository.getAllFoods();
-      print('FoodService: Loaded ${foods.length} foods from repository');
+      
+      print('📦 Received ${foods.length} foods from repository');
+      
       _foods.clear();
       _foods.addAll(foods);
       _filteredFoods.clear();
       _filteredFoods.addAll(foods);
-      print('FoodService: Foods in memory: ${_foods.length}');
-    } catch (e) {
-      print('Error loading foods: $e');
+      
+      print('💾 Foods stored in memory:');
+      print('   - _foods: ${_foods.length}');
+      print('   - _filteredFoods: ${_filteredFoods.length}');
+      
+      if (foods.isEmpty) {
+        print('⚠️ WARNING: No foods loaded!');
+        print('   Check:');
+        print('   1. Database has foods');
+        print('   2. RLS policies allow access');
+        print('   3. Restaurants exist');
+      } else {
+        print('🎉 Successfully loaded foods');
+        print('   Sample: ${_foods.take(3).map((f) => f.name).join(", ")}...');
+      }
+      
+      print('🔄 FoodService.loadFoods END ============\n');
+    } catch (e, stackTrace) {
+      print('\n❌ ERROR in FoodService.loadFoods:');
+      print('   Error: $e');
+      print('   Stack trace: $stackTrace');
+      print('🔄 FoodService.loadFoods END (with error) ============\n');
     } finally {
       _isLoading.value = false;
     }

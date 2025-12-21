@@ -7,19 +7,36 @@ class FoodRepository {
   // Lấy tất cả món ăn
   Future<List<FoodModel>> getAllFoods() async {
     try {
-      print('FoodRepository: Fetching foods from Supabase...');
+      print('\n🍽️ FoodRepository.getAllFoods START ============');
+      print('📡 Fetching foods from Supabase...');
+      
       final response = await _supabase.from('foods').select();
-      print('FoodRepository: Received ${response.length} rows');
+      
+      print('📦 Response type: ${response.runtimeType}');
+      print('📊 Response length: ${response.length}');
+      
+      if (response.isEmpty) {
+        print('⚠️ WARNING: No foods returned from database!');
+        print('   Possible causes:');
+        print('   1. No foods exist in database');
+        print('   2. RLS policy blocking access');
+        print('   3. User not authenticated');
+        return [];
+      }
 
       final foods = (response as List).map((data) {
-        print('  - Food ID: ${data['food_id']}, Name: ${data['name']}');
+        print('  ✅ Food: ${data['name']} (ID: ${data['food_id']})');
         return FoodModel.fromMap(data, data['food_id']);
       }).toList();
 
-      print('FoodRepository: Converted to ${foods.length} FoodModel objects');
+      print('🎉 Successfully loaded ${foods.length} foods');
+      print('🍽️ FoodRepository.getAllFoods END ============\n');
       return foods;
-    } catch (e) {
-      print('Error getting all foods: $e');
+    } catch (e, stackTrace) {
+      print('\n❌ ERROR in FoodRepository.getAllFoods:');
+      print('   Error: $e');
+      print('   Stack trace: $stackTrace');
+      print('🍽️ FoodRepository.getAllFoods END (with error) ============\n');
       return [];
     }
   }

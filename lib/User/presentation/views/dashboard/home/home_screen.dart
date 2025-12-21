@@ -28,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen>
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
     _loadFavorites();
+    _loadFoods();
   }
 
   void _loadFavorites() {
@@ -37,6 +38,19 @@ class _HomeScreenState extends State<HomeScreen>
       if (authController.currentUser != null) {
         favoriteController.setUserId(authController.currentUser!.userId);
         favoriteController.loadFavorites();
+      }
+    });
+  }
+  
+  void _loadFoods() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final foodService = Get.find<FoodService>();
+      // Only load if foods haven't been loaded yet
+      if (foodService.foods.isEmpty && !foodService.isLoading) {
+        print('🏠 HomeScreen: Triggering foods load as fallback...');
+        foodService.loadFoods();
+      } else {
+        print('🏠 HomeScreen: Foods already loaded (${foodService.foods.length} items)');
       }
     });
   }
