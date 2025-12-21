@@ -51,8 +51,8 @@ class _ShipperDashboardState extends State<ShipperDashboard> {
     } catch (_) {}
     setState(() {
       // Show only active orders for the dashboard (hide delivered/cancelled)
-      orders = (fetched ?? []).where((o) {
-        final s = (o.status ?? '').toString().toLowerCase();
+      orders = fetched.where((o) {
+        final s = o.status.toLowerCase();
         return !(s == 'delivered' || s == 'cancelled');
       }).toList();
       isLoading = false;

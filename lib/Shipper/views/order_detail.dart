@@ -31,9 +31,7 @@ double _statusProgress(String status) {
 
 class OrderDetail extends StatefulWidget {
   static const routeName = '/shipper/order-detail';
-  final ShipperOrder order;
-  
-  const OrderDetail({super.key, required this.order});
+  const OrderDetail({super.key});
 
   @override
   State<OrderDetail> createState() => _OrderDetailState();
@@ -47,11 +45,21 @@ class _OrderDetailState extends State<OrderDetail> {
   LatLng? _shipperLocation;
   LatLng? _restaurantLocation;
   LatLng? _customerLocation;
+  RouteDestination? _activeRoute;
 
   @override
-  void initState() {
-    super.initState();
-    order = widget.order;
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args == null || args is! ShipperOrder) {
+      // Defensive: if called without a proper ShipperOrder, go back.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order data missing')));
+        Navigator.maybePop(context);
+      });
+      return;
+    }
+    order = args;
     items = List.from(order.items);
     if (items.isEmpty) {
       _fetchItems();
@@ -66,24 +74,29 @@ class _OrderDetailState extends State<OrderDetail> {
       setState(() {
         _shipperLocation = LatLng(position.latitude, position.longitude);
       });
+      print('✅ Shipper location: $_shipperLocation');
+    } else {
+      print('❌ Cannot get shipper GPS location');
     }
 
     // Get restaurant and customer locations
     try {
       final supabase = SupabaseService();
       // Fetch restaurant location
-      final restaurant = await supabase
-          .from('restaurants')
-          .select('latitude, longitude')
-          .eq('restaurant_id', order.id.split('-').first)
-          .maybeSingle();
-      if (restaurant != null) {
-        final lat = (restaurant['latitude'] as num?)?.toDouble();
-        final lon = (restaurant['longitude'] as num?)?.toDouble();
-        if (lat != null && lon != null) {
-          setState(() {
-            _restaurantLocation = LatLng(lat, lon);
-          });
+      if (order.restaurantId != null) {
+        final restaurant = await supabase
+            .from('restaurants')
+            .select('latitude, longitude')
+            .eq('restaurant_id', order.restaurantId!)
+            .maybeSingle();
+        if (restaurant != null) {
+          final lat = (restaurant['latitude'] as num?)?.toDouble();
+          final lon = (restaurant['longitude'] as num?)?.toDouble();
+          if (lat != null && lon != null) {
+            setState(() {
+              _restaurantLocation = LatLng(lat, lon);
+            });
+          }
         }
       }
 
@@ -96,10 +109,14 @@ class _OrderDetailState extends State<OrderDetail> {
       if (orderData != null) {
         final lat = (orderData['delivery_latitude'] as num?)?.toDouble();
         final lon = (orderData['delivery_longitude'] as num?)?.toDouble();
+        print('🗺️ Customer location from DB: lat=$lat, lon=$lon');
         if (lat != null && lon != null) {
           setState(() {
             _customerLocation = LatLng(lat, lon);
           });
+          print('✅ Customer location set: $_customerLocation');
+        } else {
+          print('❌ Customer location is NULL in database');
         }
       }
     } catch (e) {
@@ -115,7 +132,7 @@ class _OrderDetailState extends State<OrderDetail> {
       print('OrderDetail._fetchItems: fetching items for orderId=${order.id}');
       dynamic itemsData = await supabase.from('order_items').select().eq('order_id', order.id);
       print('OrderDetail._fetchItems: raw itemsData length=${(itemsData as List?)?.length ?? 0}');
-      if ((itemsData as List?)?.isEmpty ?? true) {
+      if (itemsData == null || (itemsData as List).isEmpty) {
         try {
           final orderWithItems = await supabase.from('orders').select('order_items(*)').eq('order_id', order.id).maybeSingle();
           final embedded = (orderWithItems != null && orderWithItems['order_items'] != null)
@@ -171,6 +188,97 @@ class _OrderDetailState extends State<OrderDetail> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Map at the top
+                      SizedBox(
+                        height: 280,
+                        child: DeliveryMapWidget(
+                          shipperLocation: _shipperLocation,
+                          restaurantLocation: _restaurantLocation,
+                          customerLocation: _customerLocation,
+                          activeRoute: _activeRoute,
+                          onRouteChanged: (route) {
+                            setState(() => _activeRoute = route);
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      
+                      // Route selection buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                setState(() {
+                                  _activeRoute = _activeRoute == RouteDestination.restaurant 
+                                      ? null 
+                                      : RouteDestination.restaurant;
+                                });
+                              },
+                              icon: Icon(
+                                Icons.restaurant,
+                                color: _activeRoute == RouteDestination.restaurant 
+                                    ? primaryColor 
+                                    : null,
+                              ),
+                              label: Text(
+                                'Đến nhà hàng',
+                                style: TextStyle(
+                                  color: _activeRoute == RouteDestination.restaurant 
+                                      ? primaryColor 
+                                      : null,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(
+                                  color: _activeRoute == RouteDestination.restaurant 
+                                      ? primaryColor 
+                                      : Colors.grey,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                print('🔘 Button "Đến khách" pressed');
+                                print('   Shipper: $_shipperLocation');
+                                print('   Customer: $_customerLocation');
+                                setState(() {
+                                  _activeRoute = _activeRoute == RouteDestination.customer 
+                                      ? null 
+                                      : RouteDestination.customer;
+                                  print('   Active route set to: $_activeRoute');
+                                });
+                              },
+                              icon: Icon(
+                                Icons.location_on,
+                                color: _activeRoute == RouteDestination.customer 
+                                    ? primaryColor 
+                                    : null,
+                              ),
+                              label: Text(
+                                'Đến khách',
+                                style: TextStyle(
+                                  color: _activeRoute == RouteDestination.customer 
+                                      ? primaryColor 
+                                      : null,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(
+                                  color: _activeRoute == RouteDestination.customer 
+                                      ? primaryColor 
+                                      : Colors.grey,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      
                       // Restaurant info
                       Card(
                         child: Padding(
@@ -380,17 +488,6 @@ class _OrderDetailState extends State<OrderDetail> {
                       ),
 
                       const SizedBox(height: 8),
-
-                      // Real map widget
-                      SizedBox(
-                        height: 200,
-                        child: DeliveryMapWidget(
-                          shipperLocation: _shipperLocation,
-                          restaurantLocation: _restaurantLocation,
-                          customerLocation: _customerLocation,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
                     ],
                   ),
                 ),
@@ -402,7 +499,7 @@ class _OrderDetailState extends State<OrderDetail> {
                   bottom: MediaQuery.of(context).viewInsets.bottom,
                 ),
                 child: Builder(builder: (ctx) {
-                  final status = (order.status ?? '').toLowerCase();
+                  final status = order.status.toLowerCase();
                   String? nextStatus;
                   String buttonLabel = 'No action';
                   switch (status) {

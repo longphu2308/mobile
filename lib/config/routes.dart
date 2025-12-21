@@ -180,8 +180,10 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const ShipperDashboard());
 
       case shipperOrderDetailRoute:
-        final args = settings.arguments as ShipperOrder;
-        return MaterialPageRoute(builder: (_) => OrderDetail(order: args));
+        return MaterialPageRoute(
+          builder: (_) => const OrderDetail(),
+          settings: settings,
+        );
 
       case shipperHistoryRoute:
         return MaterialPageRoute(builder: (_) => const OrderHistory());
