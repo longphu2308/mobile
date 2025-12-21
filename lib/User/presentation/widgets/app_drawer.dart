@@ -183,8 +183,19 @@ class AppDrawer extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
-              await authController.signOut();
+              final navigator = Navigator.of(context);
+              navigator.pop(); // Close dialog first
+              final success = await authController.signOut();
+              if (success) {
+                // Wait a bit for auth state to update
+                await Future.delayed(const Duration(milliseconds: 100));
+                // Navigate to welcome screen after successful sign out
+                // Clear all routes and go to welcome route
+                navigator.pushNamedAndRemoveUntil(
+                  welcomeRoute,
+                  (route) => false,
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,

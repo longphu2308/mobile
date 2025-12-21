@@ -28,6 +28,11 @@ class _HomeScreenState extends State<HomeScreen>
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
     _loadFavorites();
+    // Filter by default category (Foods = all) when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final foodService = Get.find<FoodService>();
+      foodService.filterByCategory(tabBarTitle[0]); // Foods = show all
+    });
   }
 
   void _loadFavorites() {
@@ -199,8 +204,11 @@ class _HomeScreenState extends State<HomeScreen>
               padding: const EdgeInsets.only(left: horizontalPadding),
               child: TabBar(
                 controller: _tabController,
-                // onTap không cần setState vì _tabController quản lý index
-                onTap: (index) {},
+                onTap: (index) {
+                  final foodService = Get.find<FoodService>();
+                  final category = tabBarTitle[index];
+                  foodService.filterByCategory(category);
+                },
                 isScrollable: true,
                 indicatorColor: primaryColor,
                 indicatorWeight: 3,
@@ -274,6 +282,17 @@ class _HomeScreenState extends State<HomeScreen>
                 final foods = foodService.filteredFoods.isNotEmpty
                     ? foodService.filteredFoods
                     : foodService.foods;
+                if (foods.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 40),
+                    child: Center(
+                      child: Text(
+                        'Chưa có món ăn nào',
+                        style: TextStyle(fontSize: 16, color: greyColor),
+                      ),
+                    ),
+                  );
+                }
                 return SizedBox(
                   height: 300,
                   child: ListView.builder(
@@ -322,6 +341,17 @@ class _HomeScreenState extends State<HomeScreen>
                 final foods = foodService.filteredFoods.isNotEmpty
                     ? foodService.filteredFoods
                     : foodService.foods;
+                if (foods.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 40),
+                    child: Center(
+                      child: Text(
+                        'Chưa có món ăn nào',
+                        style: TextStyle(fontSize: 16, color: greyColor),
+                      ),
+                    ),
+                  );
+                }
                 return Padding(
                   padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                   child: GridView.builder(

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/User/presentation/widgets/widgets.dart';
 import 'package:mobile/core/models/food_model.dart';
+import 'package:mobile/core/services/food/food_service.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/assets.dart';
 import 'package:mobile/User/utils/strings.dart';
 import 'package:mobile/config/routes.dart';
+import 'package:get/get.dart';
 
-class SearchResultScreen extends StatelessWidget {
+class SearchResultScreen extends StatefulWidget {
   final String searchString;
   final List<FoodModel> foundFoodList;
 
@@ -15,6 +17,66 @@ class SearchResultScreen extends StatelessWidget {
     required this.searchString,
     required this.foundFoodList,
   });
+
+  @override
+  State<SearchResultScreen> createState() => _SearchResultScreenState();
+}
+
+class _SearchResultScreenState extends State<SearchResultScreen> {
+  late TextEditingController _searchController;
+  List<FoodModel> _searchResults = [];
+  bool _isSearching = false;
+  bool _hasSearched = false; // Track if user has performed a search
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController(text: widget.searchString == 'Search' ? '' : widget.searchString);
+    _searchResults = widget.foundFoodList;
+    // If initial searchString is not empty and not 'Search', perform initial search
+    if (widget.searchString.isNotEmpty && widget.searchString != 'Search') {
+      _performSearch(widget.searchString);
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _performSearch(String query) async {
+    final trimmedQuery = query.trim();
+    
+    if (trimmedQuery.isEmpty) {
+      setState(() {
+        _searchResults = widget.foundFoodList;
+        _isSearching = false;
+        _hasSearched = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isSearching = true;
+      _hasSearched = true;
+    });
+
+    try {
+      final foodService = Get.find<FoodService>();
+      await foodService.searchFoods(trimmedQuery);
+      setState(() {
+        _searchResults = foodService.filteredFoods;
+        _isSearching = false;
+      });
+    } catch (e) {
+      print('Error performing search: $e');
+      setState(() {
+        _isSearching = false;
+        _searchResults = [];
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,21 +92,56 @@ class SearchResultScreen extends StatelessWidget {
         title: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: TextField(
+            controller: _searchController,
+            autofocus: true,
             style: const TextStyle(color: blackColor),
             decoration: InputDecoration(
-              hintText: searchString,
+              hintText: 'Search',
               hintStyle: const TextStyle(color: blackColor),
               border: InputBorder.none,
+              suffixIcon: _isSearching
+                  ? const Padding(
+                      padding: EdgeInsets.all(12.0),
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : IconButton(
+                      icon: const Icon(Icons.search, color: blackColor),
+                      onPressed: () => _performSearch(_searchController.text),
+                    ),
             ),
+            onSubmitted: (value) => _performSearch(value),
+            onChanged: (value) {
+              // Real-time search as user types (debounced)
+              Future.delayed(const Duration(milliseconds: 500), () {
+                if (_searchController.text == value) {
+                  _performSearch(value);
+                }
+              });
+            },
           ),
         ),
         titleTextStyle: Theme.of(
           context,
         ).textTheme.titleLarge?.copyWith(color: blackColor),
       ),
-      body: foundFoodList.isNotEmpty
-          ? _SearchFound(foodList: foundFoodList)
-          : _SearchNotFound(),
+      body: _isSearching
+          ? const Center(
+              child: Padding(
+                padding: EdgeInsets.all(20.0),
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+                ),
+              ),
+            )
+          : _searchResults.isNotEmpty
+              ? _SearchFound(foodList: _searchResults)
+              : _hasSearched
+                  ? _SearchNotFound()
+                  : _SearchFound(foodList: widget.foundFoodList),
     );
   }
 }
@@ -190,9 +287,29 @@ class _SearchNotFound extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(FoodieAssets.notFound),
+            // Use Icon instead of Image.asset to avoid asset loading errors
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.search_off_rounded,
+                size: 64,
+                color: Colors.grey[400],
+              ),
+            ),
             YBox(20),
-            Text(FoodieStrings.searchNotFound, style: TextStyle(fontSize: 28)),
+            Text(
+              FoodieStrings.searchNotFound,
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: blackColor,
+              ),
+            ),
             YBox(10),
             Text(
               FoodieStrings.searchNotFoundHint,
