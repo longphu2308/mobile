@@ -1,15 +1,142 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/User/utils/utils.dart';
+import 'package:mobile/core/services/supabase/supabase_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/Shipper/models/shipper_order.dart';
 import 'package:mobile/config/routes.dart';
+import 'package:mobile/Shipper/widgets/shipper_bottom_nav.dart';
 
-class ShipperProfile extends StatelessWidget {
+class ShipperProfile extends StatefulWidget {
   static const routeName = '/shipper/profile';
   const ShipperProfile({super.key});
 
   @override
+  State<ShipperProfile> createState() => _ShipperProfileState();
+}
+
+class _ShipperProfileState extends State<ShipperProfile> {
+  bool isLoading = true;
+  Map<String, dynamic> userProfile = {};
+  Map<String, dynamic> shipperProfile = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfiles();
+  }
+
+  Future<void> _loadProfiles() async {
+    setState(() => isLoading = true);
+    final supabase = SupabaseService();
+    final uid = supabase.userId;
+    if (uid == null) {
+      setState(() => isLoading = false);
+      return;
+    }
+    try {
+      final up = await supabase.from('user_profiles').select().eq('user_id', uid).maybeSingle();
+      final sp = await supabase.from('shipper_profiles').select().eq('user_id', uid).maybeSingle();
+      setState(() {
+        userProfile = up ?? <String, dynamic>{};
+        shipperProfile = sp ?? <String, dynamic>{};
+      });
+    } catch (e) {
+      // ignore
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
+  Future<void> _showEditDialog() async {
+    final fullNameCtrl = TextEditingController(text: userProfile['full_name'] ?? '');
+    final phoneCtrl = TextEditingController(text: userProfile['phone'] ?? '');
+    final vehicleTypeCtrl = TextEditingController(text: shipperProfile['vehicle_type'] ?? '');
+    final plateCtrl = TextEditingController(text: shipperProfile['vehicle_plate'] ?? '');
+    final licenseCtrl = TextEditingController(text: shipperProfile['license_number'] ?? '');
+    bool available = (shipperProfile['is_available'] == true);
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(builder: (c, setC) {
+        final dialogWidth = MediaQuery.of(ctx).size.width * 0.95;
+        return AlertDialog(
+          title: const Text('Chỉnh sửa thông tin'),
+          content: SingleChildScrollView(
+            child: SizedBox(
+              width: dialogWidth,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(controller: fullNameCtrl, decoration: const InputDecoration(labelText: 'Họ và tên')),
+                  const SizedBox(height: 8),
+                  TextField(controller: phoneCtrl, decoration: const InputDecoration(labelText: 'Số điện thoại'), keyboardType: TextInputType.phone),
+                  const SizedBox(height: 8),
+                  TextField(controller: vehicleTypeCtrl, decoration: const InputDecoration(labelText: 'Loại phương tiện (bike/motorbike/car)')),
+                  const SizedBox(height: 8),
+                  TextField(controller: plateCtrl, decoration: const InputDecoration(labelText: 'Biển số')),
+                  const SizedBox(height: 8),
+                  TextField(controller: licenseCtrl, decoration: const InputDecoration(labelText: 'Bằng lái')),
+                  
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
+              onPressed: () async {
+                final supabase = SupabaseService();
+                final uid = supabase.userId;
+                if (uid == null) return;
+                final upMap = {
+                  'user_id': uid,
+                  'full_name': fullNameCtrl.text.trim(),
+                  'phone': phoneCtrl.text.trim(),
+                };
+                final spMap = {
+                  'user_id': uid,
+                  'vehicle_type': vehicleTypeCtrl.text.trim(),
+                  'vehicle_plate': plateCtrl.text.trim(),
+                  'license_number': licenseCtrl.text.trim(),
+                  'is_available': available,
+                };
+
+                try {
+                  // Upsert user profile
+                  if ((userProfile['profile_id'] ?? '').toString().isNotEmpty) {
+                    await supabase.from('user_profiles').update(upMap).eq('user_id', uid);
+                  } else {
+                    await supabase.from('user_profiles').insert(upMap);
+                  }
+
+                  // Upsert shipper profile
+                  if ((shipperProfile['shipper_profile_id'] ?? '').toString().isNotEmpty) {
+                    await supabase.from('shipper_profiles').update(spMap).eq('user_id', uid);
+                  } else {
+                    await supabase.from('shipper_profiles').insert(spMap);
+                  }
+
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated')));
+                  await _loadProfiles();
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Update failed')));
+                }
+              },
+              child: const Text('Lưu'),
+            ),
+          ],
+        );
+      }),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final recent = ShipperOrder.mockOrders();
+    final displayName = (userProfile['full_name'] ?? 'Người giao hàng').toString();
+    final vehicle = shipperProfile.isNotEmpty ? '${shipperProfile['vehicle_type'] ?? ''} • Plate: ${shipperProfile['vehicle_plate'] ?? ''}' : '';
 
     return Scaffold(
       appBar: AppBar(
@@ -17,51 +144,37 @@ class ShipperProfile extends StatelessWidget {
         backgroundColor: whiteColor,
         foregroundColor: primaryColor,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Center(
-              child: CircleAvatar(
-                radius: 44,
-                child: Icon(Icons.person, size: 44),
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Center(
-              child: Text(
-                'Người giao hàng',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Center(child: Text('Vehicle: Motorbike • Plate: 79A-000.00')),
-            const SizedBox(height: 12),
-
-            // Vertical action buttons (full width, consistent height)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (_) => AlertDialog(
-                          title: const Text('Chỉnh sửa thông tin'),
-                          content: const Text('Mock edit form goes here.'),
-                          actions: [
-                            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Đóng')),
-                          ],
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(backgroundColor: primaryColor, textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                    child: const Text('Chỉnh sửa'),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: CircleAvatar(
+                      radius: 44,
+                      child: Text(displayName.isNotEmpty ? displayName[0] : '?', style: const TextStyle(fontSize: 40)),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  Center(child: Text(displayName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+                  const SizedBox(height: 6),
+                  if (vehicle.isNotEmpty) Center(child: Text(vehicle)),
+                  const SizedBox(height: 12),
+
+                  // Vertical action buttons
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: _showEditDialog,
+                          style: ElevatedButton.styleFrom(backgroundColor: primaryColor, textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                          child: const Text('Chỉnh sửa'),
+                        ),
+                      ),
                 const SizedBox(height: 8),
                 SizedBox(
                   height: 48,
@@ -83,21 +196,30 @@ class ShipperProfile extends StatelessWidget {
                           final _newCtrl = TextEditingController();
                           final _confirmCtrl = TextEditingController();
                           return StatefulBuilder(builder: (c, setState) {
+                            final dialogWidth = MediaQuery.of(ctx).size.width * 0.95;
                             return AlertDialog(
                               title: const Text('Đổi mật khẩu'),
-                              content: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  TextField(controller: _oldCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'Mật khẩu cũ')),
-                                  TextField(controller: _newCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'Mật khẩu mới')),
-                                  TextField(controller: _confirmCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'Xác nhận mật khẩu mới')),
-                                ],
+                              content: SingleChildScrollView(
+                                child: SizedBox(
+                                  width: dialogWidth,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      TextField(controller: _oldCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'Mật khẩu cũ')),
+                                      const SizedBox(height: 8),
+                                      TextField(controller: _newCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'Mật khẩu mới')),
+                                      const SizedBox(height: 8),
+                                      TextField(controller: _confirmCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'Xác nhận mật khẩu mới')),
+                                    ],
+                                  ),
+                                ),
                               ),
                               actions: [
                                 TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
                                 ElevatedButton(
                                   style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
-                                  onPressed: () {
+                                  onPressed: () async {
                                     final old = _oldCtrl.text.trim();
                                     final newPassword = _newCtrl.text.trim();
                                     final confirmPassword = _confirmCtrl.text.trim();
@@ -109,8 +231,20 @@ class ShipperProfile extends StatelessWidget {
                                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mật khẩu mới và xác nhận không khớp')));
                                       return;
                                     }
-                                    Navigator.pop(ctx);
-                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mật khẩu đã được đổi (mock)')));
+
+                                    final supabase = SupabaseService();
+                                    try {
+                                      // Attempt to update password for current user
+                                      final res = await supabase.auth.updateUser(UserAttributes(password: newPassword));
+                                      if (res.user != null) {
+                                        Navigator.pop(ctx);
+                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mật khẩu đã được đổi')));
+                                      } else {
+                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không thể đổi mật khẩu')));
+                                      }
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lỗi khi đổi mật khẩu')));
+                                    }
                                   },
                                   child: const Text('Lưu'),
                                 ),
@@ -152,25 +286,36 @@ class ShipperProfile extends StatelessWidget {
             ),
             const SizedBox(height: 8),
 
-            Column(
-              children: recent.map((r) {
-                return Card(
-                  child: ListTile(
-                    title: Text('${r.id} • ${r.customerName}'),
-                    subtitle: Text('${r.address}'),
-                    trailing: Text('${r.total.toInt()} VND'),
-                    onTap: () => Navigator.pushNamed(
-                      context,
-                      '/shipper/order-detail',
-                      arguments: r,
-                    ),
-                  ),
+            FutureBuilder<List<ShipperOrder>>(
+              future: ShipperOrder.fetchAssignedOrders(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final recent = snapshot.data ?? [];
+                if (recent.isEmpty) return const Text('No recent deliveries');
+                return Column(
+                  children: recent.map((r) {
+                    return Card(
+                      child: ListTile(
+                        title: Text('${r.id} • ${r.customerName}'),
+                        subtitle: Text('${r.address}'),
+                        trailing: Text('${r.total.toInt()} VND'),
+                        onTap: () => Navigator.pushNamed(
+                          context,
+                          '/shipper/order-detail',
+                          arguments: r,
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 );
-              }).toList(),
+              },
             ),
           ],
         ),
       ),
+      bottomNavigationBar: shipperBottomNav(context, 2),
     );
   }
 

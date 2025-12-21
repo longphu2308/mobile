@@ -28,6 +28,8 @@ import 'package:mobile/core/models/restaurant_model.dart';
 import 'package:mobile/Shipper/views/shipper_dashboard.dart';
 import 'package:mobile/Shipper/views/order_detail.dart';
 import 'package:mobile/Shipper/views/order_history.dart';
+import 'package:mobile/Shipper/views/pickup_confirm.dart';
+import 'package:mobile/Shipper/views/delivery_confirm.dart';
 import 'package:mobile/Shipper/views/profile.dart' as shipper_profile;
 import 'package:mobile/Shipper/views/live_tracking.dart';
 
@@ -176,8 +178,13 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const ShipperDashboard());
 
       case shipperOrderDetailRoute:
-        final args = settings.arguments as dynamic;
-        return MaterialPageRoute(builder: (_) => OrderDetail());
+        return MaterialPageRoute(builder: (_) => OrderDetail(), settings: settings);
+
+      case '/shipper/pickup-confirm':
+        return MaterialPageRoute(builder: (_) => const PickupConfirm(), settings: settings);
+
+      case '/shipper/delivery-confirm':
+        return MaterialPageRoute(builder: (_) => const DeliveryConfirm(), settings: settings);
 
       case shipperHistoryRoute:
         return MaterialPageRoute(builder: (_) => const OrderHistory());

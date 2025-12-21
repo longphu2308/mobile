@@ -1,33 +1,164 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/Shipper/models/shipper_order.dart';
+import 'package:mobile/core/services/supabase/supabase_service.dart';
 import 'package:mobile/User/utils/utils.dart';
+import 'package:mobile/Shipper/widgets/shipper_bottom_nav.dart';
+import 'package:mobile/core/services/location_service.dart';
+import 'package:mobile/Shipper/widgets/delivery_map_widget.dart';
+import 'package:latlong2/latlong.dart';
 
 double _statusProgress(String status) {
+  // Map ordered lifecycle to progress values (0.0 -> 1.0)
   switch (status.toLowerCase()) {
-    case 'assigned':
+    case 'pending':
       return 0.0;
-    case 'pickup':
-      return 0.33;
-    case 'nearby':
-      return 0.15;
-    case 'delivery':
+    case 'confirmed':
+      return 0.2;
+    case 'preparing':
+      return 0.4;
+    case 'ready_for_pickup':
+      return 0.6;
     case 'delivering':
-      return 0.66;
-    case 'completed':
-    case 'done':
+      return 0.8;
+    case 'delivered':
       return 1.0;
+    case 'cancelled':
+      return 0.0;
     default:
       return 0.0;
   }
 }
 
-class OrderDetail extends StatelessWidget {
+class OrderDetail extends StatefulWidget {
   static const routeName = '/shipper/order-detail';
   const OrderDetail({super.key});
 
   @override
+  State<OrderDetail> createState() => _OrderDetailState();
+}
+
+class _OrderDetailState extends State<OrderDetail> {
+  late ShipperOrder order;
+  List<OrderItem> items = [];
+  bool isLoadingItems = false;
+  bool _isUpdatingStatus = false;
+  LatLng? _shipperLocation;
+  LatLng? _restaurantLocation;
+  LatLng? _customerLocation;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args == null || args is! ShipperOrder) {
+      // Defensive: if called without a proper ShipperOrder, go back.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order data missing')));
+        Navigator.maybePop(context);
+      });
+      return;
+    }
+    order = args as ShipperOrder;
+    items = List.from(order.items);
+    if (items.isEmpty) {
+      _fetchItems();
+    }
+    _loadLocations();
+  }
+
+  Future<void> _loadLocations() async {
+    // Get shipper current location
+    final position = await LocationService().getCurrentLocation();
+    if (position != null) {
+      setState(() {
+        _shipperLocation = LatLng(position.latitude, position.longitude);
+      });
+    }
+
+    // Get restaurant and customer locations
+    try {
+      final supabase = SupabaseService();
+      // Fetch restaurant location
+      final restaurant = await supabase
+          .from('restaurants')
+          .select('latitude, longitude')
+          .eq('restaurant_id', order.id.split('-').first)
+          .maybeSingle();
+      if (restaurant != null) {
+        final lat = (restaurant['latitude'] as num?)?.toDouble();
+        final lon = (restaurant['longitude'] as num?)?.toDouble();
+        if (lat != null && lon != null) {
+          setState(() {
+            _restaurantLocation = LatLng(lat, lon);
+          });
+        }
+      }
+
+      // Get customer location from order
+      final orderData = await supabase
+          .from('orders')
+          .select('delivery_latitude, delivery_longitude')
+          .eq('order_id', order.id)
+          .maybeSingle();
+      if (orderData != null) {
+        final lat = (orderData['delivery_latitude'] as num?)?.toDouble();
+        final lon = (orderData['delivery_longitude'] as num?)?.toDouble();
+        if (lat != null && lon != null) {
+          setState(() {
+            _customerLocation = LatLng(lat, lon);
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading locations: $e');
+    }
+  }
+
+  Future<void> _fetchItems() async {
+    setState(() => isLoadingItems = true);
+    try {
+      final supabase = SupabaseService();
+      // DEBUG: log before querying
+      print('OrderDetail._fetchItems: fetching items for orderId=${order.id}');
+      dynamic itemsData = await supabase.from('order_items').select().eq('order_id', order.id);
+      print('OrderDetail._fetchItems: raw itemsData length=${(itemsData as List?)?.length ?? 0}');
+      if ((itemsData as List?)?.isEmpty ?? true) {
+        try {
+          final orderWithItems = await supabase.from('orders').select('order_items(*)').eq('order_id', order.id).maybeSingle();
+          final embedded = (orderWithItems != null && orderWithItems['order_items'] != null)
+              ? (orderWithItems['order_items'] as List<dynamic>)
+              : <dynamic>[];
+          if (embedded.isNotEmpty) {
+            itemsData = embedded;
+            print('OrderDetail._fetchItems: fetched items via orders relation, count=${embedded.length}');
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+      final fetched = (itemsData as List? ?? []).map((i) {
+        final price = (i['price'] as num?)?.toDouble() ?? 0.0;
+        return OrderItem(
+          name: i['food_name'] ?? '',
+          qty: (i['quantity'] as int?) ?? (i['quantity'] as num?)?.toInt() ?? 0,
+          price: price,
+        );
+      }).toList();
+      setState(() {
+        items = fetched;
+      });
+      print('ORDER.ID = ${order.id}');
+      print('TYPE = ${order.id.runtimeType}');
+
+    } catch (e) {
+      // ignore errors for now
+    } finally {
+      setState(() => isLoadingItems = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final order = ModalRoute.of(context)!.settings.arguments as ShipperOrder;
     return Scaffold(
       appBar: AppBar(
         title: Text('Order ${order.id}'),
@@ -61,6 +192,11 @@ class OrderDetail extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 6),
+                              if ((order.restaurantAddress ?? '').isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 6.0),
+                                  child: Text('Địa chỉ: ${order.restaurantAddress}'),
+                                ),
                               Row(
                                 children: [
                                   Expanded(
@@ -101,7 +237,7 @@ class OrderDetail extends StatelessWidget {
                         ),
                       ),
 
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 16),
 
                       // Customer info
                       Card(
@@ -159,10 +295,10 @@ class OrderDetail extends StatelessWidget {
                         ),
                       ),
 
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 12),
 
                       // Notes
-                      if (order.items.isEmpty) const SizedBox.shrink(),
+                      if (items.isEmpty && !isLoadingItems) const SizedBox.shrink(),
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 6.0),
                         child: Text('Ghi chú: ${order.status}'),
@@ -182,38 +318,36 @@ class OrderDetail extends StatelessWidget {
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(height: 8),
-                              ...order.items.map(
-                                (i) => Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 4.0,
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
+                              if (isLoadingItems) const Center(child: CircularProgressIndicator()),
+                              if (!isLoadingItems && items.isEmpty)
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                                  child: Text('Không có món hàng.'),
+                                ),
+                              // Items list
+                              ...items.map((i) => Column(
                                     children: [
-                                      Expanded(
-                                        child: Text(
-                                          '${i.name} x${i.qty}',
-                                          style: const TextStyle(fontSize: 14),
+                                      ListTile(
+                                        contentPadding: EdgeInsets.zero,
+                                        leading: CircleAvatar(
+                                          radius: 18,
+                                          backgroundColor: Colors.grey.shade200,
+                                          child: Text('${i.qty}', style: const TextStyle(color: Colors.black)),
                                         ),
+                                        title: Text(i.name, style: const TextStyle(fontSize: 14)),
+                                        subtitle: Text('${i.price.toInt()} VND / cái'),
+                                        trailing: Text('${i.total.toInt()} VND', style: const TextStyle(fontWeight: FontWeight.w600)),
                                       ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        '${i.total.toInt()} VND',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
+                                      const Divider(height: 1),
                                     ],
-                                  ),
-                                ),
-                              ),
+                                  )),
                               const SizedBox(height: 8),
-                              Text(
-                                'Tổng: ${order.total.toInt()} VND',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text('Tổng', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  Text('${order.total.toInt()} VND', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                ],
                               ),
                             ],
                           ),
@@ -254,11 +388,14 @@ class OrderDetail extends StatelessWidget {
 
                       const SizedBox(height: 8),
 
-                      // Map placeholder
-                      Container(
-                        height: 160,
-                        color: bgColor,
-                        child: const Center(child: Icon(Icons.map, size: 48)),
+                      // Real map widget
+                      SizedBox(
+                        height: 200,
+                        child: DeliveryMapWidget(
+                          shipperLocation: _shipperLocation,
+                          restaurantLocation: _restaurantLocation,
+                          customerLocation: _customerLocation,
+                        ),
                       ),
                       const SizedBox(height: 8),
                     ],
@@ -266,44 +403,86 @@ class OrderDetail extends StatelessWidget {
                 ),
               ),
 
-              // Action buttons fixed to bottom area with safe spacing
+              // Single action button for allowed status transitions
               Padding(
                 padding: EdgeInsets.only(
                   bottom: MediaQuery.of(context).viewInsets.bottom,
                 ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryColor,
+                child: Builder(builder: (ctx) {
+                  final status = (order.status ?? '').toLowerCase();
+                  String? nextStatus;
+                  String buttonLabel = 'No action';
+                  switch (status) {
+                    case 'pending':
+                      nextStatus = 'confirmed';
+                      buttonLabel = 'Confirm Order';
+                      break;
+                    case 'ready_for_pickup':
+                      nextStatus = 'delivering';
+                      buttonLabel = 'Start Delivery';
+                      break;
+                    case 'delivering':
+                      nextStatus = 'delivered';
+                      buttonLabel = 'Mark Delivered';
+                      break;
+                    default:
+                      nextStatus = null;
+                      buttonLabel = 'No action';
+                  }
+
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
+                          onPressed: (nextStatus == null || _isUpdatingStatus)
+                              ? null
+                              : () => _changeStatus(nextStatus!, ctx),
+                          child: _isUpdatingStatus
+                              ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : Text(buttonLabel),
                         ),
-                        onPressed: () => Navigator.pushNamed(
-                          context,
-                          '/shipper/pickup-confirm',
-                          arguments: order,
-                        ),
-                        child: const Text('Picked up'),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pushNamed(
-                          context,
-                          '/shipper/delivery-confirm',
-                          arguments: order,
-                        ),
-                        child: const Text('Deliver'),
-                      ),
-                    ),
-                  ],
-                ),
+                    ],
+                  );
+                }),
               ),
             ],
           ),
         ),
       ),
+      bottomNavigationBar: shipperBottomNav(context, 0),
     );
+  }
+
+  Future<void> _changeStatus(String nextStatus, BuildContext ctx) async {
+    setState(() => _isUpdatingStatus = true);
+    try {
+      final supabase = SupabaseService();
+      await supabase.from('orders').update({'status': nextStatus}).eq('order_id', order.id);
+      // Update local order instance by recreating with new status
+      setState(() {
+        order = ShipperOrder(
+          id: order.id,
+          customerName: order.customerName,
+          address: order.address,
+          distanceKm: order.distanceKm,
+          status: nextStatus,
+          total: order.total,
+          items: order.items,
+          eta: order.eta,
+          restaurantName: order.restaurantName,
+          restaurantAddress: order.restaurantAddress,
+          fee: order.fee,
+          customerPhone: order.customerPhone,
+          restaurantPhone: order.restaurantPhone,
+        );
+      });
+      ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Status updated to $nextStatus')));
+    } catch (e) {
+      ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Failed to update status')));
+    } finally {
+      setState(() => _isUpdatingStatus = false);
+    }
   }
 }

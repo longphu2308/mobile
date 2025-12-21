@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/Shipper/models/shipper_order.dart';
+import 'package:mobile/core/services/supabase/supabase_service.dart';
 import 'package:mobile/Shipper/widgets/incoming_order_modal.dart';
 import 'package:mobile/User/utils/utils.dart';
 
@@ -13,7 +14,50 @@ class ShipperDashboard extends StatefulWidget {
 
 class _ShipperDashboardState extends State<ShipperDashboard> {
   bool online = true;
-  final orders = ShipperOrder.mockOrders();
+  List<ShipperOrder> orders = [];
+  bool isLoading = true;
+  String shipperName = 'Người giao hàng';
+  String shipperRefId = '';
+  String vehicleInfo = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOrders();
+  }
+
+  Future<void> _loadOrders() async {
+    setState(() {
+      isLoading = true;
+    });
+    final fetched = await ShipperOrder.fetchAssignedOrders();
+    // load shipper profile info
+    try {
+      final supabase = SupabaseService();
+      final uid = supabase.userId;
+      if (uid != null) {
+        final up = await supabase.from('user_profiles').select().eq('user_id', uid).maybeSingle();
+        final sp = await supabase.from('shipper_profiles').select().eq('user_id', uid).maybeSingle();
+        setState(() {
+          shipperName = up != null ? (up['full_name'] ?? shipperName) : shipperName;
+          shipperRefId = uid.substring(0, 8);
+          if (sp != null) {
+            final vt = sp['vehicle_type'] ?? '';
+            final plate = sp['vehicle_plate'] ?? '';
+            vehicleInfo = (vt != '' || plate != '') ? '$vt • Plate: $plate' : '';
+          }
+        });
+      }
+    } catch (_) {}
+    setState(() {
+      // Show only active orders for the dashboard (hide delivered/cancelled)
+      orders = (fetched ?? []).where((o) {
+        final s = (o.status ?? '').toString().toLowerCase();
+        return !(s == 'delivered' || s == 'cancelled');
+      }).toList();
+      isLoading = false;
+    });
+  }
 
   Widget _buildStatCard(String title, String value) {
     return Expanded(
@@ -43,6 +87,11 @@ class _ShipperDashboardState extends State<ShipperDashboard> {
   }
 
   void _showIncoming() {
+    if (orders.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No incoming orders')));
+      return;
+    }
+
     final o = orders.first;
     showDialog(
       context: context,
@@ -50,13 +99,10 @@ class _ShipperDashboardState extends State<ShipperDashboard> {
         order: o,
         seconds: 30,
         onAccept: () {
-          // navigate to detail when accepted
           Navigator.pushNamed(context, '/shipper/order-detail', arguments: o);
         },
         onDecline: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Order declined (mock)')),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order declined')));
         },
       ),
     );
@@ -83,24 +129,26 @@ class _ShipperDashboardState extends State<ShipperDashboard> {
                   CircleAvatar(
                     radius: 26,
                     backgroundColor: orangeLight,
-                    child: const Icon(Icons.person, color: whiteColor),
+                    child: Text(shipperName.isNotEmpty ? shipperName[0] : '?', style: const TextStyle(color: whiteColor)),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
-                          'Người giao hàng',
-                          style: TextStyle(
+                          shipperName,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+                        const SizedBox(height: 2),
                         Text(
-                          'ID: SH-001',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                          'ID: ${shipperRefId}',
+                          style: const TextStyle(fontSize: 12, color: Colors.grey),
                         ),
+                        if (vehicleInfo.isNotEmpty) Text(vehicleInfo, style: const TextStyle(fontSize: 12, color: Colors.grey)),
                       ],
                     ),
                   ),
@@ -139,9 +187,8 @@ class _ShipperDashboardState extends State<ShipperDashboard> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildStatCard('Đơn hôm nay', '${orders.length}'),
+                  _buildStatCard('Đơn hôm nay', isLoading ? '...' : '${orders.length}'),
                   _buildStatCard('Thu nhập', '1,250,000 VND'),
-                  _buildStatCard('Thời gian', '4h 12m'),
                 ],
               ),
 
@@ -170,48 +217,86 @@ class _ShipperDashboardState extends State<ShipperDashboard> {
 
               // Orders list
               Expanded(
-                child: ListView.builder(
-                  itemCount: orders.length,
-                  itemBuilder: (ctx, i) {
-                    final o = orders[i];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: orangeLight,
-                          child: Text(o.customerName[0]),
-                        ),
-                        title: Text('${o.id} • ${o.customerName}'),
-                        subtitle: Text(
-                          '${o.restaurantName ?? ''}\n${o.distanceKm} km • ${o.eta}',
-                        ),
-                        isThreeLine: true,
-                        trailing: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ElevatedButton(
-                              onPressed: () => Navigator.pushNamed(
-                                context,
-                                '/shipper/order-detail',
-                                arguments: o,
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: primaryColor,
-                              ),
-                              child: const Text('Chi tiết'),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              o.status,
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          ],
-                        ),
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView.builder(
+                      padding: EdgeInsets.only(
+                        bottom: MediaQuery.of(context).padding.bottom +
+                            kBottomNavigationBarHeight +
+                            24,
                       ),
-                    );
-                  },
-                ),
-              ),
+                      itemCount: orders.length,
+                      itemBuilder: (ctx, i) {
+                        final o = orders[i];
+                        final avatarLetter =
+                            (o.customerName.isNotEmpty ? o.customerName[0] : '?');
+
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: orangeLight,
+                              child: Text(
+                                avatarLetter,
+                                style: const TextStyle(color: whiteColor),
+                              ),
+                            ),
+
+                            /// TITLE
+                            title: Text(
+                              '${o.id} • ${o.customerName}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+
+                            /// SUBTITLE (đã đưa status xuống đây)
+                            subtitle: Text(
+                              '${o.restaurantName ?? ''}\n'
+                              '${o.distanceKm.toStringAsFixed(1)} km • ${o.eta}\n'
+                              '${o.status}',
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                            isThreeLine: true,
+                            trailing: SizedBox(
+                              width: 90,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  ElevatedButton(
+                                    onPressed: () async {
+                                      await Navigator.pushNamed(
+                                        context,
+                                        '/shipper/order-detail',
+                                        arguments: o,
+                                      );
+                                      // Refresh list when returning from detail (so delivered orders disappear)
+                                      await _loadOrders();
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: primaryColor,
+                                      padding: EdgeInsets.zero,
+                                      minimumSize: const Size(70, 30),
+                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    child: const Text(
+                                      'Chi tiết',
+                                      style: TextStyle(fontSize: 11),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    o.status,
+                                    style: const TextStyle(fontSize: 10),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
             ],
           ),
         ),
