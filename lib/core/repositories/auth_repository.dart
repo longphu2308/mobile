@@ -13,11 +13,15 @@ class AuthRepository {
     required String password,
     required String fullName,
     required String phone,
+    UserRole role = UserRole.user,
+    Map<String, String>? additionalData,
   }) => _authService.signUp(
     email: email,
     password: password,
     fullName: fullName,
     phone: phone,
+    role: role,
+    additionalData: additionalData,
   );
 
   Future<UserModel> signIn({required String email, required String password}) =>

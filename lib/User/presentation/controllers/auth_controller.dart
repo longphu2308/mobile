@@ -124,26 +124,53 @@ class AuthController extends GetxController {
     required String password,
     required String fullName,
     required String phone,
+    UserRole role = UserRole.user,
+    Map<String, String>? additionalData,
   }) async {
     try {
+      print('\n🎯 AuthController.signUp called');
+      print('📧 Email: $email');
+      print('👤 Name: $fullName');
+      print('📱 Phone: $phone');
+      print('🎭 Role: $role');
+      print('📦 Additional data: $additionalData');
+      
       _isLoading.value = true;
       _errorMessage.value = null;
 
+      print('🔄 Calling authRepository.signUp...');
       UserModel user = await _authRepository.signUp(
         email: email,
         password: password,
         fullName: fullName,
         phone: phone,
+        role: role,
+        additionalData: additionalData,
       );
 
+      print('✅ User created successfully: ${user.userId}');
       _currentUser.value = user;
+      
+      print('📖 Loading profile...');
       await _loadProfile(user.userId);
+      
+      print('📍 Loading addresses...');
       await _loadAddresses(user.userId);
+      
       _state.value = AuthState.authenticated;
       _isLoading.value = false;
+      print('🎉 SignUp process completed in controller');
       return true;
     } on AuthException catch (e) {
+      print('❌ AuthException in controller: ${e.message}');
       _errorMessage.value = e.message;
+      _state.value = AuthState.error;
+      _isLoading.value = false;
+      return false;
+    } catch (e, stackTrace) {
+      print('❌ Unexpected error in controller: $e');
+      print('📍 Stack trace: $stackTrace');
+      _errorMessage.value = 'Đã có lỗi xảy ra: $e';
       _state.value = AuthState.error;
       _isLoading.value = false;
       return false;
