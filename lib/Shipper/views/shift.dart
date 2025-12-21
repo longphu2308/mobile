@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/User/utils/utils.dart';
+import 'package:mobile/Shipper/widgets/shipper_bottom_nav.dart';
 
 class ShiftPage extends StatefulWidget {
   static const routeName = '/shipper/shift';
@@ -41,6 +42,7 @@ class _ShiftPageState extends State<ShiftPage> {
           ],
         ),
       ),
+      bottomNavigationBar: shipperBottomNav(context, 0),
     );
   }
 }

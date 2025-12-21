@@ -29,6 +29,8 @@ import 'package:mobile/Shipper/models/shipper_order.dart';
 import 'package:mobile/Shipper/views/shipper_dashboard.dart';
 import 'package:mobile/Shipper/views/order_detail.dart';
 import 'package:mobile/Shipper/views/order_history.dart';
+import 'package:mobile/Shipper/views/pickup_confirm.dart';
+import 'package:mobile/Shipper/views/delivery_confirm.dart';
 import 'package:mobile/Shipper/views/profile.dart' as shipper_profile;
 import 'package:mobile/Shipper/views/live_tracking.dart';
 import 'package:mobile/Shipper/views/pickup_confirm.dart';
@@ -181,7 +183,14 @@ class AppRouter {
 
       case shipperOrderDetailRoute:
         final args = settings.arguments as ShipperOrder;
-        return MaterialPageRoute(builder: (_) => OrderDetail(order: args));
+
+        return MaterialPageRoute(builder: (_) => OrderDetail(), settings: settings);
+
+      case '/shipper/pickup-confirm':
+        return MaterialPageRoute(builder: (_) => const PickupConfirm(), settings: settings);
+
+      case '/shipper/delivery-confirm':
+        return MaterialPageRoute(builder: (_) => const DeliveryConfirm(), settings: settings);
 
       case shipperHistoryRoute:
         return MaterialPageRoute(builder: (_) => const OrderHistory());
