@@ -113,8 +113,10 @@ class OrderModel {
   final double? deliveryLongitude;
   final String paymentMethod;
   final String? note;
+  final String? cancelReason;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final DateTime? deliveredAt;
 
   OrderModel({
     required this.id,
@@ -129,8 +131,10 @@ class OrderModel {
     this.deliveryLongitude,
     required this.paymentMethod,
     this.note,
+    this.cancelReason,
     required this.createdAt,
     required this.updatedAt,
+    this.deliveredAt,
   });
 
   // Chuyển từ Supabase data sang model
@@ -154,32 +158,41 @@ class OrderModel {
       deliveryLongitude: data['delivery_longitude']?.toDouble(),
       paymentMethod: data['payment_method'] ?? 'cash',
       note: data['note'],
+      cancelReason: data['cancel_reason'],
       createdAt: data['created_at'] != null
           ? DateTime.parse(data['created_at'])
           : DateTime.now(),
       updatedAt: data['updated_at'] != null
           ? DateTime.parse(data['updated_at'])
           : DateTime.now(),
+      deliveredAt: data['delivered_at'] != null
+          ? DateTime.parse(data['delivered_at'])
+          : null,
     );
   }
 
   // Chuyển model sang map để lưu vào Supabase
   Map<String, dynamic> toMap() {
-    return {
+    final map = <String, dynamic>{
       'user_id': userId,
       'restaurant_id': restaurantId,
-      'shipper_id': shipperId,
-      'items': items.map((item) => item.toMap()).toList(),
       'total_amount': totalAmount,
       'status': status.value,
       'delivery_address': deliveryAddress,
-      'delivery_latitude': deliveryLatitude,
-      'delivery_longitude': deliveryLongitude,
       'payment_method': paymentMethod,
-      'note': note,
       'created_at': createdAt.toIso8601String(),
       'updated_at': DateTime.now().toIso8601String(),
     };
+    // Only include optional fields if they have values
+    if (shipperId != null) map['shipper_id'] = shipperId;
+    if (deliveryLatitude != null) map['delivery_latitude'] = deliveryLatitude;
+    if (deliveryLongitude != null)
+      map['delivery_longitude'] = deliveryLongitude;
+    if (note != null) map['note'] = note;
+    if (cancelReason != null) map['cancel_reason'] = cancelReason;
+    if (deliveredAt != null)
+      map['delivered_at'] = deliveredAt!.toIso8601String();
+    return map;
   }
 
   OrderModel copyWith({
@@ -195,8 +208,10 @@ class OrderModel {
     double? deliveryLongitude,
     String? paymentMethod,
     String? note,
+    String? cancelReason,
     DateTime? createdAt,
     DateTime? updatedAt,
+    DateTime? deliveredAt,
   }) {
     return OrderModel(
       id: id ?? this.id,
@@ -211,8 +226,10 @@ class OrderModel {
       deliveryLongitude: deliveryLongitude ?? this.deliveryLongitude,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       note: note ?? this.note,
+      cancelReason: cancelReason ?? this.cancelReason,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      deliveredAt: deliveredAt ?? this.deliveredAt,
     );
   }
 

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile/core/models/food_model.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/Owner/presentation/controllers/menu_controller.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 
 class AddEditFoodScreen extends StatefulWidget {
   final FoodModel? food;
@@ -191,7 +191,7 @@ class _AddEditFoodScreenState extends State<AddEditFoodScreen> {
     setState(() => isLoading = true);
 
     try {
-      final controller = context.read<MenuScreenController>();
+      final controller = Get.find<MenuScreenController>();
       final price = double.parse(priceController.text);
 
       final food = FoodModel(

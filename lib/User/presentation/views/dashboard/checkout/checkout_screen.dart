@@ -6,7 +6,7 @@ import 'package:mobile/User/presentation/controllers/order_controller.dart';
 import 'package:mobile/User/presentation/controllers/auth_controller.dart';
 import 'package:mobile/core/models/cart_model.dart';
 import 'package:mobile/config/routes.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -68,8 +68,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         title: const Text('Checkout', style: TextStyle(color: blackColor)),
         centerTitle: true,
       ),
-      body: Consumer3<CartController, AuthController, OrderController>(
-        builder: (context, cartController, authController, orderController, _) {
+      body: GetBuilder<CartController>(
+        builder: (cartController) {
+          final authController = Get.find<AuthController>();
+          final orderController = Get.find<OrderController>();
           if (cartController.items.isEmpty) {
             return const Center(child: Text('Your cart is empty'));
           }

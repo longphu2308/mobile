@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'package:mobile/core/repositories/auth_repository.dart';
 import 'package:mobile/core/models/user_model.dart';
@@ -7,30 +7,30 @@ import 'package:mobile/core/services/supabase/supabase_service.dart';
 
 enum AuthState { initial, loading, authenticated, unauthenticated, error }
 
-class AuthController extends ChangeNotifier {
+class AuthController extends GetxController {
   final AuthRepository _authRepository;
   final SupabaseService _supabase = SupabaseService();
 
-  UserModel? _currentUser;
-  UserProfileModel? _currentProfile;
-  List<UserAddressModel> _addresses = [];
-  AuthState _state = AuthState.initial;
-  String? _errorMessage;
-  bool _isLoading = false;
+  final Rx<UserModel?> _currentUser = Rx<UserModel?>(null);
+  final Rx<UserProfileModel?> _currentProfile = Rx<UserProfileModel?>(null);
+  final RxList<UserAddressModel> _addresses = <UserAddressModel>[].obs;
+  final Rx<AuthState> _state = AuthState.initial.obs;
+  final RxnString _errorMessage = RxnString(null);
+  final RxBool _isLoading = false.obs;
 
   // Getters
-  UserModel? get currentUser => _currentUser;
-  UserProfileModel? get currentProfile => _currentProfile;
+  UserModel? get currentUser => _currentUser.value;
+  UserProfileModel? get currentProfile => _currentProfile.value;
   List<UserAddressModel> get addresses => _addresses;
-  AuthState get state => _state;
-  String? get errorMessage => _errorMessage;
-  bool get isLoading => _isLoading;
-  bool get isAuthenticated => _currentUser != null;
+  AuthState get state => _state.value;
+  String? get errorMessage => _errorMessage.value;
+  bool get isLoading => _isLoading.value;
+  bool get isAuthenticated => _currentUser.value != null;
 
   // Convenience getters cho profile
-  String? get fullName => _currentProfile?.fullName;
-  String? get phone => _currentProfile?.phone;
-  String? get avatarUrl => _currentProfile?.avatarUrl;
+  String? get fullName => _currentProfile.value?.fullName;
+  String? get phone => _currentProfile.value?.phone;
+  String? get avatarUrl => _currentProfile.value?.avatarUrl;
   UserAddressModel? get defaultAddress {
     try {
       return _addresses.firstWhere((addr) => addr.isDefault);
@@ -59,34 +59,33 @@ class AuthController extends ChangeNotifier {
       try {
         UserModel? userData = await _authRepository.getCurrentUser();
         if (userData != null) {
-          _currentUser = userData;
+          _currentUser.value = userData;
           await _loadProfile(userData.userId);
           await _loadAddresses(userData.userId);
-          _state = AuthState.authenticated;
+          _state.value = AuthState.authenticated;
         } else {
           // User authenticated but no data in database, sign out
           await _authRepository.signOut();
-          _currentUser = null;
-          _currentProfile = null;
-          _addresses = [];
-          _state = AuthState.unauthenticated;
+          _currentUser.value = null;
+          _currentProfile.value = null;
+          _addresses.clear();
+          _state.value = AuthState.unauthenticated;
         }
       } catch (e) {
         // If error loading, sign out
         await _authRepository.signOut();
-        _currentUser = null;
-        _currentProfile = null;
-        _addresses = [];
-        _state = AuthState.unauthenticated;
+        _currentUser.value = null;
+        _currentProfile.value = null;
+        _addresses.clear();
+        _state.value = AuthState.unauthenticated;
       }
     } else {
       // User is signed out
-      _currentUser = null;
-      _currentProfile = null;
-      _addresses = [];
-      _state = AuthState.unauthenticated;
+      _currentUser.value = null;
+      _currentProfile.value = null;
+      _addresses.clear();
+      _state.value = AuthState.unauthenticated;
     }
-    notifyListeners();
   }
 
   Future<void> _loadProfile(String userId) async {
@@ -97,7 +96,7 @@ class AuthController extends ChangeNotifier {
           .eq('user_id', userId)
           .maybeSingle();
       if (data != null) {
-        _currentProfile = UserProfileModel.fromMap(data);
+        _currentProfile.value = UserProfileModel.fromMap(data);
       }
     } catch (e) {
       // Ignore error, profile may not exist yet
@@ -111,11 +110,11 @@ class AuthController extends ChangeNotifier {
           .select()
           .eq('user_id', userId)
           .order('is_default', ascending: false);
-      _addresses = (data as List)
-          .map((item) => UserAddressModel.fromMap(item))
-          .toList();
+      _addresses.assignAll(
+        (data as List).map((item) => UserAddressModel.fromMap(item)).toList(),
+      );
     } catch (e) {
-      _addresses = [];
+      _addresses.clear();
     }
   }
 
@@ -127,8 +126,8 @@ class AuthController extends ChangeNotifier {
     required String phone,
   }) async {
     try {
-      _setLoading(true);
-      _errorMessage = null;
+      _isLoading.value = true;
+      _errorMessage.value = null;
 
       UserModel user = await _authRepository.signUp(
         email: email,
@@ -137,18 +136,16 @@ class AuthController extends ChangeNotifier {
         phone: phone,
       );
 
-      _currentUser = user;
+      _currentUser.value = user;
       await _loadProfile(user.userId);
       await _loadAddresses(user.userId);
-      _state = AuthState.authenticated;
-      _setLoading(false);
-      notifyListeners();
+      _state.value = AuthState.authenticated;
+      _isLoading.value = false;
       return true;
     } on AuthException catch (e) {
-      _errorMessage = e.message;
-      _state = AuthState.error;
-      _setLoading(false);
-      notifyListeners();
+      _errorMessage.value = e.message;
+      _state.value = AuthState.error;
+      _isLoading.value = false;
       return false;
     }
   }
@@ -156,24 +153,22 @@ class AuthController extends ChangeNotifier {
   /// Sign in with email and password
   Future<bool> signIn({required String email, required String password}) async {
     try {
-      _setLoading(true);
-      _errorMessage = null;
+      _isLoading.value = true;
+      _errorMessage.value = null;
 
       UserModel user = await _authRepository.signIn(
         email: email,
         password: password,
       );
 
-      _currentUser = user;
-      _state = AuthState.authenticated;
-      _setLoading(false);
-      notifyListeners();
+      _currentUser.value = user;
+      _state.value = AuthState.authenticated;
+      _isLoading.value = false;
       return true;
     } on AuthException catch (e) {
-      _errorMessage = e.message;
-      _state = AuthState.error;
-      _setLoading(false);
-      notifyListeners();
+      _errorMessage.value = e.message;
+      _state.value = AuthState.error;
+      _isLoading.value = false;
       return false;
     }
   }
@@ -181,20 +176,18 @@ class AuthController extends ChangeNotifier {
   /// Sign out
   Future<bool> signOut() async {
     try {
-      _setLoading(true);
+      _isLoading.value = true;
       await _authRepository.signOut();
 
-      _currentUser = null;
-      _state = AuthState.unauthenticated;
-      _errorMessage = null;
-      _setLoading(false);
-      notifyListeners();
+      _currentUser.value = null;
+      _state.value = AuthState.unauthenticated;
+      _errorMessage.value = null;
+      _isLoading.value = false;
       return true;
     } on AuthException catch (e) {
-      _errorMessage = e.message;
-      _state = AuthState.error;
-      _setLoading(false);
-      notifyListeners();
+      _errorMessage.value = e.message;
+      _state.value = AuthState.error;
+      _isLoading.value = false;
       return false;
     }
   }
@@ -202,27 +195,25 @@ class AuthController extends ChangeNotifier {
   /// Get current user from Firestore
   Future<void> loadCurrentUser() async {
     try {
-      _setLoading(true);
+      _isLoading.value = true;
       UserModel? user = await _authRepository.getCurrentUser();
 
       if (user != null) {
-        _currentUser = user;
+        _currentUser.value = user;
         await _loadProfile(user.userId);
         await _loadAddresses(user.userId);
-        _state = AuthState.authenticated;
+        _state.value = AuthState.authenticated;
       } else {
-        _currentUser = null;
-        _currentProfile = null;
-        _addresses = [];
-        _state = AuthState.unauthenticated;
+        _currentUser.value = null;
+        _currentProfile.value = null;
+        _addresses.clear();
+        _state.value = AuthState.unauthenticated;
       }
-      _setLoading(false);
-      notifyListeners();
+      _isLoading.value = false;
     } on AuthException catch (e) {
-      _errorMessage = e.message;
-      _state = AuthState.error;
-      _setLoading(false);
-      notifyListeners();
+      _errorMessage.value = e.message;
+      _state.value = AuthState.error;
+      _isLoading.value = false;
     }
   }
 
@@ -232,38 +223,37 @@ class AuthController extends ChangeNotifier {
     String? phone,
     String? avatarUrl,
   }) async {
-    if (_currentUser == null) return false;
+    if (_currentUser.value == null) return false;
 
     try {
-      _setLoading(true);
+      _isLoading.value = true;
 
-      if (_currentProfile != null) {
+      if (_currentProfile.value != null) {
         // Update existing profile
         await _supabase
             .from('user_profiles')
             .update({
-              'full_name': fullName ?? _currentProfile!.fullName,
-              'phone': phone ?? _currentProfile!.phone,
-              'avatar_url': avatarUrl ?? _currentProfile!.avatarUrl,
+              'full_name': fullName ?? _currentProfile.value!.fullName,
+              'phone': phone ?? _currentProfile.value!.phone,
+              'avatar_url': avatarUrl ?? _currentProfile.value!.avatarUrl,
               'updated_at': DateTime.now().toIso8601String(),
             })
-            .eq('user_id', _currentUser!.userId);
+            .eq('user_id', _currentUser.value!.userId);
       } else {
         // Create new profile
         await _supabase.from('user_profiles').insert({
-          'user_id': _currentUser!.userId,
+          'user_id': _currentUser.value!.userId,
           'full_name': fullName,
           'phone': phone,
           'avatar_url': avatarUrl,
         });
       }
 
-      await _loadProfile(_currentUser!.userId);
-      _setLoading(false);
-      notifyListeners();
+      await _loadProfile(_currentUser.value!.userId);
+      _isLoading.value = false;
       return true;
     } catch (e) {
-      _setLoading(false);
+      _isLoading.value = false;
       return false;
     }
   }
@@ -276,21 +266,21 @@ class AuthController extends ChangeNotifier {
     double? longitude,
     bool isDefault = false,
   }) async {
-    if (_currentUser == null) return false;
+    if (_currentUser.value == null) return false;
 
     try {
-      _setLoading(true);
+      _isLoading.value = true;
 
       // If setting as default, unset other defaults
       if (isDefault) {
         await _supabase
             .from('user_addresses')
             .update({'is_default': false})
-            .eq('user_id', _currentUser!.userId);
+            .eq('user_id', _currentUser.value!.userId);
       }
 
       await _supabase.from('user_addresses').insert({
-        'user_id': _currentUser!.userId,
+        'user_id': _currentUser.value!.userId,
         'label': label.value,
         'address': address,
         'latitude': latitude,
@@ -298,35 +288,27 @@ class AuthController extends ChangeNotifier {
         'is_default': isDefault,
       });
 
-      await _loadAddresses(_currentUser!.userId);
-      _setLoading(false);
-      notifyListeners();
+      await _loadAddresses(_currentUser.value!.userId);
+      _isLoading.value = false;
       return true;
     } catch (e) {
-      _setLoading(false);
+      _isLoading.value = false;
       return false;
     }
   }
 
   /// Clear error message
   void clearError() {
-    _errorMessage = null;
-    notifyListeners();
-  }
-
-  /// Private helper
-  void _setLoading(bool value) {
-    _isLoading = value;
+    _errorMessage.value = null;
   }
 
   /// Reset controller
   void reset() {
-    _currentUser = null;
-    _currentProfile = null;
-    _addresses = [];
-    _state = AuthState.initial;
-    _errorMessage = null;
-    _isLoading = false;
-    notifyListeners();
+    _currentUser.value = null;
+    _currentProfile.value = null;
+    _addresses.clear();
+    _state.value = AuthState.initial;
+    _errorMessage.value = null;
+    _isLoading.value = false;
   }
 }

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:mobile/core/repositories/favorite_repository.dart';
 import 'package:mobile/core/models/favorite_model.dart';
 import 'package:mobile/core/models/food_model.dart';
@@ -6,23 +6,23 @@ import 'package:mobile/core/errors/app_exception.dart';
 
 enum FavoriteState { initial, loading, success, error }
 
-class FavoriteController extends ChangeNotifier {
+class FavoriteController extends GetxController {
   final FavoriteRepository _favoriteRepository;
 
-  List<FavoriteModel> _favoriteFoods = [];
-  FavoriteState _state = FavoriteState.initial;
-  String? _errorMessage;
-  bool _isLoading = false;
+  final RxList<FavoriteModel> _favoriteFoods = <FavoriteModel>[].obs;
+  final Rx<FavoriteState> _state = FavoriteState.initial.obs;
+  final RxnString _errorMessage = RxnString(null);
+  final RxBool _isLoading = false.obs;
   String? _currentUserId;
 
   // Getters
   List<FavoriteModel> get favoriteFoods => _favoriteFoods;
-  FavoriteState get state => _state;
-  String? get errorMessage => _errorMessage;
-  bool get isLoading => _isLoading;
+  FavoriteState get state => _state.value;
+  String? get errorMessage => _errorMessage.value;
+  bool get isLoading => _isLoading.value;
 
   FavoriteController({FavoriteRepository? favoriteRepository})
-      : _favoriteRepository = favoriteRepository ?? FavoriteRepository();
+    : _favoriteRepository = favoriteRepository ?? FavoriteRepository();
 
   /// Set current user ID
   void setUserId(String userId) {
@@ -32,32 +32,34 @@ class FavoriteController extends ChangeNotifier {
   /// Load user's favorite foods
   Future<bool> loadFavorites() async {
     if (_currentUserId == null) {
-      _errorMessage = 'User not logged in';
-      _state = FavoriteState.error;
-      notifyListeners();
+      _errorMessage.value = 'User not logged in';
+      _state.value = FavoriteState.error;
       return false;
     }
 
     try {
-      _setLoading(true);
-      _errorMessage = null;
+      _isLoading.value = true;
+      _errorMessage.value = null;
 
-      final favorites =
-          await _favoriteRepository.getUserFavorites(_currentUserId!);
-      _favoriteFoods = favorites
-          .where((favorite) =>
-              favorite.foodId.isNotEmpty && favorite.foodName.isNotEmpty)
-          .toList();
+      final favorites = await _favoriteRepository.getUserFavorites(
+        _currentUserId!,
+      );
+      _favoriteFoods.assignAll(
+        favorites
+            .where(
+              (favorite) =>
+                  favorite.foodId.isNotEmpty && favorite.foodName.isNotEmpty,
+            )
+            .toList(),
+      );
 
-      _state = FavoriteState.success;
-      _setLoading(false);
-      notifyListeners();
+      _state.value = FavoriteState.success;
+      _isLoading.value = false;
       return true;
     } on FirestoreException catch (e) {
-      _errorMessage = e.message;
-      _state = FavoriteState.error;
-      _setLoading(false);
-      notifyListeners();
+      _errorMessage.value = e.message;
+      _state.value = FavoriteState.error;
+      _isLoading.value = false;
       return false;
     }
   }
@@ -65,30 +67,29 @@ class FavoriteController extends ChangeNotifier {
   /// Add food to favorites
   Future<bool> addFavorite(FoodModel food) async {
     if (_currentUserId == null) {
-      _errorMessage = 'User not logged in';
-      notifyListeners();
+      _errorMessage.value = 'User not logged in';
       return false;
     }
 
     try {
-      _setLoading(true);
-      _errorMessage = null;
+      _isLoading.value = true;
+      _errorMessage.value = null;
 
-      final success =
-          await _favoriteRepository.addFavorite(_currentUserId!, food);
+      final success = await _favoriteRepository.addFavorite(
+        _currentUserId!,
+        food,
+      );
 
       if (success) {
         // Reload favorites
         await loadFavorites();
       }
 
-      _setLoading(false);
-      notifyListeners();
+      _isLoading.value = false;
       return success;
     } on FirestoreException catch (e) {
-      _errorMessage = e.message;
-      _setLoading(false);
-      notifyListeners();
+      _errorMessage.value = e.message;
+      _isLoading.value = false;
       return false;
     }
   }
@@ -96,14 +97,13 @@ class FavoriteController extends ChangeNotifier {
   /// Remove food from favorites
   Future<bool> removeFavorite(String foodId) async {
     if (_currentUserId == null) {
-      _errorMessage = 'User not logged in';
-      notifyListeners();
+      _errorMessage.value = 'User not logged in';
       return false;
     }
 
     try {
-      _setLoading(true);
-      _errorMessage = null;
+      _isLoading.value = true;
+      _errorMessage.value = null;
 
       final success = await _favoriteRepository.removeFavorite(
         _currentUserId!,
@@ -115,13 +115,11 @@ class FavoriteController extends ChangeNotifier {
         await loadFavorites();
       }
 
-      _setLoading(false);
-      notifyListeners();
+      _isLoading.value = false;
       return success;
     } on FirestoreException catch (e) {
-      _errorMessage = e.message;
-      _setLoading(false);
-      notifyListeners();
+      _errorMessage.value = e.message;
+      _isLoading.value = false;
       return false;
     }
   }
@@ -131,10 +129,7 @@ class FavoriteController extends ChangeNotifier {
     if (_currentUserId == null) return false;
 
     try {
-      return await _favoriteRepository.isFavorited(
-        _currentUserId!,
-        foodId,
-      );
+      return await _favoriteRepository.isFavorited(_currentUserId!, foodId);
     } catch (e) {
       return false;
     }
@@ -142,23 +137,14 @@ class FavoriteController extends ChangeNotifier {
 
   /// Clear error message
   void clearError() {
-    _errorMessage = null;
-    notifyListeners();
-  }
-
-  /// Private helper
-  void _setLoading(bool value) {
-    _isLoading = value;
+    _errorMessage.value = null;
   }
 
   /// Reset controller
   void reset() {
-    _favoriteFoods = [];
-    _state = FavoriteState.initial;
-    _errorMessage = null;
-    _isLoading = false;
-    notifyListeners();
+    _favoriteFoods.clear();
+    _state.value = FavoriteState.initial;
+    _errorMessage.value = null;
+    _isLoading.value = false;
   }
 }
-
-

@@ -626,3 +626,7 @@ CREATE POLICY "Users can update own payments" ON payments
   USING (
     order_id IN (SELECT order_id FROM orders WHERE user_id = auth.uid())
   );
+
+-- Add missing columns to orders table if not exists
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_latitude DECIMAL(10, 8);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_longitude DECIMAL(11, 8);

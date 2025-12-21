@@ -5,11 +5,12 @@ import 'package:mobile/User/utils/utils.dart';
 
 class DeliveryConfirm extends StatelessWidget {
   static const routeName = '/shipper/delivery-confirm';
-  const DeliveryConfirm({super.key});
+  final ShipperOrder order;
+  
+  const DeliveryConfirm({super.key, required this.order});
 
   @override
   Widget build(BuildContext context) {
-    final order = ModalRoute.of(context)!.settings.arguments as ShipperOrder;
     return Scaffold(
       appBar: AppBar(
         title: Text('Deliver ${order.id}'),

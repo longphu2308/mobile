@@ -1,53 +1,72 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:mobile/core/services/supabase/supabase_service.dart';
 import 'package:mobile/core/repositories/restaurant_repository.dart';
 import 'package:mobile/core/repositories/order_repository.dart';
 import 'package:mobile/core/models/restaurant_model.dart';
 import 'package:mobile/core/models/order_model.dart';
 
-class OrdersController extends ChangeNotifier {
+// Cancel reasons for restaurant
+enum CancelReason { closingTime, outOfStock, other }
+
+extension CancelReasonExtension on CancelReason {
+  String get displayName {
+    switch (this) {
+      case CancelReason.closingTime:
+        return 'Đến giờ đóng cửa';
+      case CancelReason.outOfStock:
+        return 'Hết món';
+      case CancelReason.other:
+        return 'Lý do khác';
+    }
+  }
+}
+
+class OrdersController extends GetxController {
   final RestaurantRepository _restaurantRepository = RestaurantRepository();
   final OrderRepository _orderRepository = OrderRepository();
   final _supabase = SupabaseService();
 
-  RestaurantModel? _restaurant;
-  List<OrderModel> _orders = [];
-  bool _isLoading = false;
-  String? _error;
+  final Rx<RestaurantModel?> _restaurant = Rx<RestaurantModel?>(null);
+  final RxList<OrderModel> _orders = <OrderModel>[].obs;
+  final RxBool _isLoading = false.obs;
+  final RxnString _error = RxnString(null);
 
   List<OrderModel> get orders => _orders;
-  bool get isLoading => _isLoading;
-  String? get error => _error;
+  bool get isLoading => _isLoading.value;
+  String? get error => _error.value;
 
   // Load orders của restaurant
   Future<void> loadOrders() async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
+    _isLoading.value = true;
+    _error.value = null;
 
     try {
       final userId = _supabase.currentUser?.id;
       if (userId == null) {
-        _error = 'User not authenticated';
+        _error.value = 'User not authenticated';
         return;
       }
 
       // Lấy restaurant của owner
-      _restaurant = await _restaurantRepository.getRestaurantByOwnerId(userId);
+      _restaurant.value = await _restaurantRepository.getRestaurantByOwnerId(
+        userId,
+      );
 
-      if (_restaurant == null) {
-        _error = 'Restaurant not found';
+      if (_restaurant.value == null) {
+        _error.value = 'Restaurant not found';
         return;
       }
 
       // Lấy tất cả orders của restaurant
-      _orders = await _orderRepository.getRestaurantOrders(_restaurant!.id);
+      _orders.assignAll(
+        await _orderRepository.getRestaurantOrders(_restaurant.value!.id),
+      );
     } catch (e) {
-      _error = 'Error loading orders: $e';
-      print(_error);
+      _error.value = 'Error loading orders: $e';
+      print(_error.value);
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      _isLoading.value = false;
     }
   }
 
@@ -77,6 +96,10 @@ class OrdersController extends ChangeNotifier {
   Future<void> updateStatus(String orderId, OrderStatus currentStatus) async {
     OrderStatus? newStatus;
 
+    // Order flow for restaurant:
+    // pending -> confirmed (restaurant confirms after shipper accepts or when shipper arrives)
+    // confirmed -> preparing (restaurant starts cooking)
+    // preparing -> ready_for_pickup (food is ready)
     switch (currentStatus) {
       case OrderStatus.pending:
         newStatus = OrderStatus.confirmed;
@@ -86,12 +109,6 @@ class OrdersController extends ChangeNotifier {
         break;
       case OrderStatus.preparing:
         newStatus = OrderStatus.readyForPickup;
-        break;
-      case OrderStatus.readyForPickup:
-        newStatus = OrderStatus.delivering;
-        break;
-      case OrderStatus.delivering:
-        newStatus = OrderStatus.delivered;
         break;
       default:
         return;
@@ -107,7 +124,6 @@ class OrdersController extends ChangeNotifier {
         final index = _orders.indexWhere((o) => o.id == orderId);
         if (index >= 0) {
           _orders[index] = _orders[index].copyWith(status: newStatus);
-          notifyListeners();
         }
       }
     } catch (e) {
@@ -115,7 +131,21 @@ class OrdersController extends ChangeNotifier {
     }
   }
 
-  Future<void> cancelOrder(String orderId) async {
+  /// Cancel order with reason - only allowed if shipper hasn't confirmed
+  Future<bool> cancelOrderWithReason(
+    String orderId,
+    CancelReason reason,
+  ) async {
+    final order = _orders.firstWhereOrNull((o) => o.id == orderId);
+    if (order == null) return false;
+
+    // Check if shipper has already confirmed (picked up)
+    // If shipper is assigned and order is not pending, cannot cancel
+    if (order.shipperId != null && order.status != OrderStatus.pending) {
+      _error.value = 'Tài xế đã nhận đơn, không thể hủy';
+      return false;
+    }
+
     try {
       final success = await _orderRepository.cancelOrder(orderId);
 
@@ -125,12 +155,18 @@ class OrdersController extends ChangeNotifier {
           _orders[index] = _orders[index].copyWith(
             status: OrderStatus.cancelled,
           );
-          notifyListeners();
         }
+        return true;
       }
+      return false;
     } catch (e) {
       print('Error cancelling order: $e');
+      return false;
     }
+  }
+
+  Future<void> cancelOrder(String orderId) async {
+    await cancelOrderWithReason(orderId, CancelReason.other);
   }
 
   Future<void> refresh() async {

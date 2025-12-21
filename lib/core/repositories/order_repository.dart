@@ -1,5 +1,6 @@
 import 'package:mobile/core/models/order_model.dart';
 import 'package:mobile/core/services/supabase/supabase_service.dart';
+import 'package:mobile/core/models/user_model.dart';
 
 class OrderRepository {
   final _supabase = SupabaseService().client;
@@ -214,5 +215,83 @@ class OrderRepository {
       print('Error counting orders: $e');
       return {};
     }
+  }
+
+  // Get available shippers
+  Future<List<ShipperProfileModel>> getAvailableShippers() async {
+    try {
+      final data = await _supabase
+          .from('shipper_profiles')
+          .select()
+          .eq('is_available', true);
+      return (data as List)
+          .map((item) => ShipperProfileModel.fromMap(item))
+          .toList();
+    } catch (e) {
+      print('Error getting available shippers: $e');
+      return [];
+    }
+  }
+
+  // Assign shipper to order
+  Future<bool> assignShipperToOrder(String orderId, String shipperId) async {
+    try {
+      await _supabase
+          .from(_table)
+          .update({'shipper_id': shipperId})
+          .eq('order_id', orderId);
+      return true;
+    } catch (e) {
+      print('Error assigning shipper: $e');
+      return false;
+    }
+  }
+
+  // Get orders by shipper
+  Future<List<OrderModel>> getOrdersByShipper(String shipperId) async {
+    try {
+      final data = await _supabase
+          .from(_table)
+          .select()
+          .eq('shipper_id', shipperId)
+          .order('created_at', ascending: false);
+      return (data as List)
+          .map((item) => OrderModel.fromMap(item, item['order_id']))
+          .toList();
+    } catch (e) {
+      print('Error getting shipper orders: $e');
+      return [];
+    }
+  }
+
+  // Get orders by status (global, for shipper to find available orders)
+  Future<List<OrderModel>> getOrdersByStatus(String status) async {
+    try {
+      final data = await _supabase
+          .from(_table)
+          .select()
+          .eq('status', status)
+          .order('created_at', ascending: false);
+      return (data as List)
+          .map((item) => OrderModel.fromMap(item, item['order_id']))
+          .toList();
+    } catch (e) {
+      print('Error getting orders by status: $e');
+      return [];
+    }
+  }
+
+  // Stream for shipper orders
+  Stream<List<OrderModel>> shipperOrdersStream(String shipperId) {
+    return _supabase
+        .from(_table)
+        .stream(primaryKey: ['order_id'])
+        .eq('shipper_id', shipperId)
+        .order('created_at', ascending: false)
+        .map(
+          (data) => data
+              .map((item) => OrderModel.fromMap(item, item['order_id']))
+              .toList(),
+        );
   }
 }

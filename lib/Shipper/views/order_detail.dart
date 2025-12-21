@@ -31,7 +31,9 @@ double _statusProgress(String status) {
 
 class OrderDetail extends StatefulWidget {
   static const routeName = '/shipper/order-detail';
-  const OrderDetail({super.key});
+  final ShipperOrder order;
+  
+  const OrderDetail({super.key, required this.order});
 
   @override
   State<OrderDetail> createState() => _OrderDetailState();

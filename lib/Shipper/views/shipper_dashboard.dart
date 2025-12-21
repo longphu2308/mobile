@@ -165,15 +165,7 @@ class _ShipperDashboardState extends State<ShipperDashboard> {
                         activeColor: primaryColor,
                         onChanged: (v) {
                           setState(() => online = v);
-                          if (v) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Bắt đầu nhận đơn')),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Tạm nghỉ')),
-                            );
-                          }
+                          if (v) _showIncoming();
                         },
                       ),
                     ],
@@ -190,21 +182,6 @@ class _ShipperDashboardState extends State<ShipperDashboard> {
                   _buildStatCard('Đơn hôm nay', isLoading ? '...' : '${orders.length}'),
                   _buildStatCard('Thu nhập', '1,250,000 VND'),
                 ],
-              ),
-
-              const SizedBox(height: 12),
-
-              // Start / Pause button
-              ElevatedButton(
-                onPressed: () {
-                  setState(() => online = !online);
-                  if (online) _showIncoming();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: Text(online ? 'Tạm nghỉ' : 'Bắt đầu nhận đơn'),
               ),
 
               const SizedBox(height: 12),

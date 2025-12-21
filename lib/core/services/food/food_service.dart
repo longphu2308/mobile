@@ -1,25 +1,24 @@
-import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
 import 'package:mobile/core/models/food_model.dart';
 import 'package:mobile/core/repositories/food_repository.dart';
 
-class FoodService extends ChangeNotifier {
+class FoodService extends GetxController {
   final FoodRepository _foodRepository;
-  final List<FoodModel> _foods = [];
-  final List<FoodModel> _filteredFoods = [];
-  bool _isLoading = false;
+  final RxList<FoodModel> _foods = <FoodModel>[].obs;
+  final RxList<FoodModel> _filteredFoods = <FoodModel>[].obs;
+  final RxBool _isLoading = false.obs;
 
   FoodService({FoodRepository? foodRepository})
     : _foodRepository = foodRepository ?? FoodRepository() {
     loadFoods();
   }
 
-  List<FoodModel> get foods => List.unmodifiable(_foods);
-  List<FoodModel> get filteredFoods => List.unmodifiable(_filteredFoods);
-  bool get isLoading => _isLoading;
+  List<FoodModel> get foods => _foods;
+  List<FoodModel> get filteredFoods => _filteredFoods;
+  bool get isLoading => _isLoading.value;
 
   Future<void> loadFoods() async {
-    _isLoading = true;
-    notifyListeners();
+    _isLoading.value = true;
 
     try {
       print('FoodService: Starting to load foods...');
@@ -33,8 +32,7 @@ class FoodService extends ChangeNotifier {
     } catch (e) {
       print('Error loading foods: $e');
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      _isLoading.value = false;
     }
   }
 
@@ -43,15 +41,13 @@ class FoodService extends ChangeNotifier {
     _filteredFoods.addAll(
       _foods.where((food) => food.category == category).toList(),
     );
-    notifyListeners();
   }
 
   Future<void> loadFoodsByRestaurantAndCategory(
     String restaurantId,
     String category,
   ) async {
-    _isLoading = true;
-    notifyListeners();
+    _isLoading.value = true;
 
     try {
       final foods = await _foodRepository.getFoodsByCategory(
@@ -63,8 +59,7 @@ class FoodService extends ChangeNotifier {
     } catch (e) {
       print('Error loading foods by category: $e');
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      _isLoading.value = false;
     }
   }
 
@@ -72,12 +67,10 @@ class FoodService extends ChangeNotifier {
     if (query.isEmpty) {
       _filteredFoods.clear();
       _filteredFoods.addAll(_foods);
-      notifyListeners();
       return;
     }
 
-    _isLoading = true;
-    notifyListeners();
+    _isLoading.value = true;
 
     try {
       final foods = await _foodRepository.searchFoods(query);
@@ -86,14 +79,12 @@ class FoodService extends ChangeNotifier {
     } catch (e) {
       print('Error searching foods: $e');
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      _isLoading.value = false;
     }
   }
 
   void clearFilters() {
     _filteredFoods.clear();
     _filteredFoods.addAll(_foods);
-    notifyListeners();
   }
 }

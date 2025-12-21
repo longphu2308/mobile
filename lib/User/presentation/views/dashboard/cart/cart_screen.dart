@@ -3,7 +3,7 @@ import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/formatters.dart';
 import 'package:mobile/User/presentation/controllers/cart_controller.dart';
 import 'package:mobile/core/models/cart_model.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
@@ -44,7 +44,11 @@ class CartScreen extends StatelessWidget {
             ],
           ),
           child: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: blackColor, size: 18),
+            icon: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: blackColor,
+              size: 18,
+            ),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -58,8 +62,8 @@ class CartScreen extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: Consumer<CartController>(
-        builder: (context, cartController, child) {
+      body: GetBuilder<CartController>(
+        builder: (cartController) {
           if (cartController.items.isEmpty) {
             return Center(
               child: Padding(
@@ -67,18 +71,6 @@ class CartScreen extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(32),
-                      decoration: BoxDecoration(
-                        color: primaryColor.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.shopping_cart_outlined,
-                        size: 80,
-                        color: primaryColor.withValues(alpha: 0.7),
-                      ),
-                    ),
                     const SizedBox(height: 32),
                     Text(
                       'Giỏ hàng trống',
@@ -116,7 +108,10 @@ class CartScreen extends StatelessWidget {
                   vertical: 16,
                 ),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: primaryColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
@@ -124,7 +119,11 @@ class CartScreen extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.swipe_left_rounded, size: 20, color: primaryColor),
+                      Icon(
+                        Icons.swipe_left_rounded,
+                        size: 20,
+                        color: primaryColor,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Vuốt sang trái để xóa món',
@@ -167,7 +166,11 @@ class CartScreen extends StatelessWidget {
                                   color: primaryColor.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: Icon(Icons.store_rounded, size: 18, color: primaryColor),
+                                child: Icon(
+                                  Icons.store_rounded,
+                                  size: 18,
+                                  color: primaryColor,
+                                ),
                               ),
                               const SizedBox(width: 12),
                               Text(
@@ -242,9 +245,7 @@ class CartScreen extends StatelessWidget {
                             ),
                             elevation: 0,
                             shadowColor: primaryColor.withValues(alpha: 0.3),
-                          ).copyWith(
-                            elevation: WidgetStateProperty.all(8),
-                          ),
+                          ).copyWith(elevation: WidgetStateProperty.all(8)),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -323,7 +324,11 @@ class _CartItemCard extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 24),
+              child: const Icon(
+                Icons.delete_outline_rounded,
+                color: Colors.red,
+                size: 24,
+              ),
             ),
           ],
         ),
@@ -372,10 +377,7 @@ class _CartItemCard extends StatelessWidget {
                       height: 70,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [
-                            Colors.grey[300]!,
-                            Colors.grey[200]!,
-                          ],
+                          colors: [Colors.grey[300]!, Colors.grey[200]!],
                         ),
                       ),
                       child: Icon(
@@ -408,7 +410,10 @@ class _CartItemCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: primaryColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
@@ -454,7 +459,11 @@ class _CartItemCard extends StatelessWidget {
                       ),
                       child: Container(
                         padding: const EdgeInsets.all(10),
-                        child: const Icon(Icons.remove_rounded, color: whiteColor, size: 18),
+                        child: const Icon(
+                          Icons.remove_rounded,
+                          color: whiteColor,
+                          size: 18,
+                        ),
                       ),
                     ),
                   ),
@@ -479,7 +488,11 @@ class _CartItemCard extends StatelessWidget {
                       ),
                       child: Container(
                         padding: const EdgeInsets.all(10),
-                        child: const Icon(Icons.add_rounded, color: whiteColor, size: 18),
+                        child: const Icon(
+                          Icons.add_rounded,
+                          color: whiteColor,
+                          size: 18,
+                        ),
                       ),
                     ),
                   ),
@@ -492,4 +505,3 @@ class _CartItemCard extends StatelessWidget {
     );
   }
 }
-

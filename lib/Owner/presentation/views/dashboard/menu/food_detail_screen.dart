@@ -3,7 +3,7 @@ import 'package:mobile/core/models/food_model.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/Owner/presentation/views/dashboard/menu/add_edit_food_screen.dart';
 import 'package:mobile/Owner/presentation/controllers/menu_controller.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 
 class FoodDetailScreen extends StatefulWidget {
   final FoodModel food;
@@ -89,8 +89,8 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
           ),
         ],
       ),
-      body: Consumer<MenuScreenController>(
-        builder: (context, controller, _) {
+      body: GetBuilder<MenuScreenController>(
+        builder: (controller) {
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(

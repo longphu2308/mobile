@@ -1,53 +1,55 @@
-import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:mobile/core/services/supabase/supabase_service.dart';
 import 'package:mobile/core/repositories/restaurant_repository.dart';
 import 'package:mobile/core/repositories/promo_repository.dart';
 import 'package:mobile/core/models/restaurant_model.dart';
 import 'package:mobile/core/models/promo_model.dart';
 
-class PromotionsController extends ChangeNotifier {
+class PromotionsController extends GetxController {
   final RestaurantRepository _restaurantRepository = RestaurantRepository();
   final PromoRepository _promoRepository = PromoRepository();
   final _supabase = SupabaseService();
 
-  RestaurantModel? _restaurant;
-  List<PromoModel> _promos = [];
-  bool _isLoading = false;
-  String? _error;
+  final Rx<RestaurantModel?> _restaurant = Rx<RestaurantModel?>(null);
+  final RxList<PromoModel> _promos = <PromoModel>[].obs;
+  final RxBool _isLoading = false.obs;
+  final RxnString _error = RxnString(null);
 
   List<PromoModel> get promos => _promos;
-  bool get isLoading => _isLoading;
-  String? get error => _error;
+  bool get isLoading => _isLoading.value;
+  String? get error => _error.value;
 
   // Load promos của restaurant
   Future<void> loadPromos() async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
+    _isLoading.value = true;
+    _error.value = null;
 
     try {
       final userId = _supabase.currentUser?.id;
       if (userId == null) {
-        _error = 'User not authenticated';
+        _error.value = 'User not authenticated';
         return;
       }
 
       // Lấy restaurant của owner
-      _restaurant = await _restaurantRepository.getRestaurantByOwnerId(userId);
+      _restaurant.value = await _restaurantRepository.getRestaurantByOwnerId(
+        userId,
+      );
 
-      if (_restaurant == null) {
-        _error = 'Restaurant not found';
+      if (_restaurant.value == null) {
+        _error.value = 'Restaurant not found';
         return;
       }
 
       // Lấy tất cả promos của restaurant
-      _promos = await _promoRepository.getRestaurantPromos(_restaurant!.id);
+      _promos.assignAll(
+        await _promoRepository.getRestaurantPromos(_restaurant.value!.id),
+      );
     } catch (e) {
-      _error = 'Error loading promos: $e';
-      print(_error);
+      _error.value = 'Error loading promos: $e';
+      print(_error.value);
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      _isLoading.value = false;
     }
   }
 
@@ -61,7 +63,6 @@ class PromotionsController extends ChangeNotifier {
         final index = _promos.indexWhere((p) => p.id == promoId);
         if (index >= 0) {
           _promos[index] = _promos[index].copyWith(active: !currentActive);
-          notifyListeners();
         }
       }
     } catch (e) {
@@ -75,7 +76,6 @@ class PromotionsController extends ChangeNotifier {
 
       if (success) {
         _promos.removeWhere((p) => p.id == promoId);
-        notifyListeners();
       }
     } catch (e) {
       print('Error deleting promo: $e');
@@ -88,7 +88,6 @@ class PromotionsController extends ChangeNotifier {
 
       if (promoId != null) {
         _promos.add(promo.copyWith(id: promoId));
-        notifyListeners();
       }
     } catch (e) {
       print('Error adding promo: $e');
@@ -106,7 +105,6 @@ class PromotionsController extends ChangeNotifier {
         final index = _promos.indexWhere((p) => p.id == promoId);
         if (index >= 0) {
           _promos[index] = updatedPromo.copyWith(id: promoId);
-          notifyListeners();
         }
       }
     } catch (e) {

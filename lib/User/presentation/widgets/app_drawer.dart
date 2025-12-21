@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/config/routes.dart';
 import 'package:mobile/User/presentation/controllers/auth_controller.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -16,10 +16,7 @@ class AppDrawer extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              primaryColor,
-              primaryColorDark,
-            ],
+            colors: [primaryColor, primaryColorDark],
           ),
         ),
         child: SafeArea(
@@ -36,7 +33,11 @@ class AppDrawer extends StatelessWidget {
                       title: 'Profile',
                       onTap: () {
                         Navigator.pop(context);
-                        Navigator.pushNamed(context, userDashboardRoute, arguments: {'initialIndex': 2});
+                        Navigator.pushNamed(
+                          context,
+                          userDashboardRoute,
+                          arguments: {'initialIndex': 2},
+                        );
                       },
                     ),
                     const Divider(
@@ -49,7 +50,11 @@ class AppDrawer extends StatelessWidget {
                       title: 'orders',
                       onTap: () {
                         Navigator.pop(context);
-                        Navigator.pushNamed(context, userDashboardRoute, arguments: {'initialIndex': 3});
+                        Navigator.pushNamed(
+                          context,
+                          userDashboardRoute,
+                          arguments: {'initialIndex': 3},
+                        );
                       },
                     ),
                     const Divider(
@@ -93,8 +98,8 @@ class AppDrawer extends StatelessWidget {
               // Sign-out Button
               Padding(
                 padding: const EdgeInsets.all(20),
-                child: Consumer<AuthController>(
-                  builder: (context, authController, child) {
+                child: GetBuilder<AuthController>(
+                  builder: (authController) {
                     return InkWell(
                       onTap: () {
                         Navigator.pop(context);
@@ -136,9 +141,7 @@ class AppDrawer extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
             Container(
@@ -147,15 +150,16 @@ class AppDrawer extends StatelessWidget {
                 color: Colors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.logout_rounded, color: Colors.red, size: 24),
+              child: const Icon(
+                Icons.logout_rounded,
+                color: Colors.red,
+                size: 24,
+              ),
             ),
             const SizedBox(width: 12),
             const Text(
               'Đăng xuất',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -220,11 +224,7 @@ class _DrawerMenuItem extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         child: Row(
           children: [
-            Icon(
-              icon,
-              color: whiteColor,
-              size: 24,
-            ),
+            Icon(icon, color: whiteColor, size: 24),
             const SizedBox(width: 20),
             Text(
               title,
@@ -240,4 +240,3 @@ class _DrawerMenuItem extends StatelessWidget {
     );
   }
 }
-

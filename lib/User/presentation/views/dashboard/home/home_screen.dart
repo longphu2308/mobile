@@ -10,7 +10,7 @@ import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/formatters.dart';
 import 'package:mobile/User/utils/strings.dart';
 import 'package:mobile/config/routes.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -32,11 +32,8 @@ class _HomeScreenState extends State<HomeScreen>
 
   void _loadFavorites() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final authController =
-          Provider.of<AuthController>(context, listen: false);
-      final favoriteController =
-          Provider.of<FavoriteController>(context, listen: false);
-
+      final authController = Get.find<AuthController>();
+      final favoriteController = Get.find<FavoriteController>();
       if (authController.currentUser != null) {
         favoriteController.setUserId(authController.currentUser!.userId);
         favoriteController.loadFavorites();
@@ -88,8 +85,8 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
                   ),
-                  Consumer<CartController>(
-                    builder: (context, cartController, child) {
+                  GetBuilder<CartController>(
+                    builder: (cartController) {
                       return Stack(
                         children: [
                           Container(
@@ -105,11 +102,11 @@ class _HomeScreenState extends State<HomeScreen>
                               ],
                             ),
                             child: IconButton(
-                            icon: const Icon(Icons.shopping_cart_outlined),
+                              icon: const Icon(Icons.shopping_cart_outlined),
                               color: blackColor,
-                            onPressed: () {
-                              Navigator.pushNamed(context, cartRoute);
-                            },
+                              onPressed: () {
+                                Navigator.pushNamed(context, cartRoute);
+                              },
                             ),
                           ),
                           if (cartController.itemCount > 0)
@@ -125,7 +122,9 @@ class _HomeScreenState extends State<HomeScreen>
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: primaryColor.withValues(alpha: 0.4),
+                                      color: primaryColor.withValues(
+                                        alpha: 0.4,
+                                      ),
                                       blurRadius: 8,
                                       spreadRadius: 1,
                                     ),
@@ -161,10 +160,10 @@ class _HomeScreenState extends State<HomeScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                FoodieStrings.hSHeading,
-                style: const TextStyle(
+                    FoodieStrings.hSHeading,
+                    style: const TextStyle(
                       fontSize: 36,
-                  fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.bold,
                       height: 1.2,
                       letterSpacing: -0.5,
                     ),
@@ -184,15 +183,13 @@ class _HomeScreenState extends State<HomeScreen>
             YBox(40),
             SearchTextField(
               onTap: () {
+                final foodService = Get.find<FoodService>();
                 Navigator.pushNamed(
                   context,
                   searchResultRoute,
                   arguments: {
                     'searchString': 'Search',
-                    'foundFoodList': Provider.of<FoodService>(
-                      context,
-                      listen: false,
-                    ).foods,
+                    'foundFoodList': foodService.foods,
                   },
                 );
               },
@@ -234,14 +231,15 @@ class _HomeScreenState extends State<HomeScreen>
                 children: [
                   const Text(
                     'Món ăn đề xuất',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                   TextButton.icon(
                     onPressed: () {},
-                    icon: Icon(Icons.arrow_forward_rounded, size: 18, color: primaryColor),
+                    icon: Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 18,
+                      color: primaryColor,
+                    ),
                     label: Text(
                       FoodieStrings.seeMore,
                       style: TextStyle(
@@ -251,15 +249,18 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
             YBox(15),
-            Consumer<FoodService>(
-              builder: (context, foodService, child) {
+            GetBuilder<FoodService>(
+              builder: (foodService) {
                 if (foodService.isLoading) {
                   return const Padding(
                     padding: EdgeInsets.symmetric(vertical: 40),
@@ -270,16 +271,16 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   );
                 }
-
                 final foods = foodService.filteredFoods.isNotEmpty
                     ? foodService.filteredFoods
                     : foodService.foods;
-
                 return SizedBox(
                   height: 300,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
-                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                    ),
                     itemCount: foods.length > 10 ? 10 : foods.length,
                     itemBuilder: (context, index) {
                       final food = foods[index];
@@ -300,17 +301,14 @@ class _HomeScreenState extends State<HomeScreen>
                 children: [
                   const Text(
                     'Món ăn',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
             ),
             YBox(20),
-            Consumer<FoodService>(
-              builder: (context, foodService, child) {
+            GetBuilder<FoodService>(
+              builder: (foodService) {
                 if (foodService.isLoading) {
                   return const Padding(
                     padding: EdgeInsets.symmetric(vertical: 40),
@@ -321,29 +319,25 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   );
                 }
-
                 final foods = foodService.filteredFoods.isNotEmpty
                     ? foodService.filteredFoods
                     : foodService.foods;
-
                 return Padding(
                   padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                   child: GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 20,
-                      childAspectRatio: 0.7,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 20,
+                          childAspectRatio: 0.7,
+                        ),
                     itemCount: foods.length,
                     itemBuilder: (context, index) {
                       final food = foods[index];
-                      return _FoodGridCard(
-                        food: food,
-                        tag: 'grid_tag$index',
-                      );
+                      return _FoodGridCard(food: food, tag: 'grid_tag$index');
                     },
                   ),
                 );
@@ -420,10 +414,7 @@ class _FoodEntry extends StatelessWidget {
                         height: 180,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [
-                              Colors.grey[200]!,
-                              Colors.grey[300]!,
-                            ],
+                            colors: [Colors.grey[200]!, Colors.grey[300]!],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -484,16 +475,12 @@ class _FavoriteFoodCard extends StatelessWidget {
   final FavoriteModel favorite;
   final String tag;
 
-  const _FavoriteFoodCard({
-    required this.favorite,
-    required this.tag,
-  });
+  const _FavoriteFoodCard({required this.favorite, required this.tag});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<FoodService>(
-      builder: (context, foodService, child) {
-        // Try to find the food from FoodService
+    return GetBuilder<FoodService>(
+      builder: (foodService) {
         final food = foodService.foods.firstWhere(
           (f) => f.id == favorite.foodId,
           orElse: () => FoodModel(
@@ -509,7 +496,6 @@ class _FavoriteFoodCard extends StatelessWidget {
             updatedAt: favorite.createdAt,
           ),
         );
-
         return InkWell(
           splashColor: transparentColor,
           highlightColor: transparentColor,
@@ -551,10 +537,7 @@ class _FavoriteFoodCard extends StatelessWidget {
                             height: 200,
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [
-                                  Colors.grey[200]!,
-                                  Colors.grey[300]!,
-                                ],
+                                colors: [Colors.grey[200]!, Colors.grey[300]!],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
@@ -586,7 +569,10 @@ class _FavoriteFoodCard extends StatelessWidget {
                 const SizedBox(height: 10),
                 // Price with background
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: primaryColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
@@ -614,10 +600,7 @@ class _FoodGridCard extends StatelessWidget {
   final FoodModel food;
   final String tag;
 
-  const _FoodGridCard({
-    required this.food,
-    required this.tag,
-  });
+  const _FoodGridCard({required this.food, required this.tag});
 
   String _formatPrice(double price) {
     final priceStr = price.toStringAsFixed(0);
@@ -671,10 +654,7 @@ class _FoodGridCard extends StatelessWidget {
                     return Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [
-                            Colors.grey[200]!,
-                            Colors.grey[300]!,
-                          ],
+                          colors: [Colors.grey[200]!, Colors.grey[300]!],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -699,28 +679,31 @@ class _FoodGridCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-              food.name,
+                        food.name,
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
                           height: 1.2,
                         ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-            ),
-            const SizedBox(height: 8),
+                    ),
+                    const SizedBox(height: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: primaryColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         '${_formatPrice(food.price)} đ',
-              style: TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
-                color: primaryColor,
+                          color: primaryColor,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

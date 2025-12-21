@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:mobile/core/errors/app_exception.dart';
 import 'package:mobile/User/presentation/controllers/auth_controller.dart';
 import 'package:mobile/core/repositories/order_repository.dart';
@@ -7,23 +7,23 @@ import 'package:mobile/core/models/cart_model.dart';
 
 enum OrderState { initial, loading, success, error }
 
-class OrderController extends ChangeNotifier {
+class OrderController extends GetxController {
   final OrderRepository _orderRepository;
   final AuthController? _authController;
 
-  List<OrderModel> _orders = [];
-  OrderModel? _currentOrder;
-  OrderState _state = OrderState.initial;
-  String? _errorMessage;
-  bool _isLoading = false;
+  final RxList<OrderModel> _orders = <OrderModel>[].obs;
+  final Rx<OrderModel?> _currentOrder = Rx<OrderModel?>(null);
+  final Rx<OrderState> _state = OrderState.initial.obs;
+  final RxnString _errorMessage = RxnString(null);
+  final RxBool _isLoading = false.obs;
   String? _currentUserId;
 
   // Getters
-  List<OrderModel> get orders => List.unmodifiable(_orders.reversed);
-  OrderModel? get currentOrder => _currentOrder;
-  OrderState get state => _state;
-  String? get errorMessage => _errorMessage;
-  bool get isLoading => _isLoading;
+  List<OrderModel> get orders => _orders.reversed.toList();
+  OrderModel? get currentOrder => _currentOrder.value;
+  OrderState get state => _state.value;
+  String? get errorMessage => _errorMessage.value;
+  bool get isLoading => _isLoading.value;
 
   OrderController({
     OrderRepository? orderRepository,
@@ -50,7 +50,6 @@ class OrderController extends ChangeNotifier {
     } else if (userId == null) {
       _currentUserId = null;
       _orders.clear();
-      notifyListeners();
     }
   }
 
@@ -59,21 +58,19 @@ class OrderController extends ChangeNotifier {
     if (_currentUserId == null) return;
 
     try {
-      _setLoading(true);
-      _errorMessage = null;
+      _isLoading.value = true;
+      _errorMessage.value = null;
 
       List<OrderModel> orders = await _orderRepository.getUserOrders(
         _currentUserId!,
       );
-      _orders = orders;
-      _state = OrderState.success;
-      _setLoading(false);
-      notifyListeners();
+      _orders.assignAll(orders);
+      _state.value = OrderState.success;
+      _isLoading.value = false;
     } on FirestoreException catch (e) {
-      _errorMessage = e.message;
-      _state = OrderState.error;
-      _setLoading(false);
-      notifyListeners();
+      _errorMessage.value = e.message;
+      _state.value = OrderState.error;
+      _isLoading.value = false;
     }
   }
 
@@ -91,15 +88,14 @@ class OrderController extends ChangeNotifier {
     );
 
     if (_currentUserId == null) {
-      _errorMessage = 'Lỗi: Bạn chưa đăng nhập';
-      notifyListeners();
+      _errorMessage.value = 'Lỗi: Bạn chưa đăng nhập';
       print('Error: userId is null');
       return false;
     }
 
     try {
-      _setLoading(true);
-      _errorMessage = null;
+      _isLoading.value = true;
+      _errorMessage.value = null;
 
       // Convert CartItemModel to OrderItemModel
       final orderItems = items
@@ -113,9 +109,9 @@ class OrderController extends ChangeNotifier {
           )
           .toList();
 
-      // Create order model
+      // Create order model - status pending, waiting for shipper and restaurant
       final order = OrderModel(
-        id: '', // Will be set by Firestore
+        id: '', // Will be set by Supabase
         userId: _currentUserId!,
         restaurantId: restaurantId,
         items: orderItems,
@@ -128,37 +124,33 @@ class OrderController extends ChangeNotifier {
         updatedAt: DateTime.now(),
       );
 
-      // Save to Firestore
+      // Save to Supabase
       final orderId = await _orderRepository.createOrder(order);
 
       if (orderId != null) {
         final createdOrder = order.copyWith(id: orderId);
         _orders.add(createdOrder);
-        _currentOrder = createdOrder;
-        _state = OrderState.success;
-        _setLoading(false);
-        notifyListeners();
-        print('Order created successfully');
+        _currentOrder.value = createdOrder;
+        _state.value = OrderState.success;
+        _isLoading.value = false;
+        print('Order created successfully with id: $orderId');
         return true;
       } else {
-        _errorMessage = 'Không thể tạo đơn hàng';
-        _state = OrderState.error;
-        _setLoading(false);
-        notifyListeners();
+        _errorMessage.value = 'Không thể tạo đơn hàng';
+        _state.value = OrderState.error;
+        _isLoading.value = false;
         return false;
       }
     } on FirestoreException catch (e) {
-      _errorMessage = e.message;
-      _state = OrderState.error;
-      _setLoading(false);
-      notifyListeners();
+      _errorMessage.value = e.message;
+      _state.value = OrderState.error;
+      _isLoading.value = false;
       print('FirestoreException: ${e.message}');
       return false;
     } catch (e) {
-      _errorMessage = 'Lỗi: ${e.toString()}';
-      _state = OrderState.error;
-      _setLoading(false);
-      notifyListeners();
+      _errorMessage.value = 'Lỗi: ${e.toString()}';
+      _state.value = OrderState.error;
+      _isLoading.value = false;
       print('Error creating order: $e');
       return false;
     }
@@ -167,26 +159,24 @@ class OrderController extends ChangeNotifier {
   /// Get order by ID
   Future<bool> getOrderById(String orderId) async {
     try {
-      _setLoading(true);
-      _errorMessage = null;
+      _isLoading.value = true;
+      _errorMessage.value = null;
 
       OrderModel? order = await _orderRepository.getOrderById(orderId);
 
       if (order != null) {
-        _currentOrder = order;
-        _state = OrderState.success;
+        _currentOrder.value = order;
+        _state.value = OrderState.success;
       } else {
-        _state = OrderState.error;
-        _errorMessage = 'Đơn hàng không tồn tại';
+        _state.value = OrderState.error;
+        _errorMessage.value = 'Đơn hàng không tồn tại';
       }
-      _setLoading(false);
-      notifyListeners();
+      _isLoading.value = false;
       return order != null;
     } on FirestoreException catch (e) {
-      _errorMessage = e.message;
-      _state = OrderState.error;
-      _setLoading(false);
-      notifyListeners();
+      _errorMessage.value = e.message;
+      _state.value = OrderState.error;
+      _isLoading.value = false;
       return false;
     }
   }
@@ -194,64 +184,72 @@ class OrderController extends ChangeNotifier {
   /// Update order status
   Future<bool> updateOrderStatus(String orderId, OrderStatus status) async {
     try {
-      _setLoading(true);
-      _errorMessage = null;
+      _isLoading.value = true;
+      _errorMessage.value = null;
 
-      await _orderRepository.updateOrderStatus(orderId, status.value);
+      final success = await _orderRepository.updateOrderStatus(
+        orderId,
+        status.value,
+      );
 
-      // Update local state
-      final index = _orders.indexWhere((order) => order.id == orderId);
-      if (index >= 0) {
-        _orders[index] = _orders[index].copyWith(status: status);
+      if (success) {
+        // Update local state
+        final index = _orders.indexWhere((order) => order.id == orderId);
+        if (index >= 0) {
+          _orders[index] = _orders[index].copyWith(status: status);
+        }
+
+        if (_currentOrder.value?.id == orderId) {
+          _currentOrder.value = _currentOrder.value!.copyWith(status: status);
+        }
+
+        _state.value = OrderState.success;
       }
-
-      if (_currentOrder?.id == orderId) {
-        _currentOrder = _currentOrder!.copyWith(status: status);
-      }
-
-      _state = OrderState.success;
-      _setLoading(false);
-      notifyListeners();
-      return true;
+      _isLoading.value = false;
+      return success;
     } on FirestoreException catch (e) {
-      _errorMessage = e.message;
-      _state = OrderState.error;
-      _setLoading(false);
-      notifyListeners();
+      _errorMessage.value = e.message;
+      _state.value = OrderState.error;
+      _isLoading.value = false;
       return false;
     }
   }
 
-  /// Cancel order
+  /// Cancel order - only allowed if status is pending
   Future<bool> cancelOrder(String orderId) async {
+    final order = _orders.firstWhereOrNull((o) => o.id == orderId);
+    if (order == null) {
+      _errorMessage.value = 'Đơn hàng không tồn tại';
+      return false;
+    }
+
+    // Only allow cancellation if pending
+    if (order.status != OrderStatus.pending) {
+      _errorMessage.value = 'Không thể hủy đơn hàng ở trạng thái này';
+      return false;
+    }
+
     return await updateOrderStatus(orderId, OrderStatus.cancelled);
   }
 
   /// Get orders by status
-  Future<List<OrderModel>> getOrdersByStatus(OrderStatus status) async {
-    try {
-      return _orders.where((order) => order.status == status).toList();
-    } catch (e) {
-      _errorMessage = e.toString();
-      _state = OrderState.error;
-      notifyListeners();
-      return [];
-    }
+  List<OrderModel> getOrdersByStatus(OrderStatus status) {
+    return _orders.where((order) => order.status == status).toList();
   }
 
   /// Get pending orders
-  Future<List<OrderModel>> getPendingOrders() async {
-    return await getOrdersByStatus(OrderStatus.pending);
+  List<OrderModel> getPendingOrders() {
+    return getOrdersByStatus(OrderStatus.pending);
   }
 
   /// Get completed orders
-  Future<List<OrderModel>> getCompletedOrders() async {
-    return await getOrdersByStatus(OrderStatus.delivered);
+  List<OrderModel> getCompletedOrders() {
+    return getOrdersByStatus(OrderStatus.delivered);
   }
 
   /// Get cancelled orders
-  Future<List<OrderModel>> getCancelledOrders() async {
-    return await getOrdersByStatus(OrderStatus.cancelled);
+  List<OrderModel> getCancelledOrders() {
+    return getOrdersByStatus(OrderStatus.cancelled);
   }
 
   /// Get order count by status
@@ -271,14 +269,9 @@ class OrderController extends ChangeNotifier {
     return _orders.take(limit).toList();
   }
 
-  void _setLoading(bool loading) {
-    _isLoading = loading;
-    notifyListeners();
-  }
-
   @override
-  void dispose() {
+  void onClose() {
     _authController?.removeListener(_onAuthStateChanged);
-    super.dispose();
+    super.onClose();
   }
 }

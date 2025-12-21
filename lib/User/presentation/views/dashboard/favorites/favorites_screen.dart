@@ -4,7 +4,7 @@ import 'package:mobile/User/presentation/controllers/auth_controller.dart';
 import 'package:mobile/core/models/favorite_model.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/formatters.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -23,10 +23,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   void _loadFavorites() {
-    final authController =
-        Provider.of<AuthController>(context, listen: false);
-    final favoriteController =
-        Provider.of<FavoriteController>(context, listen: false);
+    final authController = Get.find<AuthController>();
+    final favoriteController = Get.find<FavoriteController>();
 
     if (authController.currentUser != null) {
       favoriteController.setUserId(authController.currentUser!.userId);
@@ -51,8 +49,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         ),
         centerTitle: false,
       ),
-      body: Consumer2<FavoriteController, AuthController>(
-        builder: (context, favoriteController, authController, child) {
+      body: GetBuilder<FavoriteController>(
+        builder: (favoriteController) {
+          final authController = Get.find<AuthController>();
           if (authController.currentUser == null) {
             return Center(
               child: Column(
@@ -89,10 +88,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   const SizedBox(height: 8),
                   Text(
                     'Đăng nhập để xem danh sách yêu thích của bạn',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[500],
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -139,10 +135,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     const SizedBox(height: 8),
                     Text(
                       favoriteController.errorMessage!,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 24),
@@ -238,8 +231,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   child: _FoodCard(
                     favorite: favorite,
                     onRemove: () async {
-                      final success = await favoriteController
-                          .removeFavorite(favorite.foodId);
+                      final success = await favoriteController.removeFavorite(
+                        favorite.foodId,
+                      );
                       if (success && context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -275,10 +269,7 @@ class _FoodCard extends StatelessWidget {
   final FavoriteModel favorite;
   final VoidCallback onRemove;
 
-  const _FoodCard({
-    required this.favorite,
-    required this.onRemove,
-  });
+  const _FoodCard({required this.favorite, required this.onRemove});
 
   @override
   Widget build(BuildContext context) {
@@ -324,10 +315,7 @@ class _FoodCard extends StatelessWidget {
                           height: 120,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [
-                                Colors.grey[300]!,
-                                Colors.grey[200]!,
-                              ],
+                              colors: [Colors.grey[300]!, Colors.grey[200]!],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
@@ -451,4 +439,3 @@ class _FoodCard extends StatelessWidget {
     );
   }
 }
-

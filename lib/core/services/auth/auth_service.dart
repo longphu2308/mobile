@@ -152,13 +152,13 @@ class AuthService {
       );
 
       if (response.user == null) {
-        throw AuthException(message: 'Email hoặc mật khẩu không đúng');
+        throw AuthException(message: 'Sai tài khoản hoặc mật khẩu');
       }
 
       return await _getUserData(response.user!.id);
     } catch (e) {
       if (e is AuthException) rethrow;
-      throw AuthException(message: 'Email hoặc mật khẩu không đúng');
+      throw AuthException(message: 'Sai tài khoản hoặc mật khẩu');
     }
   }
 

@@ -6,7 +6,7 @@ import 'package:mobile/User/presentation/controllers/auth_controller.dart';
 import 'package:mobile/core/models/food_model.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/strings.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 
 class FoodDetail extends StatefulWidget {
   final FoodModel food;
@@ -40,9 +40,8 @@ class _FoodDetailState extends State<FoodDetail> {
   }
 
   Future<void> _checkFavoriteStatus() async {
-    final authController = Provider.of<AuthController>(context, listen: false);
-    final favoriteController =
-        Provider.of<FavoriteController>(context, listen: false);
+    final authController = Get.find<AuthController>();
+    final favoriteController = Get.find<FavoriteController>();
 
     if (authController.currentUser == null) {
       setState(() {
@@ -53,8 +52,7 @@ class _FoodDetailState extends State<FoodDetail> {
     }
 
     favoriteController.setUserId(authController.currentUser!.userId);
-    final isFavorited =
-        await favoriteController.isFavorited(widget.food.id);
+    final isFavorited = await favoriteController.isFavorited(widget.food.id);
 
     if (mounted) {
       setState(() {
@@ -65,9 +63,8 @@ class _FoodDetailState extends State<FoodDetail> {
   }
 
   Future<void> _toggleFavorite() async {
-    final authController = Provider.of<AuthController>(context, listen: false);
-    final favoriteController =
-        Provider.of<FavoriteController>(context, listen: false);
+    final authController = Get.find<AuthController>();
+    final favoriteController = Get.find<FavoriteController>();
 
     if (authController.currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -108,9 +105,7 @@ class _FoodDetailState extends State<FoodDetail> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            favoriteController.errorMessage ?? 'Có lỗi xảy ra',
-          ),
+          content: Text(favoriteController.errorMessage ?? 'Có lỗi xảy ra'),
           backgroundColor: Colors.red,
         ),
       );
@@ -285,10 +280,7 @@ class _FoodDetailState extends State<FoodDetail> {
             child: FoodieButton(
               text: 'Thêm vào giỏ hàng',
               onPressed: () {
-                final cartController = Provider.of<CartController>(
-                  context,
-                  listen: false,
-                );
+                final cartController = Get.find<CartController>();
                 cartController.addItem(widget.food);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(

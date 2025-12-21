@@ -1,16 +1,16 @@
-import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
 import 'package:mobile/User/presentation/controllers/auth_controller.dart';
 import 'package:mobile/core/repositories/cart_repository.dart';
 import 'package:mobile/core/models/cart_model.dart';
 import 'package:mobile/core/models/food_model.dart';
 
-class CartController extends ChangeNotifier {
+class CartController extends GetxController {
   final CartRepository _cartRepository;
   final AuthController? _authController;
-  final List<CartItemModel> _items = [];
+  final RxList<CartItemModel> _items = <CartItemModel>[].obs;
   String? _currentUserId;
-  String? _currentRestaurantId;
-  String? _currentRestaurantName;
+  final RxnString _currentRestaurantId = RxnString(null);
+  final RxnString _currentRestaurantName = RxnString(null);
 
   CartController({
     CartRepository? cartRepository,
@@ -20,9 +20,9 @@ class CartController extends ChangeNotifier {
     _init();
   }
 
-  List<CartItemModel> get items => List.unmodifiable(_items);
-  String? get currentRestaurantId => _currentRestaurantId;
-  String? get currentRestaurantName => _currentRestaurantName;
+  List<CartItemModel> get items => _items;
+  String? get currentRestaurantId => _currentRestaurantId.value;
+  String? get currentRestaurantName => _currentRestaurantName.value;
 
   int get itemCount => _items.fold(0, (sum, item) => sum + item.quantity);
 
@@ -43,7 +43,6 @@ class CartController extends ChangeNotifier {
     } else if (userId == null) {
       _currentUserId = null;
       _items.clear();
-      notifyListeners();
     }
   }
 
@@ -55,10 +54,9 @@ class CartController extends ChangeNotifier {
       _items.clear();
       if (cart != null) {
         _items.addAll(cart.items);
-        _currentRestaurantId = cart.restaurantId;
-        _currentRestaurantName = cart.restaurantName;
+        _currentRestaurantId.value = cart.restaurantId;
+        _currentRestaurantName.value = cart.restaurantName;
       }
-      notifyListeners();
     } catch (e) {
       print('Error loading cart: $e');
     }
@@ -92,9 +90,10 @@ class CartController extends ChangeNotifier {
       );
     }
 
-    if (_currentRestaurantId == null || _currentRestaurantId != restaurantId) {
-      _currentRestaurantId = restaurantId;
-      _currentRestaurantName = restaurantName;
+    if (_currentRestaurantId.value == null ||
+        _currentRestaurantId.value != restaurantId) {
+      _currentRestaurantId.value = restaurantId;
+      _currentRestaurantName.value = restaurantName;
     }
 
     if (_currentUserId != null) {
@@ -110,8 +109,6 @@ class CartController extends ChangeNotifier {
             return false;
           });
     }
-
-    notifyListeners();
   }
 
   void removeItem(String foodId) {
@@ -125,8 +122,6 @@ class CartController extends ChangeNotifier {
         return false;
       });
     }
-
-    notifyListeners();
   }
 
   void updateQuantity(String foodId, int quantity) {
@@ -153,8 +148,6 @@ class CartController extends ChangeNotifier {
               return false;
             });
       }
-
-      notifyListeners();
     }
   }
 
@@ -185,13 +178,11 @@ class CartController extends ChangeNotifier {
         return false;
       });
     }
-
-    notifyListeners();
   }
 
   @override
-  void dispose() {
+  void onClose() {
     _authController?.removeListener(_onAuthStateChanged);
-    super.dispose();
+    super.onClose();
   }
 }
