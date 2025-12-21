@@ -57,6 +57,7 @@ class CartController extends GetxController {
         _currentRestaurantId.value = cart.restaurantId;
         _currentRestaurantName.value = cart.restaurantName;
       }
+      update();
     } catch (e) {
       print('Error loading cart: $e');
     }
@@ -78,6 +79,7 @@ class CartController extends GetxController {
         imageUrl: food.imageUrl,
         quantity: newQuantity,
       );
+      update();
     } else {
       _items.add(
         CartItemModel(
@@ -88,6 +90,7 @@ class CartController extends GetxController {
           quantity: 1,
         ),
       );
+      update();
     }
 
     if (_currentRestaurantId.value == null ||
@@ -113,6 +116,7 @@ class CartController extends GetxController {
 
   void removeItem(String foodId) {
     _items.removeWhere((item) => item.foodId == foodId);
+    update();
 
     if (_currentUserId != null) {
       _cartRepository.removeItemFromCart(_currentUserId!, foodId).catchError((
@@ -139,6 +143,7 @@ class CartController extends GetxController {
         imageUrl: _items[index].imageUrl,
         quantity: quantity,
       );
+      update();
 
       if (_currentUserId != null) {
         _cartRepository
@@ -171,6 +176,7 @@ class CartController extends GetxController {
 
   void clear() {
     _items.clear();
+    update();
 
     if (_currentUserId != null) {
       _cartRepository.clearCart(_currentUserId!).catchError((e) {

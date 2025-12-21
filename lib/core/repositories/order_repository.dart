@@ -1,6 +1,7 @@
 import 'package:mobile/core/models/order_model.dart';
 import 'package:mobile/core/services/supabase/supabase_service.dart';
 import 'package:mobile/core/models/user_model.dart';
+import 'package:uuid/uuid.dart';
 
 class OrderRepository {
   final _supabase = SupabaseService().client;
@@ -133,14 +134,14 @@ class OrderRepository {
       final orderMap = order.toMap();
       // Remove items from order map as they go to separate table
       orderMap.remove('items');
+      
+      // Generate UUID for order_id to avoid using .select() which triggers SELECT policies
+      final orderId = const Uuid().v4();
+      orderMap['order_id'] = orderId;
 
-      final data = await _supabase
+      await _supabase
           .from(_table)
-          .insert(orderMap)
-          .select()
-          .single();
-
-      final orderId = data['order_id'];
+          .insert(orderMap);
 
       // Create order_items
       if (order.items.isNotEmpty) {
