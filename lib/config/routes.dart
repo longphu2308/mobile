@@ -33,8 +33,6 @@ import 'package:mobile/Shipper/views/pickup_confirm.dart';
 import 'package:mobile/Shipper/views/delivery_confirm.dart';
 import 'package:mobile/Shipper/views/profile.dart' as shipper_profile;
 import 'package:mobile/Shipper/views/live_tracking.dart';
-import 'package:mobile/Shipper/views/pickup_confirm.dart';
-import 'package:mobile/Shipper/views/delivery_confirm.dart';
 
 // Route names
 const String welcomeRoute = '/';
@@ -183,14 +181,7 @@ class AppRouter {
 
       case shipperOrderDetailRoute:
         final args = settings.arguments as ShipperOrder;
-
-        return MaterialPageRoute(builder: (_) => OrderDetail(), settings: settings);
-
-      case '/shipper/pickup-confirm':
-        return MaterialPageRoute(builder: (_) => const PickupConfirm(), settings: settings);
-
-      case '/shipper/delivery-confirm':
-        return MaterialPageRoute(builder: (_) => const DeliveryConfirm(), settings: settings);
+        return MaterialPageRoute(builder: (_) => OrderDetail(order: args));
 
       case shipperHistoryRoute:
         return MaterialPageRoute(builder: (_) => const OrderHistory());

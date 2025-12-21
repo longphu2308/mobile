@@ -49,18 +49,9 @@ class _OrderDetailState extends State<OrderDetail> {
   LatLng? _customerLocation;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final args = ModalRoute.of(context)?.settings.arguments;
-    if (args == null || args is! ShipperOrder) {
-      // Defensive: if called without a proper ShipperOrder, go back.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order data missing')));
-        Navigator.maybePop(context);
-      });
-      return;
-    }
-    order = args as ShipperOrder;
+  void initState() {
+    super.initState();
+    order = widget.order;
     items = List.from(order.items);
     if (items.isEmpty) {
       _fetchItems();
