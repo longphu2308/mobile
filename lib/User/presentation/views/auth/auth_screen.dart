@@ -243,6 +243,16 @@ class _SignUpSectionState extends State<_SignUpSection> {
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
   late TextEditingController _passwordController;
+  
+  // Role-specific controllers
+  late TextEditingController _vehicleTypeController;
+  late TextEditingController _vehiclePlateController;
+  late TextEditingController _licenseNumberController;
+  late TextEditingController _restaurantNameController;
+  late TextEditingController _restaurantAddressController;
+  late TextEditingController _restaurantPhoneController;
+  
+  UserRole _selectedRole = UserRole.user;
 
   @override
   void initState() {
@@ -251,6 +261,12 @@ class _SignUpSectionState extends State<_SignUpSection> {
     _emailController = TextEditingController();
     _phoneController = TextEditingController();
     _passwordController = TextEditingController();
+    _vehicleTypeController = TextEditingController();
+    _vehiclePlateController = TextEditingController();
+    _licenseNumberController = TextEditingController();
+    _restaurantNameController = TextEditingController();
+    _restaurantAddressController = TextEditingController();
+    _restaurantPhoneController = TextEditingController();
   }
 
   @override
@@ -259,6 +275,12 @@ class _SignUpSectionState extends State<_SignUpSection> {
     _emailController.dispose();
     _phoneController.dispose();
     _passwordController.dispose();
+    _vehicleTypeController.dispose();
+    _vehiclePlateController.dispose();
+    _licenseNumberController.dispose();
+    _restaurantNameController.dispose();
+    _restaurantAddressController.dispose();
+    _restaurantPhoneController.dispose();
     super.dispose();
   }
 
@@ -273,9 +295,59 @@ class _SignUpSectionState extends State<_SignUpSection> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 30),
+                // Role Selection Dropdown
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Loại tài khoản',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: DropdownButtonFormField<UserRole>(
+                        value: _selectedRole,
+                        decoration: const InputDecoration(
+                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          border: InputBorder.none,
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: UserRole.user,
+                            child: Text('Khách hàng'),
+                          ),
+                          DropdownMenuItem(
+                            value: UserRole.shipper,
+                            child: Text('Shipper'),
+                          ),
+                          DropdownMenuItem(
+                            value: UserRole.owner,
+                            child: Text('Chủ nhà hàng'),
+                          ),
+                        ],
+                        onChanged: authController.isLoading ? null : (value) {
+                          if (value != null) {
+                            setState(() {
+                              _selectedRole = value;
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                YBox(25),
                 FoodieTextField(
                   label: FoodieStrings.name,
-                  hint: 'Phu Tran',
+                  hint: 'Nguyen Van A',
                   keyboardType: TextInputType.text,
                   controller: _nameController,
                   enabled: !authController.isLoading,
@@ -292,11 +364,65 @@ class _SignUpSectionState extends State<_SignUpSection> {
                 FoodieTextField(
                   label: FoodieStrings.phone,
                   hint: '0123456789',
-                  keyboardType: TextInputType.number,
+                  keyboardType: TextInputType.phone,
                   controller: _phoneController,
                   enabled: !authController.isLoading,
                 ),
                 YBox(25),
+                // Shipper-specific fields
+                if (_selectedRole == UserRole.shipper) ...[
+                  FoodieTextField(
+                    label: 'Loại xe',
+                    hint: 'Xe máy',
+                    keyboardType: TextInputType.text,
+                    controller: _vehicleTypeController,
+                    enabled: !authController.isLoading,
+                  ),
+                  YBox(25),
+                  FoodieTextField(
+                    label: 'Biển số xe',
+                    hint: '59A-12345',
+                    keyboardType: TextInputType.text,
+                    controller: _vehiclePlateController,
+                    enabled: !authController.isLoading,
+                  ),
+                  YBox(25),
+                  FoodieTextField(
+                    label: 'Số bằng lái',
+                    hint: 'B123456789',
+                    keyboardType: TextInputType.text,
+                    controller: _licenseNumberController,
+                    enabled: !authController.isLoading,
+                  ),
+                  YBox(25),
+                ],
+                // Owner-specific fields
+                if (_selectedRole == UserRole.owner) ...[
+                  FoodieTextField(
+                    label: 'Tên nhà hàng',
+                    hint: 'Nhà hàng ABC',
+                    keyboardType: TextInputType.text,
+                    controller: _restaurantNameController,
+                    enabled: !authController.isLoading,
+                  ),
+                  YBox(25),
+                  FoodieTextField(
+                    label: 'Địa chỉ nhà hàng',
+                    hint: '123 Đường XYZ, Quận 1, TP.HCM',
+                    keyboardType: TextInputType.text,
+                    controller: _restaurantAddressController,
+                    enabled: !authController.isLoading,
+                  ),
+                  YBox(25),
+                  FoodieTextField(
+                    label: 'Số điện thoại nhà hàng',
+                    hint: '0287654321',
+                    keyboardType: TextInputType.phone,
+                    controller: _restaurantPhoneController,
+                    enabled: !authController.isLoading,
+                  ),
+                  YBox(25),
+                ],
                 FoodieTextField(
                   label: FoodieStrings.password,
                   hint: '**********',
@@ -327,6 +453,7 @@ class _SignUpSectionState extends State<_SignUpSection> {
                     : FoodieButton(
                         text: FoodieStrings.signUp,
                         onPressed: () async {
+                          // Validate basic fields
                           if (_nameController.text.isEmpty ||
                               _emailController.text.isEmpty ||
                               _phoneController.text.isEmpty ||
@@ -340,6 +467,38 @@ class _SignUpSectionState extends State<_SignUpSection> {
                             );
                             return;
                           }
+                          
+                          // Validate role-specific fields
+                          if (_selectedRole == UserRole.shipper) {
+                            if (_vehicleTypeController.text.isEmpty ||
+                                _vehiclePlateController.text.isEmpty ||
+                                _licenseNumberController.text.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Vui lòng điền đầy đủ thông tin shipper',
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
+                          }
+                          
+                          if (_selectedRole == UserRole.owner) {
+                            if (_restaurantNameController.text.isEmpty ||
+                                _restaurantAddressController.text.isEmpty ||
+                                _restaurantPhoneController.text.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Vui lòng điền đầy đủ thông tin nhà hàng',
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
+                          }
+                          
                           if (!_isValidEmail(_emailController.text)) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
@@ -358,11 +517,30 @@ class _SignUpSectionState extends State<_SignUpSection> {
                             );
                             return;
                           }
+                          
+                          // Prepare role-specific data
+                          Map<String, String>? additionalData;
+                          if (_selectedRole == UserRole.shipper) {
+                            additionalData = {
+                              'vehicle_type': _vehicleTypeController.text,
+                              'vehicle_plate': _vehiclePlateController.text,
+                              'license_number': _licenseNumberController.text,
+                            };
+                          } else if (_selectedRole == UserRole.owner) {
+                            additionalData = {
+                              'restaurant_name': _restaurantNameController.text,
+                              'restaurant_address': _restaurantAddressController.text,
+                              'restaurant_phone': _restaurantPhoneController.text,
+                            };
+                          }
+                          
                           bool success = await authController.signUp(
                             email: _emailController.text,
                             password: _passwordController.text,
                             fullName: _nameController.text,
                             phone: _phoneController.text,
+                            role: _selectedRole,
+                            additionalData: additionalData,
                           );
                           if (success && mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
