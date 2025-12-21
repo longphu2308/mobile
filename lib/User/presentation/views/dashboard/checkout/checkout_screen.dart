@@ -6,6 +6,7 @@ import 'package:mobile/User/presentation/controllers/order_controller.dart';
 import 'package:mobile/User/presentation/controllers/auth_controller.dart';
 import 'package:mobile/core/models/cart_model.dart';
 import 'package:mobile/config/routes.dart';
+import 'package:mobile/core/services/geocoding_service.dart';
 import 'package:get/get.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -417,16 +418,38 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return grouped;
   }
 
-  void _completeOrder(
+  Future<void> _completeOrder(
     BuildContext context,
     CartController cartController,
     OrderController orderController,
     double totalPrice,
     String deliveryAddress,
-  ) {
+  ) async {
     final items = List<CartItemModel>.from(cartController.items);
     final restaurantId = cartController.currentRestaurantId ?? '';
     final paymentMethod = _selectedPaymentMethod;
+
+    // Geocode delivery address to get coordinates
+    double? deliveryLatitude;
+    double? deliveryLongitude;
+
+    print('🌍 Geocoding delivery address: $deliveryAddress');
+    final coordinates = await GeocodingService().getCoordinatesFromAddress(
+      deliveryAddress,
+    );
+    if (coordinates != null) {
+      deliveryLatitude = coordinates.latitude;
+      deliveryLongitude = coordinates.longitude;
+      print('✅ Geocoded: lat=$deliveryLatitude, lon=$deliveryLongitude');
+    } else {
+      print(
+        '⚠️ Could not geocode address, order will be created without coordinates',
+      );
+    }
+
+    print(
+      '📍 Creating order with delivery location: lat=$deliveryLatitude, lon=$deliveryLongitude',
+    );
 
     orderController
         .createOrder(
@@ -435,6 +458,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           restaurantId: restaurantId,
           deliveryAddress: deliveryAddress,
           paymentMethod: paymentMethod,
+          deliveryLatitude: deliveryLatitude,
+          deliveryLongitude: deliveryLongitude,
         )
         .then((success) {
           if (!context.mounted) return;

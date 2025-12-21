@@ -59,15 +59,16 @@ class OrderController extends GetxController {
   /// Load user's orders from Supabase
   Future<void> loadUserOrders() async {
     // Try to get userId from multiple sources
-    String? userId = _currentUserId ?? 
-                     _authController?.currentUser?.userId ?? 
-                     _supabase.currentUser?.id;
-    
+    String? userId =
+        _currentUserId ??
+        _authController?.currentUser?.userId ??
+        _supabase.currentUser?.id;
+
     if (userId == null) {
       print('OrderController: Cannot load orders - no user logged in');
       return;
     }
-    
+
     // Update _currentUserId if it was null
     _currentUserId ??= userId;
 
@@ -101,6 +102,8 @@ class OrderController extends GetxController {
     required String deliveryAddress,
     String paymentMethod = 'cash',
     String? note,
+    double? deliveryLatitude,
+    double? deliveryLongitude,
   }) async {
     // Try to get userId from AuthController first, then fallback to Supabase
     String? userId = _currentUserId ?? _supabase.currentUser?.id;
@@ -138,10 +141,16 @@ class OrderController extends GetxController {
         totalAmount: totalAmount,
         status: OrderStatus.pending,
         deliveryAddress: deliveryAddress,
+        deliveryLatitude: deliveryLatitude,
+        deliveryLongitude: deliveryLongitude,
         paymentMethod: paymentMethod,
         note: note,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
+      );
+
+      print(
+        'Order created with location: lat=$deliveryLatitude, lon=$deliveryLongitude',
       );
 
       // Save to Supabase
