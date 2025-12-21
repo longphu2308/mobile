@@ -76,8 +76,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
           final groupedItems = _groupItemsByRestaurant(cartController.items);
           final restaurantNames = groupedItems.keys.toList();
-          final user = authController.currentUser;
-          final double totalWithDelivery = cartController.totalPrice +
+          final double totalWithDelivery =
+              cartController.totalPrice +
               (_selectedDeliveryMethod == 'door' ? _deliveryFee : 0);
 
           return Column(
@@ -89,9 +89,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _AddressCard(
-                        name: user?.fullName ?? 'No name',
-                        address: user?.address ?? 'No address saved',
-                        phone: user?.phone ?? 'No phone number',
+                        name: authController.fullName ?? 'No name',
+                        address: authController.address ?? 'No address saved',
+                        phone: authController.phone ?? 'No phone number',
                         onChange: () =>
                             Navigator.pushNamed(context, userEditProfileRoute),
                       ),
@@ -136,8 +136,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         (option) => _PaymentTile(
                           option: option,
                           isSelected: option.key == _selectedPaymentMethod,
-                          onTap: () =>
-                              setState(() => _selectedPaymentMethod = option.key),
+                          onTap: () => setState(
+                            () => _selectedPaymentMethod = option.key,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -150,108 +151,112 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      ...restaurantNames.map(
-                        (restaurantName) {
-                          final items = groupedItems[restaurantName]!;
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
+                      ...restaurantNames.map((restaurantName) {
+                        final items = groupedItems[restaurantName]!;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.store,
+                                    size: 18,
+                                    color: primaryColor,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    restaurantName,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: blackColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            ...items.map(
+                              (item) => Container(
+                                margin: const EdgeInsets.only(bottom: 16),
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: whiteColor,
+                                  borderRadius: BorderRadius.circular(radius),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      offset: const Offset(0, 2),
+                                      blurRadius: 8,
+                                      color: Colors.black.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                                 child: Row(
                                   children: [
-                                    Icon(Icons.store,
-                                        size: 18, color: primaryColor),
-                                    const SizedBox(width: 8),
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Image.network(
+                                        item.imageUrl,
+                                        width: 60,
+                                        height: 60,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, _, __) =>
+                                            Container(
+                                              width: 60,
+                                              height: 60,
+                                              color: Colors.grey[300],
+                                              child: Icon(
+                                                Icons
+                                                    .image_not_supported_outlined,
+                                                color: Colors.grey[600],
+                                              ),
+                                            ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            item.foodName,
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'x${item.quantity}',
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              color: greyColor,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                     Text(
-                                      restaurantName,
+                                      formatPrice(item.totalPrice),
                                       style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
-                                        color: blackColor,
+                                        color: primaryColor,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                              ...items.map(
-                                (item) => Container(
-                                  margin: const EdgeInsets.only(bottom: 16),
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: whiteColor,
-                                    borderRadius: BorderRadius.circular(radius),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        offset: const Offset(0, 2),
-                                        blurRadius: 8,
-                                        color: Colors.black.withValues(alpha: 0.1),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(12),
-                                        child: Image.network(
-                                          item.imageUrl,
-                                          width: 60,
-                                          height: 60,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (context, _, __) =>
-                                              Container(
-                                            width: 60,
-                                            height: 60,
-                                            color: Colors.grey[300],
-                                            child: Icon(
-                                              Icons.image_not_supported_outlined,
-                                              color: Colors.grey[600],
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 16),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              item.foodName,
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              'x${item.quantity}',
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                                color: greyColor,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Text(
-                                        formatPrice(item.totalPrice),
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                          color: primaryColor,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
+                            ),
+                          ],
+                        );
+                      }),
                       const SizedBox(height: 80),
                     ],
                   ),
@@ -313,8 +318,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         height: 56,
                         child: ElevatedButton(
                           onPressed: () {
-                            if (user?.address == null ||
-                                user!.address!.trim().isEmpty) {
+                            final address = authController.address;
+                            if (address == null || address.trim().isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text(
@@ -330,7 +335,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               cartController,
                               orderController,
                               totalWithDelivery,
-                              user.address!,
+                              address,
                             );
                           },
                           style: ElevatedButton.styleFrom(
@@ -503,10 +508,7 @@ class _AddressCard extends StatelessWidget {
                   color: blackColor,
                 ),
               ),
-              TextButton(
-                onPressed: onChange,
-                child: const Text('change'),
-              ),
+              TextButton(onPressed: onChange, child: const Text('change')),
             ],
           ),
           const SizedBox(height: 12),
@@ -519,15 +521,9 @@ class _AddressCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            address,
-            style: const TextStyle(color: greyColor),
-          ),
+          Text(address, style: const TextStyle(color: greyColor)),
           const SizedBox(height: 4),
-          Text(
-            phone,
-            style: const TextStyle(color: greyColor),
-          ),
+          Text(phone, style: const TextStyle(color: greyColor)),
         ],
       ),
     );
@@ -555,10 +551,7 @@ class _SectionTitle extends StatelessWidget {
           ),
         ),
         if (actionLabel != null)
-          TextButton(
-            onPressed: onAction,
-            child: Text(actionLabel!),
-          ),
+          TextButton(onPressed: onAction, child: Text(actionLabel!)),
       ],
     );
   }
@@ -653,10 +646,7 @@ class _DeliveryTile extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: greyColor,
-                    ),
+                    style: const TextStyle(fontSize: 13, color: greyColor),
                   ),
                 ],
               ),
@@ -718,9 +708,7 @@ class _PaymentTile extends StatelessWidget {
               ),
             ),
             Icon(
-              isSelected
-                  ? Icons.radio_button_checked
-                  : Icons.circle_outlined,
+              isSelected ? Icons.radio_button_checked : Icons.circle_outlined,
               color: isSelected ? primaryColor : greyColor,
             ),
           ],
@@ -741,13 +729,7 @@ class _SummaryRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: greyColor,
-            fontSize: 14,
-          ),
-        ),
+        Text(label, style: const TextStyle(color: greyColor, fontSize: 14)),
         Text(
           value,
           style: const TextStyle(

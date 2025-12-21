@@ -117,7 +117,7 @@ class UserProfileScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 20),
                       Text(
-                        user.fullName ?? 'Chưa có tên',
+                        authController.fullName ?? 'Chưa có tên',
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -143,7 +143,7 @@ class UserProfileScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      if (user.phone != null) ...[
+                      if (authController.phone != null) ...[
                         const SizedBox(height: 6),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -155,7 +155,7 @@ class UserProfileScreen extends StatelessWidget {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              user.phone!,
+                              authController.phone!,
                               style: TextStyle(
                                 fontSize: 15,
                                 color: Colors.grey[700],
@@ -251,7 +251,7 @@ class UserProfileScreen extends StatelessWidget {
 
   void _showLogoutDialog(BuildContext context, AuthController authController) {
     final navigator = Navigator.of(context);
-    
+
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -299,10 +299,7 @@ class UserProfileScreen extends StatelessWidget {
             onPressed: () async {
               Navigator.pop(dialogContext);
               await authController.signOut();
-              navigator.pushNamedAndRemoveUntil(
-                welcomeRoute,
-                (route) => false,
-              );
+              navigator.pushNamedAndRemoveUntil(welcomeRoute, (route) => false);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,

@@ -202,9 +202,8 @@ class _HomeScreenState extends State<HomeScreen>
               padding: const EdgeInsets.only(left: horizontalPadding),
               child: TabBar(
                 controller: _tabController,
-                onTap: (index) {
-                  // Tab changed
-                },
+                // onTap không cần setState vì _tabController quản lý index
+                onTap: (index) {},
                 isScrollable: true,
                 indicatorColor: primaryColor,
                 indicatorWeight: 3,
@@ -364,7 +363,7 @@ class _FoodEntry extends StatelessWidget {
   final FoodModel food;
   final String tag;
 
-  const _FoodEntry({super.key, required this.food, required this.tag});
+  const _FoodEntry({required this.food, required this.tag});
 
   String _formatPrice(double price) {
     final priceStr = price.toStringAsFixed(0);

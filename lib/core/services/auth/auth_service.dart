@@ -14,9 +14,9 @@ class AuthService {
     required String phone,
   }) async {
     try {
-      // Check if phone already exists
+      // Check if phone already exists in user_profiles
       final phoneQuery = await _supabase
-          .from('users')
+          .from('user_profiles')
           .select()
           .eq('phone', phone)
           .maybeSingle();
@@ -53,9 +53,7 @@ class AuthService {
       final user = UserModel(
         userId: response.user!.id,
         email: email,
-        fullName: fullName,
-        phone: phone,
-        role: 'user',
+        role: UserRole.user,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -63,9 +61,21 @@ class AuthService {
       // Insert user data into users table
       await _supabase.from('users').insert(user.toMap());
 
+      // Insert profile data into user_profiles table
+      final profile = UserProfileModel(
+        profileId: '',
+        userId: response.user!.id,
+        fullName: fullName,
+        phone: phone,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      await _supabase.from('user_profiles').insert(profile.toInsertMap());
+
       return user;
     } on AuthException catch (e) {
-      if (e.message.contains('already registered') || e.message.contains('User already registered')) {
+      if (e.message.contains('already registered') ||
+          e.message.contains('User already registered')) {
         // User exists in auth but not in DB, try to get auth user and create DB record
         try {
           final AuthResponse response = await _supabase.auth.signInWithPassword(
@@ -89,14 +99,26 @@ class AuthService {
               final user = UserModel(
                 userId: response.user!.id,
                 email: email,
-                fullName: fullName,
-                phone: phone,
-                role: 'user',
+                role: UserRole.user,
                 createdAt: DateTime.now(),
                 updatedAt: DateTime.now(),
               );
 
               await _supabase.from('users').insert(user.toMap());
+
+              // Create profile
+              final profile = UserProfileModel(
+                profileId: '',
+                userId: response.user!.id,
+                fullName: fullName,
+                phone: phone,
+                createdAt: DateTime.now(),
+                updatedAt: DateTime.now(),
+              );
+              await _supabase
+                  .from('user_profiles')
+                  .insert(profile.toInsertMap());
+
               return user;
             }
           }

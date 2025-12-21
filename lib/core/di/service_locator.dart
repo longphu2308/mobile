@@ -6,6 +6,8 @@ import 'package:mobile/User/presentation/controllers/order_controller.dart';
 import 'package:mobile/User/presentation/controllers/user_controller.dart';
 import 'package:mobile/User/presentation/controllers/favorite_controller.dart';
 import 'package:mobile/core/services/food/food_service.dart';
+import 'package:mobile/Owner/presentation/controllers/restaurant_controller.dart';
+import 'package:mobile/core/repositories/restaurant_repository.dart';
 
 List<SingleChildWidget> getProviders() {
   return [
@@ -13,6 +15,11 @@ List<SingleChildWidget> getProviders() {
     ChangeNotifierProvider(create: (_) => FoodService()),
     ChangeNotifierProvider(create: (_) => UserController()),
     ChangeNotifierProvider(create: (_) => FavoriteController()),
+    ChangeNotifierProvider(
+      create: (_) => RestaurantController(
+        repository: RestaurantRepository(),
+      ),
+    ),
 
     ChangeNotifierProxyProvider<AuthController, CartController>(
       create: (context) {
