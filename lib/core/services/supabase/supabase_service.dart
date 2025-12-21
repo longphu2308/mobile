@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class SupabaseService {
   static final SupabaseService _instance = SupabaseService._internal();
@@ -29,10 +30,20 @@ class SupabaseService {
 
   // Initialize Supabase
   static Future<void> initialize() async {
+    // Get Supabase credentials from environment variables
+    final supabaseUrl = dotenv.env['SUPABASE_URL'];
+    final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
+
+    if (supabaseUrl == null || supabaseAnonKey == null) {
+      throw Exception(
+        'Supabase credentials not found in .env file. '
+        'Please ensure SUPABASE_URL and SUPABASE_ANON_KEY are set.',
+      );
+    }
+
     await Supabase.initialize(
-      url: 'https://yozmcjrvurlmtkigsswj.supabase.co',
-      anonKey:
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlvem1janJ2dXJsbXRraWdzc3dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ5MjkyNTcsImV4cCI6MjA4MDUwNTI1N30.0uQkzWeIR7JAHR9mlvJOjiu6JIaepld727Tgog8YoKU',
+      url: supabaseUrl,
+      anonKey: supabaseAnonKey,
     );
   }
 
