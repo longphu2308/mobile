@@ -20,7 +20,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
   final FoodService _foodService = Get.find<FoodService>();
   String? _selectedCategory;
   bool _searchNameOnly = true; // Mặc định tìm chỉ theo tên
-  
+
   // Map category values từ DB sang tiếng Việt
   final Map<String, String> _categoryMap = {
     'all': 'Tất cả',
@@ -30,7 +30,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     'drink': 'Đồ uống',
     'combo': 'Combo',
   };
-  
+
   List<String> get _categoryKeys => _categoryMap.keys.toList();
 
   @override
@@ -49,7 +49,11 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
         _foodService.filterByCategory(category);
       }
     } else {
-      _foodService.searchAndFilterByCategory(query.trim(), category, nameOnly: _searchNameOnly);
+      _foodService.searchAndFilterByCategory(
+        query.trim(),
+        category,
+        nameOnly: _searchNameOnly,
+      );
     }
   }
 
@@ -58,7 +62,11 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
       _selectedCategory = categoryKey;
     });
     final query = _searchController.text.trim();
-    _foodService.searchAndFilterByCategory(query, categoryKey, nameOnly: _searchNameOnly);
+    _foodService.searchAndFilterByCategory(
+      query,
+      categoryKey,
+      nameOnly: _searchNameOnly,
+    );
   }
 
   @override
@@ -68,137 +76,167 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     super.dispose();
   }
 
+  void _goBack() {
+    _foodService.clearFilters();
+    Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: bgColor,
-      appBar: AppBar(
-        elevation: 0.0,
-        backgroundColor: whiteColor,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: blackColor),
-          onPressed: () {
-            _foodService.clearFilters();
-            Navigator.pop(context);
-          },
-        ),
-        title: SearchTextField(
-          controller: _searchController,
-          autofocus: true,
-          hintText: 'Tìm kiếm món ăn...',
-          onChanged: (value) {
-            // Tìm kiếm real-time khi gõ
-            _performSearch(value);
-          },
-          onSubmitted: (value) {
-            _performSearch(value);
-          },
-        ),
-        titleSpacing: 0,
-      ),
-      body: Column(
-        children: [
-          // Search options
-          Container(
-            color: whiteColor,
-            padding: const EdgeInsets.symmetric(
-              horizontal: horizontalPadding,
-              vertical: 8,
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.tune, size: 20, color: Colors.grey[600]),
-                const SizedBox(width: 8),
-                Text(
-                  'Tìm kiếm:',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[700],
-                    fontWeight: FontWeight.w500,
-                  ),
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          _foodService.clearFilters();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: bgColor,
+        appBar: AppBar(
+          elevation: 0.0,
+          backgroundColor: whiteColor,
+          leading: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(50),
+              onTap: _goBack,
+              child: Container(
+                margin: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Row(
-                    children: [
-                      _buildSearchOption('Chỉ tên', true),
-                      const SizedBox(width: 8),
-                      _buildSearchOption('Tất cả', false),
-                    ],
-                  ),
+                child: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: primaryColor,
+                  size: 20,
                 ),
-              ],
+              ),
             ),
           ),
-          const Divider(height: 1),
-          
-          // Category filter chips
-          Container(
-            height: 50,
-            color: whiteColor,
-            padding: const EdgeInsets.symmetric(horizontal: horizontalPadding),
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: _categoryKeys.length,
-              itemBuilder: (context, index) {
-                final categoryKey = _categoryKeys[index];
-                final categoryLabel = _categoryMap[categoryKey]!;
-                final isSelected = _selectedCategory == categoryKey ||
-                    (_selectedCategory == null && categoryKey == 'all');
-                
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: FilterChip(
-                    label: Text(categoryLabel),
-                    selected: isSelected,
-                    onSelected: (selected) => _filterByCategory(categoryKey),
-                    backgroundColor: Colors.grey[100],
-                    selectedColor: primaryColor.withValues(alpha: 0.2),
-                    labelStyle: TextStyle(
-                      color: isSelected ? primaryColor : Colors.grey[700],
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                    ),
-                    side: BorderSide(
-                      color: isSelected ? primaryColor : Colors.transparent,
+          title: SearchTextField(
+            controller: _searchController,
+            autofocus: true,
+            hintText: 'Tìm kiếm món ăn...',
+            onChanged: (value) {
+              // Tìm kiếm real-time khi gõ
+              _performSearch(value);
+            },
+            onSubmitted: (value) {
+              _performSearch(value);
+            },
+          ),
+          titleSpacing: 0,
+        ),
+        body: Column(
+          children: [
+            // Search options
+            Container(
+              color: whiteColor,
+              padding: const EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: 8,
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.tune, size: 20, color: Colors.grey[600]),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Tìm kiếm:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                );
-              },
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        _buildSearchOption('Chỉ tên', true),
+                        const SizedBox(width: 8),
+                        _buildSearchOption('Tất cả', false),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const Divider(height: 1),
-          
-          // Search results
-          Expanded(
-            child: GetBuilder<FoodService>(
-              builder: (foodService) {
-                if (foodService.isLoading) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: primaryColor),
+            const Divider(height: 1),
+
+            // Category filter chips
+            Container(
+              height: 50,
+              color: whiteColor,
+              padding: const EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+              ),
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: _categoryKeys.length,
+                itemBuilder: (context, index) {
+                  final categoryKey = _categoryKeys[index];
+                  final categoryLabel = _categoryMap[categoryKey]!;
+                  final isSelected =
+                      _selectedCategory == categoryKey ||
+                      (_selectedCategory == null && categoryKey == 'all');
+
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilterChip(
+                      label: Text(categoryLabel),
+                      selected: isSelected,
+                      onSelected: (selected) => _filterByCategory(categoryKey),
+                      backgroundColor: Colors.grey[100],
+                      selectedColor: primaryColor.withValues(alpha: 0.2),
+                      labelStyle: TextStyle(
+                        color: isSelected ? primaryColor : Colors.grey[700],
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.normal,
+                      ),
+                      side: BorderSide(
+                        color: isSelected ? primaryColor : Colors.transparent,
+                      ),
+                    ),
                   );
-                }
-
-                final foodList = foodService.filteredFoods;
-                if (foodList.isEmpty) {
-                  // Không hiện gì cả nếu không có món
-                  return const SizedBox.shrink();
-                }
-
-                return _SearchFound(
-                  foodList: foodList,
-                  searchQuery: _searchController.text.trim(),
-                );
-              },
+                },
+              ),
             ),
-          ),
-        ],
+            const Divider(height: 1),
+
+            // Search results
+            Expanded(
+              child: GetBuilder<FoodService>(
+                builder: (foodService) {
+                  if (foodService.isLoading) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: primaryColor),
+                    );
+                  }
+
+                  final foodList = foodService.filteredFoods;
+                  if (foodList.isEmpty) {
+                    // Không hiện gì cả nếu không có món
+                    return const SizedBox.shrink();
+                  }
+
+                  return _SearchFound(
+                    foodList: foodList,
+                    searchQuery: _searchController.text.trim(),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildSearchOption(String label, bool isNameOnly) {
     final isSelected = _searchNameOnly == isNameOnly;
-    
+
     return InkWell(
       onTap: () {
         setState(() {
@@ -233,10 +271,7 @@ class _SearchFound extends StatelessWidget {
   final List<FoodModel> foodList;
   final String searchQuery;
 
-  const _SearchFound({
-    required this.foodList,
-    required this.searchQuery,
-  });
+  const _SearchFound({required this.foodList, required this.searchQuery});
 
   String _formatPrice(double price) {
     final priceStr = price.toStringAsFixed(0);
@@ -405,10 +440,7 @@ class _SearchNotFound extends StatelessWidget {
               searchQuery.isEmpty
                   ? 'Chưa có món ăn nào'
                   : FoodieStrings.searchNotFound,
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
             YBox(10),
             Text(
