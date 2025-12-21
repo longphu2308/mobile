@@ -3,6 +3,9 @@ import 'package:mobile/Shipper/models/shipper_order.dart';
 import 'package:mobile/core/services/supabase/supabase_service.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/Shipper/widgets/shipper_bottom_nav.dart';
+import 'package:mobile/core/services/location_service.dart';
+import 'package:mobile/Shipper/widgets/delivery_map_widget.dart';
+import 'package:latlong2/latlong.dart';
 
 double _statusProgress(String status) {
   // Map ordered lifecycle to progress values (0.0 -> 1.0)
@@ -39,6 +42,9 @@ class _OrderDetailState extends State<OrderDetail> {
   List<OrderItem> items = [];
   bool isLoadingItems = false;
   bool _isUpdatingStatus = false;
+  LatLng? _shipperLocation;
+  LatLng? _restaurantLocation;
+  LatLng? _customerLocation;
 
   @override
   void didChangeDependencies() {
@@ -56,6 +62,55 @@ class _OrderDetailState extends State<OrderDetail> {
     items = List.from(order.items);
     if (items.isEmpty) {
       _fetchItems();
+    }
+    _loadLocations();
+  }
+
+  Future<void> _loadLocations() async {
+    // Get shipper current location
+    final position = await LocationService().getCurrentLocation();
+    if (position != null) {
+      setState(() {
+        _shipperLocation = LatLng(position.latitude, position.longitude);
+      });
+    }
+
+    // Get restaurant and customer locations
+    try {
+      final supabase = SupabaseService();
+      // Fetch restaurant location
+      final restaurant = await supabase
+          .from('restaurants')
+          .select('latitude, longitude')
+          .eq('restaurant_id', order.id.split('-').first)
+          .maybeSingle();
+      if (restaurant != null) {
+        final lat = (restaurant['latitude'] as num?)?.toDouble();
+        final lon = (restaurant['longitude'] as num?)?.toDouble();
+        if (lat != null && lon != null) {
+          setState(() {
+            _restaurantLocation = LatLng(lat, lon);
+          });
+        }
+      }
+
+      // Get customer location from order
+      final orderData = await supabase
+          .from('orders')
+          .select('delivery_latitude, delivery_longitude')
+          .eq('order_id', order.id)
+          .maybeSingle();
+      if (orderData != null) {
+        final lat = (orderData['delivery_latitude'] as num?)?.toDouble();
+        final lon = (orderData['delivery_longitude'] as num?)?.toDouble();
+        if (lat != null && lon != null) {
+          setState(() {
+            _customerLocation = LatLng(lat, lon);
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading locations: $e');
     }
   }
 
@@ -333,11 +388,14 @@ class _OrderDetailState extends State<OrderDetail> {
 
                       const SizedBox(height: 8),
 
-                      // Map placeholder
-                      Container(
-                        height: 160,
-                        color: bgColor,
-                        child: const Center(child: Icon(Icons.map, size: 48)),
+                      // Real map widget
+                      SizedBox(
+                        height: 200,
+                        child: DeliveryMapWidget(
+                          shipperLocation: _shipperLocation,
+                          restaurantLocation: _restaurantLocation,
+                          customerLocation: _customerLocation,
+                        ),
                       ),
                       const SizedBox(height: 8),
                     ],
