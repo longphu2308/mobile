@@ -105,21 +105,58 @@ class FoodService extends GetxController {
     }
   }
 
-  Future<void> searchFoods(String query) async {
+  Future<void> searchFoods(String query, {bool nameOnly = false}) async {
     if (query.isEmpty) {
       _filteredFoods.clear();
       _filteredFoods.addAll(_foods);
+      update();
       return;
     }
 
+    // Tìm kiếm local trước (nhanh hơn)
+    final lowercaseQuery = query.toLowerCase();
+    final localResults = _foods.where((food) {
+      final nameMatch = food.name.toLowerCase().contains(lowercaseQuery);
+      
+      if (nameOnly) {
+        return nameMatch;
+      }
+      
+      final descMatch = food.description.toLowerCase().contains(lowercaseQuery);
+      final catMatch = food.category.toLowerCase().contains(lowercaseQuery);
+      
+      // Debug log để xem món nào match
+      if (nameMatch || descMatch || catMatch) {
+        print('🔍 Match "${food.name}": name=$nameMatch, desc=$descMatch, cat=$catMatch');
+        if (descMatch) print('   Description: "${food.description}"');
+        if (catMatch) print('   Category: "${food.category}"');
+      }
+      
+      return nameMatch || descMatch || catMatch;
+    }).toList();
+
+    _filteredFoods.clear();
+    _filteredFoods.addAll(localResults);
+    update();
+
+    // Nếu có kết quả local, không cần gọi API
+    if (localResults.isNotEmpty) {
+      print('🔍 Found ${localResults.length} foods locally for "$query" (nameOnly: $nameOnly)');
+      return;
+    }
+
+    // Nếu không có kết quả local, gọi API (có thể có món mới)
     _isLoading.value = true;
 
     try {
+      print('🔍 Searching foods from API for "$query"...');
       final foods = await _foodRepository.searchFoods(query);
       _filteredFoods.clear();
       _filteredFoods.addAll(foods);
+      print('✅ Found ${foods.length} foods from API');
+      update();
     } catch (e) {
-      print('Error searching foods: $e');
+      print('❌ Error searching foods: $e');
     } finally {
       _isLoading.value = false;
     }

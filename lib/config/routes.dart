@@ -118,12 +118,8 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const HomeScreen());
 
       case searchResultRoute:
-        final args = settings.arguments as Map<String, dynamic>;
         return MaterialPageRoute(
-          builder: (_) => SearchResultScreen(
-            searchString: args['searchString'],
-            foundFoodList: args['foundFoodList'],
-          ),
+          builder: (_) => const SearchResultScreen(),
         );
 
       case cartRoute:

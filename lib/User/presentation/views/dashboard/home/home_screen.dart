@@ -196,16 +196,10 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             YBox(40),
             SearchTextField(
+              readOnly: true,
+              hintText: 'Tìm kiếm món ăn, nhà hàng...',
               onTap: () {
-                final foodService = Get.find<FoodService>();
-                Navigator.pushNamed(
-                  context,
-                  searchResultRoute,
-                  arguments: {
-                    'searchString': 'Search',
-                    'foundFoodList': foodService.foods,
-                  },
-                );
+                Navigator.pushNamed(context, searchResultRoute);
               },
             ),
             YBox(40),
