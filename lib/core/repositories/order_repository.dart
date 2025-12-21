@@ -17,16 +17,12 @@ class OrderRepository {
           .order('created_at', ascending: false);
 
       return (data as List).map((item) {
-        // Convert order_items to OrderItemModel list
-        final orderItems =
-            (item['order_items'] as List<dynamic>?)
-                ?.map((orderItem) => OrderItemModel.fromMap(orderItem))
-                .toList() ??
-            [];
-
-        // Create a copy of the item data with items field
+        // Create a copy of the item data
         final orderData = Map<String, dynamic>.from(item);
-        orderData['items'] = orderItems;
+        
+        // Rename order_items to items for OrderModel.fromMap
+        orderData['items'] = item['order_items'] ?? [];
+        orderData.remove('order_items');
 
         return OrderModel.fromMap(orderData, item['order_id']);
       }).toList();
@@ -46,17 +42,9 @@ class OrderRepository {
           .order('created_at', ascending: false);
 
       return (data as List).map((item) {
-        // Convert order_items to OrderItemModel list
-        final orderItems =
-            (item['order_items'] as List<dynamic>?)
-                ?.map((orderItem) => OrderItemModel.fromMap(orderItem))
-                .toList() ??
-            [];
-
-        // Create a copy of the item data with items field
         final orderData = Map<String, dynamic>.from(item);
-        orderData['items'] = orderItems;
-
+        orderData['items'] = item['order_items'] ?? [];
+        orderData.remove('order_items');
         return OrderModel.fromMap(orderData, item['order_id']);
       }).toList();
     } catch (e) {
@@ -79,17 +67,9 @@ class OrderRepository {
           .order('created_at', ascending: false);
 
       return (data as List).map((item) {
-        // Convert order_items to OrderItemModel list
-        final orderItems =
-            (item['order_items'] as List<dynamic>?)
-                ?.map((orderItem) => OrderItemModel.fromMap(orderItem))
-                .toList() ??
-            [];
-
-        // Create a copy of the item data with items field
         final orderData = Map<String, dynamic>.from(item);
-        orderData['items'] = orderItems;
-
+        orderData['items'] = item['order_items'] ?? [];
+        orderData.remove('order_items');
         return OrderModel.fromMap(orderData, item['order_id']);
       }).toList();
     } catch (e) {
@@ -107,17 +87,9 @@ class OrderRepository {
           .eq('order_id', orderId)
           .maybeSingle();
       if (data != null) {
-        // Convert order_items to OrderItemModel list
-        final orderItems =
-            (data['order_items'] as List<dynamic>?)
-                ?.map((orderItem) => OrderItemModel.fromMap(orderItem))
-                .toList() ??
-            [];
-
-        // Create a copy of the data with items field
         final orderData = Map<String, dynamic>.from(data);
-        orderData['items'] = orderItems;
-
+        orderData['items'] = data['order_items'] ?? [];
+        orderData.remove('order_items');
         return OrderModel.fromMap(orderData, data['order_id']);
       }
       return null;
