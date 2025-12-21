@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 import 'package:mobile/User/presentation/views/auth/welcome_screen.dart';
 import 'package:mobile/User/presentation/views/auth/auth_screen.dart';
 import 'package:mobile/User/presentation/controllers/auth_controller.dart';
@@ -24,12 +24,15 @@ import 'package:mobile/core/models/user_model.dart';
 import 'package:mobile/core/models/order_model.dart';
 import 'package:mobile/core/models/promo_model.dart';
 import 'package:mobile/core/models/restaurant_model.dart';
+import 'package:mobile/Shipper/models/shipper_order.dart';
 // Shipper views
 import 'package:mobile/Shipper/views/shipper_dashboard.dart';
 import 'package:mobile/Shipper/views/order_detail.dart';
 import 'package:mobile/Shipper/views/order_history.dart';
 import 'package:mobile/Shipper/views/profile.dart' as shipper_profile;
 import 'package:mobile/Shipper/views/live_tracking.dart';
+import 'package:mobile/Shipper/views/pickup_confirm.dart';
+import 'package:mobile/Shipper/views/delivery_confirm.dart';
 
 // Route names
 const String welcomeRoute = '/';
@@ -63,32 +66,33 @@ const String shipperOrderDetailRoute = '/shipper/order-detail';
 const String shipperHistoryRoute = '/shipper/history';
 const String shipperProfileRoute = '/shipper/profile';
 const String shipperTrackingRoute = '/shipper/tracking';
+const String shipperPickupConfirmRoute = '/shipper/pickup-confirm';
+const String shipperDeliveryConfirmRoute = '/shipper/delivery-confirm';
 
 class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case welcomeRoute:
         return MaterialPageRoute(
-          builder: (_) => Consumer<AuthController>(
-            builder: (context, authController, _) {
-              if (authController.state == AuthState.authenticated) {
-                final user = authController.currentUser;
-                if (user != null && user.role == UserRole.owner) {
-                  return const OwnerDashboardScreen();
-                } else if (user != null && user.role == UserRole.shipper) {
-                  return const ShipperDashboard();
-                } else {
-                  return const UserDashboardScreen();
-                }
-              } else if (authController.state == AuthState.initial) {
-                return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                );
+          builder: (_) => Obx(() {
+            final authController = Get.find<AuthController>();
+            if (authController.state == AuthState.authenticated) {
+              final user = authController.currentUser;
+              if (user != null && user.role == UserRole.owner) {
+                return const OwnerDashboardScreen();
+              } else if (user != null && user.role == UserRole.shipper) {
+                return const ShipperDashboard();
               } else {
-                return const WelcomeScreen();
+                return const UserDashboardScreen();
               }
-            },
-          ),
+            } else if (authController.state == AuthState.initial) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            } else {
+              return const WelcomeScreen();
+            }
+          }),
         );
 
       case authRoute:
@@ -176,8 +180,8 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const ShipperDashboard());
 
       case shipperOrderDetailRoute:
-        final args = settings.arguments as dynamic;
-        return MaterialPageRoute(builder: (_) => OrderDetail());
+        final args = settings.arguments as ShipperOrder;
+        return MaterialPageRoute(builder: (_) => OrderDetail(order: args));
 
       case shipperHistoryRoute:
         return MaterialPageRoute(builder: (_) => const OrderHistory());
@@ -189,6 +193,14 @@ class AppRouter {
 
       case shipperTrackingRoute:
         return MaterialPageRoute(builder: (_) => const LiveTracking());
+
+      case shipperPickupConfirmRoute:
+        final args = settings.arguments as ShipperOrder;
+        return MaterialPageRoute(builder: (_) => PickupConfirm(order: args));
+
+      case shipperDeliveryConfirmRoute:
+        final args = settings.arguments as ShipperOrder;
+        return MaterialPageRoute(builder: (_) => DeliveryConfirm(order: args));
 
       // User profile routes
       case userEditProfileRoute:

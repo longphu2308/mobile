@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/Owner/presentation/controllers/dashboard_controller.dart';
 import 'package:mobile/Owner/presentation/widgets/widgets.dart';
@@ -18,7 +18,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = DashboardController();
+    _controller = Get.put(DashboardController());
     _controller.loadDashboardData();
   }
 
@@ -48,9 +48,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: Text(c.isOpen ? "Đóng cửa hàng?" : "Mở cửa hàng?"),
-        content: Text(
-          "Bạn có chắc muốn ${c.isOpen ? "ĐÓNG" : "MỞ"} cửa hàng?",
-        ),
+        content: Text("Bạn có chắc muốn ${c.isOpen ? "ĐÓNG" : "MỞ"} cửa hàng?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -71,125 +69,116 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider.value(
-      value: _controller,
-      child: Consumer<DashboardController>(
-        builder: (context, c, child) {
-          return Scaffold(
-            backgroundColor: Colors.grey[100],
-            appBar: AppBar(
-              backgroundColor: orangeLight,
-              title: const Text(
-                "Dashboard",
-                style: TextStyle(
-                  color: whiteColor,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              centerTitle: true,
-            ),
+    return Obx(() {
+      final c = _controller;
+      return Scaffold(
+        backgroundColor: Colors.grey[100],
+        appBar: AppBar(
+          backgroundColor: orangeLight,
+          title: const Text(
+            "Dashboard",
+            style: TextStyle(color: whiteColor, fontWeight: FontWeight.bold),
+          ),
+          centerTitle: true,
+        ),
 
-            body: c.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+        body: c.isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ==========================
+                    // STORE STATUS
+                    // ==========================
+                    Center(
+                      child: Column(
+                        children: [
+                          Text(
+                            c.isOpen ? "CỬA HÀNG ĐANG MỞ" : "CỬA HÀNG ĐÃ ĐÓNG",
+                            style: TextStyle(
+                              fontSize: 30,
+                              fontWeight: FontWeight.bold,
+                              color: c.isOpen ? Colors.green : Colors.red,
+                            ),
+                          ),
+                          Switch(
+                            value: c.isOpen,
+                            onChanged: (_) => _confirmToggle(context),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 25),
+
+                    // ==========================
+                    // ORDER + REVENUE STATS
+                    // ==========================
+                    Row(
                       children: [
-                        // ==========================
-                        // STORE STATUS
-                        // ==========================
-                        Center(
-                          child: Column(
-                            children: [
-                              Text(
-                                c.isOpen
-                                    ? "CỬA HÀNG ĐANG MỞ"
-                                    : "CỬA HÀNG ĐÃ ĐÓNG",
-                                style: TextStyle(
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.bold,
-                                  color: c.isOpen ? Colors.green : Colors.red,
-                                ),
-                              ),
-                              Switch(
-                                value: c.isOpen,
-                                onChanged: (_) => _confirmToggle(context),
-                              ),
-                            ],
+                        Expanded(
+                          child: InfoCard(
+                            title: "Đơn hôm nay",
+                            value: "${c.ordersToday}",
+                            icon: Icons.today,
+                            color: Colors.blue,
                           ),
                         ),
-
-                        const SizedBox(height: 25),
-
-                        // ==========================
-                        // ORDER + REVENUE STATS
-                        // ==========================
-                        Row(
-                          children: [
-                            Expanded(
-                              child: InfoCard(
-                                title: "Đơn hôm nay",
-                                value: "${c.ordersToday}",
-                                icon: Icons.today,
-                                color: Colors.blue,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: InfoCard(
-                                title: "Đơn tuần",
-                                value: "${c.ordersThisWeek}",
-                                icon: Icons.view_week,
-                                color: Colors.orange,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: InfoCard(
-                                title: "Đơn tháng",
-                                value: "${c.ordersThisMonth}",
-                                icon: Icons.calendar_month,
-                                color: Colors.teal,
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 30),
-
-                        // ==========================
-                        // RECENT ORDERS
-                        // ==========================
-                        const Text(
-                          "Đơn hàng gần đây",
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: InfoCard(
+                            title: "Đơn tuần",
+                            value: "${c.ordersThisWeek}",
+                            icon: Icons.view_week,
+                            color: Colors.orange,
                           ),
                         ),
-                        const SizedBox(height: 12),
-
-                        ...c.recentOrders.map((order) {
-                          return OrderTile(
-                            name: order.items.first.foodName,
-                            price: "₫${order.totalAmount.toStringAsFixed(0)}",
-                            status: order.status,
-                            onTap: () {
-                              Navigator.pushNamed(
-                                context,
-                                ownerOrderDetailRoute,
-                                arguments: {'order': order},
-                              );
-                            },
-                          );
-                        }).toList(),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: InfoCard(
+                            title: "Đơn tháng",
+                            value: "${c.ordersThisMonth}",
+                            icon: Icons.calendar_month,
+                            color: Colors.teal,
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-          );
-        },
-      ),
-    );
+
+                    const SizedBox(height: 30),
+
+                    // ==========================
+                    // RECENT ORDERS
+                    // ==========================
+                    const Text(
+                      "Đơn hàng gần đây",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    ...c.recentOrders.map((order) {
+                      return OrderTile(
+                        name: order.items.first.foodName,
+                        price: "₫${order.totalAmount.toStringAsFixed(0)}",
+                        status: order.status,
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            ownerOrderDetailRoute,
+                            arguments: {'order': order},
+                          );
+                        },
+                      );
+                    }),
+                  ],
+                ),
+              ),
+      );
+    });
   }
 }

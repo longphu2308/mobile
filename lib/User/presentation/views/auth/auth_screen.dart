@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 import 'package:mobile/User/presentation/widgets/widgets.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/strings.dart';
@@ -133,8 +133,8 @@ class _LogInSectionState extends State<_LogInSection> {
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: horizontalPadding),
-        child: Consumer<AuthController>(
-          builder: (context, authController, _) {
+        child: GetBuilder<AuthController>(
+          builder: (authController) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -156,7 +156,6 @@ class _LogInSectionState extends State<_LogInSection> {
                   enabled: !authController.isLoading,
                 ),
                 YBox(15),
-                // Hiển thị error message nếu có
                 if (authController.errorMessage != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 15.0),
@@ -196,7 +195,6 @@ class _LogInSectionState extends State<_LogInSection> {
                     : FoodieButton(
                         text: FoodieStrings.login,
                         onPressed: () async {
-                          // Validate input
                           if (_emailController.text.isEmpty ||
                               _passwordController.text.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -206,22 +204,17 @@ class _LogInSectionState extends State<_LogInSection> {
                             );
                             return;
                           }
-
-                          // Call signIn
                           bool success = await authController.signIn(
                             email: _emailController.text,
                             password: _passwordController.text,
                           );
-
                           if (success && mounted) {
-                            // Check user role and navigate to appropriate dashboard
                             final user = authController.currentUser;
                             final route = (user?.role == UserRole.owner)
                                 ? ownerDashboardRoute
                                 : (user?.role == UserRole.shipper
                                       ? shipperDashboardRoute
                                       : userDashboardRoute);
-
                             Navigator.pushNamedAndRemoveUntil(
                               context,
                               route,
@@ -274,8 +267,8 @@ class _SignUpSectionState extends State<_SignUpSection> {
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: horizontalPadding),
-        child: Consumer<AuthController>(
-          builder: (context, authController, _) {
+        child: GetBuilder<AuthController>(
+          builder: (authController) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -313,7 +306,6 @@ class _SignUpSectionState extends State<_SignUpSection> {
                   enabled: !authController.isLoading,
                 ),
                 YBox(15),
-                // Hiển thị error message nếu có
                 if (authController.errorMessage != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 15.0),
@@ -335,7 +327,6 @@ class _SignUpSectionState extends State<_SignUpSection> {
                     : FoodieButton(
                         text: FoodieStrings.signUp,
                         onPressed: () async {
-                          // Validate input
                           if (_nameController.text.isEmpty ||
                               _emailController.text.isEmpty ||
                               _phoneController.text.isEmpty ||
@@ -349,8 +340,6 @@ class _SignUpSectionState extends State<_SignUpSection> {
                             );
                             return;
                           }
-
-                          // Validate email format
                           if (!_isValidEmail(_emailController.text)) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
@@ -359,8 +348,6 @@ class _SignUpSectionState extends State<_SignUpSection> {
                             );
                             return;
                           }
-
-                          // Validate password length
                           if (_passwordController.text.length < 6) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
@@ -371,15 +358,12 @@ class _SignUpSectionState extends State<_SignUpSection> {
                             );
                             return;
                           }
-
-                          // Call signUp
                           bool success = await authController.signUp(
                             email: _emailController.text,
                             password: _passwordController.text,
                             fullName: _nameController.text,
                             phone: _phoneController.text,
                           );
-
                           if (success && mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
@@ -387,14 +371,12 @@ class _SignUpSectionState extends State<_SignUpSection> {
                                 backgroundColor: Colors.green,
                               ),
                             );
-                            // Check user role and navigate to appropriate dashboard
                             final user = authController.currentUser;
                             final route = (user?.role == UserRole.owner)
                                 ? ownerDashboardRoute
                                 : (user?.role == UserRole.shipper
                                       ? shipperDashboardRoute
                                       : userDashboardRoute);
-
                             Navigator.pushNamedAndRemoveUntil(
                               context,
                               route,

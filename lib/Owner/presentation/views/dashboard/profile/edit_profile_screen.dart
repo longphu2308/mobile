@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile/core/models/restaurant_model.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/Owner/presentation/controllers/restaurant_controller.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final RestaurantModel? restaurant;
@@ -62,9 +62,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() => isLoading = true);
 
     try {
-      final controller = context.read<RestaurantController>();
+      final controller = Get.find<RestaurantController>();
       final currentRestaurant = widget.restaurant ?? controller.restaurant;
-      
+
       if (currentRestaurant == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -163,7 +163,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       radius: 18,
                       backgroundColor: primaryColor,
                       child: IconButton(
-                        icon: const Icon(Icons.edit, size: 18, color: whiteColor),
+                        icon: const Icon(
+                          Icons.edit,
+                          size: 18,
+                          color: whiteColor,
+                        ),
                         onPressed: () {
                           _showImageUrlDialog();
                         },
@@ -224,9 +228,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       decoration: BoxDecoration(
         color: whiteColor,
         borderRadius: BorderRadius.circular(radius),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 4),
-        ],
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
       ),
       child: TextField(
         controller: controller,

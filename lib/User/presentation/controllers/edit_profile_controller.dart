@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/User/presentation/controllers/user_controller.dart';
 import 'package:mobile/User/presentation/controllers/auth_controller.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 
 class UserEditProfileController {
   final TextEditingController nameCtrl = TextEditingController();
@@ -15,15 +15,15 @@ class UserEditProfileController {
   }
 
   void initFromUser(BuildContext context) {
-    final authController = Provider.of<AuthController>(context, listen: false);
+    final authController = Get.find<AuthController>();
     nameCtrl.text = authController.fullName ?? '';
     phoneCtrl.text = authController.phone ?? '';
     addressCtrl.text = authController.address ?? '';
   }
 
   Future<bool> save(BuildContext context) async {
-    final authController = Provider.of<AuthController>(context, listen: false);
-    final userController = Provider.of<UserController>(context, listen: false);
+    final authController = Get.find<AuthController>();
+    final userController = Get.find<UserController>();
 
     final user = authController.currentUser;
     if (user == null) {

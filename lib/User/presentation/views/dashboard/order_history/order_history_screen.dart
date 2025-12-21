@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile/User/presentation/controllers/order_controller.dart';
 import 'package:mobile/core/models/order_model.dart';
 import 'package:mobile/User/utils/utils.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 
 class OrderHistoryScreen extends StatelessWidget {
   const OrderHistoryScreen({super.key});
@@ -39,8 +39,8 @@ class OrderHistoryScreen extends StatelessWidget {
         ),
         centerTitle: false,
       ),
-      body: Consumer<OrderController>(
-        builder: (context, orderController, child) {
+      body: GetBuilder<OrderController>(
+        builder: (orderController) {
           if (orderController.orders.isEmpty) {
             return const _EmptyState();
           }

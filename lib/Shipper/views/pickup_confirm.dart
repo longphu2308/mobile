@@ -5,11 +5,12 @@ import 'package:mobile/User/utils/utils.dart';
 
 class PickupConfirm extends StatelessWidget {
   static const routeName = '/shipper/pickup-confirm';
-  const PickupConfirm({super.key});
+  final ShipperOrder order;
+  
+  const PickupConfirm({super.key, required this.order});
 
   @override
   Widget build(BuildContext context) {
-    final order = ModalRoute.of(context)!.settings.arguments as ShipperOrder;
     return Scaffold(
       appBar: AppBar(
         title: Text('Pickup ${order.id}'),

@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 import 'package:mobile/User/presentation/controllers/auth_controller.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/User/utils/strings.dart';
 import 'package:mobile/User/utils/assets.dart';
 import 'package:mobile/config/routes.dart';
-
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -24,7 +23,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   void _checkAuthState() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final authController = Provider.of<AuthController>(context, listen: false);
+      final authController = Get.find<AuthController>();
       if (authController.state == AuthState.authenticated) {
         Navigator.pushReplacementNamed(context, userDashboardRoute);
       }
@@ -37,9 +36,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         body: Container(
-          decoration: BoxDecoration(
-            color: primaryColor,
-          ),
+          decoration: BoxDecoration(color: primaryColor),
           child: SafeArea(
             child: Column(
               children: [
@@ -95,17 +92,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       ),
     );
   }
-
 }
 
 class _WelcomeButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
 
-  const _WelcomeButton({
-    required this.text,
-    required this.onPressed,
-  });
+  const _WelcomeButton({required this.text, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {

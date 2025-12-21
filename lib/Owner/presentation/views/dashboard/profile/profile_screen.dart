@@ -4,7 +4,7 @@ import 'package:mobile/Owner/presentation/widgets/widgets.dart';
 import 'package:mobile/User/presentation/controllers/auth_controller.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/config/routes.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -18,9 +18,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final userId = context.read<AuthController>().currentUser?.userId;
+      final userId = Get.find<AuthController>().currentUser?.userId;
       if (userId != null) {
-        context.read<RestaurantController>().loadRestaurantByOwnerId(userId);
+        Get.find<RestaurantController>().loadRestaurantByOwnerId(userId);
       }
     });
   }
@@ -38,13 +38,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         leading: const BackButton(color: blackColor),
       ),
-      body: Consumer<RestaurantController>(
-        builder: (context, controller, _) {
+      body: GetBuilder<RestaurantController>(
+        builder: (controller) {
           final restaurant = controller.restaurant;
+          final isLoading = controller.isLoading;
+          final error = controller.error;
+
+          if (isLoading) {
+            return const Center(
+              child: CircularProgressIndicator(color: primaryColor),
+            );
+          }
+
+          if (error != null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    color: Colors.red,
+                    size: 64,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Không thể tải thông tin quán',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      color: Colors.red,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    error,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      final userId = Get.find<AuthController>().currentUser?.userId;
+                      if (userId != null) {
+                        controller.loadRestaurantByOwnerId(userId);
+                      }
+                    },
+                    child: const Text('Thử lại'),
+                  ),
+                ],
+              ),
+            );
+          }
 
           if (restaurant == null) {
             return const Center(
-              child: CircularProgressIndicator(color: primaryColor),
+              child: Text('Không tìm thấy thông tin quán'),
             );
           }
 
@@ -331,23 +381,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showLogoutDialog(BuildContext context) {
+    final navigator = Navigator.of(context);
+    final authController = Get.find<AuthController>();
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Đăng xuất'),
         content: const Text('Bạn có chắc muốn đăng xuất?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Hủy'),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // TODO: Implement logout logic
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('Đã đăng xuất')));
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              await authController.signOut();
+              navigator.pushNamedAndRemoveUntil('/', (route) => false);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Đăng xuất'),

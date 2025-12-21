@@ -23,11 +23,12 @@ double _statusProgress(String status) {
 
 class OrderDetail extends StatelessWidget {
   static const routeName = '/shipper/order-detail';
-  const OrderDetail({super.key});
+  final ShipperOrder order;
+  
+  const OrderDetail({super.key, required this.order});
 
   @override
   Widget build(BuildContext context) {
-    final order = ModalRoute.of(context)!.settings.arguments as ShipperOrder;
     return Scaffold(
       appBar: AppBar(
         title: Text('Order ${order.id}'),

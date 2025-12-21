@@ -3,7 +3,7 @@ import 'package:mobile/Owner/presentation/widgets/widgets.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/config/routes.dart';
 import 'package:mobile/User/presentation/controllers/auth_controller.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 
 class UserProfileScreen extends StatelessWidget {
   const UserProfileScreen({super.key});
@@ -25,8 +25,8 @@ class UserProfileScreen extends StatelessWidget {
         ),
         centerTitle: false,
       ),
-      body: Consumer<AuthController>(
-        builder: (context, authController, child) {
+      body: GetBuilder<AuthController>(
+        builder: (authController) {
           final user = authController.currentUser;
 
           if (user == null) {

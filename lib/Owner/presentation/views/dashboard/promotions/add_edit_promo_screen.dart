@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile/core/models/promo_model.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/Owner/presentation/controllers/promotions_controller.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 
 class AddEditPromoScreen extends StatefulWidget {
   final PromoModel? promo;
@@ -117,7 +117,7 @@ class _AddEditPromoScreenState extends State<AddEditPromoScreen> {
     setState(() => isLoading = true);
 
     try {
-      final controller = context.read<PromotionsController>();
+      final controller = Get.find<PromotionsController>();
       final discount = double.parse(discountController.text);
       final maxDiscount = maxDiscountController.text.isEmpty
           ? null

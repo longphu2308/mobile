@@ -3,7 +3,7 @@ import 'package:mobile/core/models/promo_model.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:mobile/Owner/presentation/controllers/promotions_controller.dart';
 import 'package:mobile/config/routes.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 
 class PromoDetailScreen extends StatefulWidget {
   final PromoModel promo;
@@ -103,8 +103,8 @@ class _PromoDetailScreenState extends State<PromoDetailScreen> {
           ),
         ],
       ),
-      body: Consumer<PromotionsController>(
-        builder: (context, controller, _) {
+      body: GetBuilder<PromotionsController>(
+        builder: (controller) {
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
