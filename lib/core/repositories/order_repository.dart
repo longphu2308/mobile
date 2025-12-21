@@ -11,12 +11,24 @@ class OrderRepository {
     try {
       final data = await _supabase
           .from(_table)
-          .select()
+          .select('*, order_items(*)')
           .eq('user_id', userId)
           .order('created_at', ascending: false);
-      return (data as List)
-          .map((item) => OrderModel.fromMap(item, item['order_id']))
-          .toList();
+
+      return (data as List).map((item) {
+        // Convert order_items to OrderItemModel list
+        final orderItems =
+            (item['order_items'] as List<dynamic>?)
+                ?.map((orderItem) => OrderItemModel.fromMap(orderItem))
+                .toList() ??
+            [];
+
+        // Create a copy of the item data with items field
+        final orderData = Map<String, dynamic>.from(item);
+        orderData['items'] = orderItems;
+
+        return OrderModel.fromMap(orderData, item['order_id']);
+      }).toList();
     } catch (e) {
       print('Error getting user orders: $e');
       return [];
@@ -28,12 +40,24 @@ class OrderRepository {
     try {
       final data = await _supabase
           .from(_table)
-          .select()
+          .select('*, order_items(*)')
           .eq('restaurant_id', restaurantId)
           .order('created_at', ascending: false);
-      return (data as List)
-          .map((item) => OrderModel.fromMap(item, item['order_id']))
-          .toList();
+
+      return (data as List).map((item) {
+        // Convert order_items to OrderItemModel list
+        final orderItems =
+            (item['order_items'] as List<dynamic>?)
+                ?.map((orderItem) => OrderItemModel.fromMap(orderItem))
+                .toList() ??
+            [];
+
+        // Create a copy of the item data with items field
+        final orderData = Map<String, dynamic>.from(item);
+        orderData['items'] = orderItems;
+
+        return OrderModel.fromMap(orderData, item['order_id']);
+      }).toList();
     } catch (e) {
       print('Error getting restaurant orders: $e');
       return [];
@@ -48,13 +72,25 @@ class OrderRepository {
     try {
       final data = await _supabase
           .from(_table)
-          .select()
+          .select('*, order_items(*)')
           .eq('restaurant_id', restaurantId)
           .eq('status', status)
           .order('created_at', ascending: false);
-      return (data as List)
-          .map((item) => OrderModel.fromMap(item, item['order_id']))
-          .toList();
+
+      return (data as List).map((item) {
+        // Convert order_items to OrderItemModel list
+        final orderItems =
+            (item['order_items'] as List<dynamic>?)
+                ?.map((orderItem) => OrderItemModel.fromMap(orderItem))
+                .toList() ??
+            [];
+
+        // Create a copy of the item data with items field
+        final orderData = Map<String, dynamic>.from(item);
+        orderData['items'] = orderItems;
+
+        return OrderModel.fromMap(orderData, item['order_id']);
+      }).toList();
     } catch (e) {
       print('Error getting restaurant orders by status: $e');
       return [];
@@ -66,11 +102,22 @@ class OrderRepository {
     try {
       final data = await _supabase
           .from(_table)
-          .select()
+          .select('*, order_items(*)')
           .eq('order_id', orderId)
           .maybeSingle();
       if (data != null) {
-        return OrderModel.fromMap(data, data['order_id']);
+        // Convert order_items to OrderItemModel list
+        final orderItems =
+            (data['order_items'] as List<dynamic>?)
+                ?.map((orderItem) => OrderItemModel.fromMap(orderItem))
+                .toList() ??
+            [];
+
+        // Create a copy of the data with items field
+        final orderData = Map<String, dynamic>.from(data);
+        orderData['items'] = orderItems;
+
+        return OrderModel.fromMap(orderData, data['order_id']);
       }
       return null;
     } catch (e) {
@@ -82,12 +129,35 @@ class OrderRepository {
   // Tạo order mới
   Future<String?> createOrder(OrderModel order) async {
     try {
+      // Create order first
+      final orderMap = order.toMap();
+      // Remove items from order map as they go to separate table
+      orderMap.remove('items');
+
       final data = await _supabase
           .from(_table)
-          .insert(order.toMap())
+          .insert(orderMap)
           .select()
           .single();
-      return data['order_id'];
+
+      final orderId = data['order_id'];
+
+      // Create order_items
+      if (order.items.isNotEmpty) {
+        final orderItems = order.items.map((item) {
+          return {
+            'order_id': orderId,
+            'food_id': item.foodId,
+            'food_name': item.foodName,
+            'quantity': item.quantity,
+            'price': item.price,
+          };
+        }).toList();
+
+        await _supabase.from('order_items').insert(orderItems);
+      }
+
+      return orderId;
     } catch (e) {
       print('Error creating order: $e');
       return null;
@@ -148,9 +218,19 @@ class OrderRepository {
         .eq('user_id', userId)
         .order('created_at', ascending: false)
         .map(
-          (data) => data
-              .map((item) => OrderModel.fromMap(item, item['order_id']))
-              .toList(),
+          (data) => data.map((item) {
+            // For streams, we might not get joined data, so handle gracefully
+            final orderItems =
+                (item['order_items'] as List<dynamic>?)
+                    ?.map((orderItem) => OrderItemModel.fromMap(orderItem))
+                    .toList() ??
+                [];
+
+            final orderData = Map<String, dynamic>.from(item);
+            orderData['items'] = orderItems;
+
+            return OrderModel.fromMap(orderData, item['order_id']);
+          }).toList(),
         );
   }
 
@@ -162,9 +242,19 @@ class OrderRepository {
         .eq('restaurant_id', restaurantId)
         .order('created_at', ascending: false)
         .map(
-          (data) => data
-              .map((item) => OrderModel.fromMap(item, item['order_id']))
-              .toList(),
+          (data) => data.map((item) {
+            // For streams, we might not get joined data, so handle gracefully
+            final orderItems =
+                (item['order_items'] as List<dynamic>?)
+                    ?.map((orderItem) => OrderItemModel.fromMap(orderItem))
+                    .toList() ??
+                [];
+
+            final orderData = Map<String, dynamic>.from(item);
+            orderData['items'] = orderItems;
+
+            return OrderModel.fromMap(orderData, item['order_id']);
+          }).toList(),
         );
   }
 
@@ -269,12 +359,24 @@ class OrderRepository {
     try {
       final data = await _supabase
           .from(_table)
-          .select()
+          .select('*, order_items(*)')
           .eq('status', status)
           .order('created_at', ascending: false);
-      return (data as List)
-          .map((item) => OrderModel.fromMap(item, item['order_id']))
-          .toList();
+
+      return (data as List).map((item) {
+        // Convert order_items to OrderItemModel list
+        final orderItems =
+            (item['order_items'] as List<dynamic>?)
+                ?.map((orderItem) => OrderItemModel.fromMap(orderItem))
+                .toList() ??
+            [];
+
+        // Create a copy of the item data with items field
+        final orderData = Map<String, dynamic>.from(item);
+        orderData['items'] = orderItems;
+
+        return OrderModel.fromMap(orderData, item['order_id']);
+      }).toList();
     } catch (e) {
       print('Error getting orders by status: $e');
       return [];
@@ -289,9 +391,19 @@ class OrderRepository {
         .eq('shipper_id', shipperId)
         .order('created_at', ascending: false)
         .map(
-          (data) => data
-              .map((item) => OrderModel.fromMap(item, item['order_id']))
-              .toList(),
+          (data) => data.map((item) {
+            // For streams, we might not get joined data, so handle gracefully
+            final orderItems =
+                (item['order_items'] as List<dynamic>?)
+                    ?.map((orderItem) => OrderItemModel.fromMap(orderItem))
+                    .toList() ??
+                [];
+
+            final orderData = Map<String, dynamic>.from(item);
+            orderData['items'] = orderItems;
+
+            return OrderModel.fromMap(orderData, item['order_id']);
+          }).toList(),
         );
   }
 }

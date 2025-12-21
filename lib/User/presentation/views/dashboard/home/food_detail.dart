@@ -281,7 +281,11 @@ class _FoodDetailState extends State<FoodDetail> {
               text: 'Thêm vào giỏ hàng',
               onPressed: () {
                 final cartController = Get.find<CartController>();
-                cartController.addItem(widget.food);
+                cartController.addItem(
+                  widget.food,
+                  restaurantId: widget.food.restaurantId,
+                  restaurantName: '', // TODO: Get restaurant name
+                );
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(

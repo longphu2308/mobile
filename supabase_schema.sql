@@ -630,3 +630,144 @@ CREATE POLICY "Users can update own payments" ON payments
 -- Add missing columns to orders table if not exists
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_latitude DECIMAL(10, 8);
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_longitude DECIMAL(11, 8);
+
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE policyname = 'Shippers can read assigned order items'
+      AND tablename = 'order_items'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY "Shippers can read assigned order items" ON order_items
+      FOR SELECT TO authenticated
+      USING (
+        order_id IN (
+          SELECT order_id FROM orders WHERE shipper_id = auth.uid()
+        )
+      );
+    $sql$;
+  END IF;
+END
+$$;
+
+ALTER TABLE orders
+DROP CONSTRAINT IF EXISTS orders_status_check;
+ALTER TABLE orders
+ADD CONSTRAINT orders_status_check
+CHECK (
+  status IN (
+    'pending',
+    'confirmed',
+    'preparing',
+    'ready_for_pickup',
+    'delivering',
+    'delivered',
+    'cancelled'
+  )
+);
+
+create policy "order_owner_can_select_shipper_location" on shipper_profiles
+  for select using (
+    exists (
+      select 1 from orders
+      where orders.shipper_id = shipper_profiles.user_id
+        and orders.user_id = auth.uid()
+    )
+  );
+
+alter table shipper_profiles
+  add column if not exists last_seen timestamptz;
+
+
+ALTER TABLE restaurants 
+ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION,
+ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
+
+ALTER PUBLICATION supabase_realtime 
+ADD TABLE shipper_profiles;
+
+CREATE POLICY "Users can read their shipper location"
+ON shipper_profiles FOR SELECT
+TO authenticated
+USING (
+  user_id IN (
+    SELECT shipper_id FROM orders WHERE user_id = auth.uid()
+  )
+);
+
+-- Drop all existing policies
+DROP POLICY IF EXISTS "Users can read own data" ON users;
+DROP POLICY IF EXISTS "Users can update own data" ON users;
+DROP POLICY IF EXISTS "Anyone can read restaurants" ON restaurants;
+DROP POLICY IF EXISTS "Owners can update own restaurants" ON restaurants;
+DROP POLICY IF EXISTS "Anyone can read foods" ON foods;
+DROP POLICY IF EXISTS "Owners can manage own restaurant foods" ON foods;
+DROP POLICY IF EXISTS "Users can read own orders" ON orders;
+DROP POLICY IF EXISTS "Users can create orders" ON orders;
+DROP POLICY IF EXISTS "Users can manage own cart" ON carts;
+DROP POLICY IF EXISTS "Users can manage own cart items" ON cart_items;
+DROP POLICY IF EXISTS "Anyone can read promos" ON promos;
+DROP POLICY IF EXISTS "Users can manage own favorites" ON favorites;
+
+-- ============================================
+-- FIX: ORDER_ITEMS INSERT POLICY
+-- ============================================
+-- Drop existing policy if exists
+DROP POLICY IF EXISTS "Users can create order items" ON order_items;
+
+-- Create policy allowing users to insert order_items for their orders
+CREATE POLICY "Users can create order items" ON order_items
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    order_id IN (SELECT order_id FROM orders WHERE user_id = auth.uid())
+  );
+
+-- ============================================
+-- FIX: SHIPPER CAN READ PENDING ORDERS
+-- ============================================
+-- Drop existing policy if exists
+DROP POLICY IF EXISTS "Shippers can read pending orders" ON orders;
+
+-- Allow shippers to read pending orders (to find available orders)
+CREATE POLICY "Shippers can read pending orders" ON orders
+  FOR SELECT TO authenticated
+  USING (
+    status = 'pending' AND shipper_id IS NULL
+    AND EXISTS (
+      SELECT 1 FROM shipper_profiles 
+      WHERE user_id = auth.uid()
+    )
+  );
+
+-- ============================================
+-- FIX: SHIPPER CAN ACCEPT PENDING ORDERS
+-- ============================================
+-- Drop existing policy if exists
+DROP POLICY IF EXISTS "Shippers can accept pending orders" ON orders;
+
+-- Allow shippers to accept pending orders (update pending orders to assign themselves)
+CREATE POLICY "Shippers can accept pending orders" ON orders
+  FOR UPDATE TO authenticated
+  USING (
+    status = 'pending' AND shipper_id IS NULL
+    AND EXISTS (
+      SELECT 1 FROM shipper_profiles 
+      WHERE user_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    shipper_id = auth.uid()
+  );
+
+-- ============================================
+-- ADDITIONAL COLUMNS FOR ORDER TRACKING
+-- ============================================
+-- Add cancel_reason column to orders
+ALTER TABLE orders 
+ADD COLUMN IF NOT EXISTS cancel_reason TEXT;
+
+-- Add delivered_at column to orders
+ALTER TABLE orders 
+ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMP WITH TIME ZONE;

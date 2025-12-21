@@ -46,8 +46,11 @@ class DashboardController extends GetxController {
       final userId = _supabase.currentUser?.id;
       if (userId == null) {
         _error.value = "User not authenticated";
+        debugPrint("Dashboard: User not authenticated");
         return;
       }
+
+      debugPrint("Dashboard: Loading data for user: $userId");
 
       // Get restaurant info
       _restaurant.value = await _restaurantRepository.getRestaurantByOwnerId(
@@ -56,12 +59,17 @@ class DashboardController extends GetxController {
 
       if (_restaurant.value == null) {
         _error.value = "Restaurant not found";
+        debugPrint("Dashboard: Restaurant not found for user: $userId");
         return;
       }
+
+      debugPrint("Dashboard: Found restaurant: ${_restaurant.value!.name} (${_restaurant.value!.id})");
 
       final orders = await _orderRepository.getRestaurantOrders(
         _restaurant.value!.id,
       );
+
+      debugPrint("Dashboard: Loaded ${orders.length} orders");
 
       _recentOrders.assignAll(orders.take(5).toList());
 

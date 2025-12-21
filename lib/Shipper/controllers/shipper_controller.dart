@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:mobile/core/models/order_model.dart';
 import 'package:mobile/core/repositories/order_repository.dart';
 import 'package:mobile/core/services/supabase/supabase_service.dart';
+import 'package:mobile/Shipper/services/shipper_notification_service.dart';
 
 /// Order status flow for shipper:
 /// - pending: User created order, finding available driver
@@ -78,10 +79,11 @@ class ShipperController extends GetxController {
   }
 
   /// Start listening for new available orders (real-time)
+  /// Listen for orders with status 'pending' (user just created) that need a driver
   void _startListeningForOrders() {
     _ordersSubscription?.cancel();
 
-    // Listen for orders with status 'pending' that need a driver
+    // Listen for orders with status 'pending' (user just created) that need a driver
     _ordersSubscription = _supabase.client
         .from('orders')
         .stream(primaryKey: ['order_id'])
@@ -91,9 +93,22 @@ class ShipperController extends GetxController {
               .map((e) => OrderModel.fromMap(e, e['order_id']))
               .toList();
           // Filter orders without a shipper assigned
-          _availableOrders.assignAll(
-            orders.where((o) => o.shipperId == null).toList(),
-          );
+          final newAvailableOrders = orders
+              .where((o) => o.shipperId == null)
+              .toList();
+
+          // Check for new orders that weren't in the list before
+          final previousOrderIds = _availableOrders.map((o) => o.id).toSet();
+          final newOrders = newAvailableOrders
+              .where((o) => !previousOrderIds.contains(o.id))
+              .toList();
+
+          // Show notification for new orders
+          for (final order in newOrders) {
+            ShipperNotificationService().showNewOrderNotification(order);
+          }
+
+          _availableOrders.assignAll(newAvailableOrders);
         });
   }
 
@@ -148,11 +163,12 @@ class ShipperController extends GetxController {
   }
 
   /// Load available orders for acceptance
+  /// Get pending orders (user just created) without shipper
   Future<void> loadAvailableOrders() async {
     if (!_isOnline.value) return;
 
     try {
-      // Get pending orders without shipper
+      // Get pending orders (user just created) without shipper
       final allPending = await _orderRepository.getOrdersByStatus('pending');
       _availableOrders.assignAll(
         allPending.where((o) => o.shipperId == null).toList(),
@@ -163,33 +179,57 @@ class ShipperController extends GetxController {
   }
 
   /// Accept an order - shipper claims this order
-  /// After acceptance, order stays in 'pending' waiting for restaurant confirmation
+  /// Order is 'pending' (user just created)
+  /// After shipper accepts, order becomes 'confirmed' (shipper assigned, waiting for restaurant)
   Future<bool> acceptOrder(String orderId) async {
     if (shipperId == null) return false;
 
     try {
-      // Update order with shipper info
+      // Check if order is still available (not taken by another shipper)
+      final order = await _orderRepository.getOrderById(orderId);
+      if (order == null) {
+        _error.value = 'Đơn hàng không tồn tại';
+        return false;
+      }
+
+      // Can accept pending orders
+      if (order.status != OrderStatus.pending) {
+        _error.value = 'Đơn hàng không ở trạng thái có thể nhận';
+        return false;
+      }
+
+      if (order.shipperId != null) {
+        _error.value = 'Đơn hàng đã được shipper khác nhận';
+        return false;
+      }
+
+      // Update order with shipper info and change status to 'confirmed'
       final success = await _orderRepository.updateOrder(orderId, {
         'shipper_id': shipperId,
-        // Status stays 'pending' until restaurant confirms
-        // Restaurant will change to 'confirmed' then 'preparing'
+        'status': 'confirmed', // Shipper accepted -> confirmed
       });
 
       if (success) {
         // Remove from available, add to assigned
-        final order = _availableOrders.firstWhereOrNull((o) => o.id == orderId);
-        if (order != null) {
-          _availableOrders.remove(order);
-          final updatedOrder = order.copyWith(shipperId: shipperId);
+        final availableOrder = _availableOrders.firstWhereOrNull(
+          (o) => o.id == orderId,
+        );
+        if (availableOrder != null) {
+          _availableOrders.remove(availableOrder);
+          final updatedOrder = availableOrder.copyWith(
+            shipperId: shipperId,
+            status: OrderStatus.confirmed,
+          );
           _assignedOrders.add(updatedOrder);
         }
 
         await loadAssignedOrders();
+        print('Shipper ${shipperId} accepted order ${orderId}');
         return true;
       }
       return false;
     } catch (e) {
-      _error.value = 'Error accepting order: $e';
+      _error.value = 'Lỗi nhận đơn hàng: $e';
       print(_error.value);
       return false;
     }
