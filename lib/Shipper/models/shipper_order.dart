@@ -28,6 +28,7 @@ class ShipperOrder {
   final double? fee;
   final String? customerPhone;
   final String? restaurantPhone;
+  final String? restaurantId;
 
   ShipperOrder({
     required this.id,
@@ -43,6 +44,7 @@ class ShipperOrder {
     this.fee,
     this.customerPhone,
     this.restaurantPhone,
+    this.restaurantId,
   });
 
   /// Fetch assigned orders for the current shipper (or provided `shipperId`).
@@ -56,8 +58,6 @@ class ShipperOrder {
 
     try {
       final orders = await supabase.from('orders').select().eq('shipper_id', currentShipperId);
-
-      if (orders == null) return [];
 
       // Try to get shipper current location for distance calculation
       double? shipperLat;
@@ -86,7 +86,7 @@ class ShipperOrder {
         print('ShipperOrder.fetchAssignedOrders: orderId=$orderId itemsData=${(itemsData as List?)?.length ?? 0}');
 
         // If no items returned, try fetching via parent orders with embedded relation
-        if ((itemsData as List?)?.isEmpty ?? true) {
+        if (itemsData == null || (itemsData as List).isEmpty) {
           try {
             final orderWithItems = await supabase.from('orders').select('order_items(*)').eq('order_id', orderId).maybeSingle();
             final embedded = (orderWithItems != null && orderWithItems['order_items'] != null)
@@ -117,7 +117,7 @@ class ShipperOrder {
               .from('restaurants')
               .select()
               .eq('restaurant_id', o['restaurant_id'])
-              .maybeSingle() as Map<String, dynamic>?;
+              .maybeSingle();
         } catch (_) {
           restaurant = null;
         }
@@ -129,7 +129,7 @@ class ShipperOrder {
               .from('user_profiles')
               .select()
               .eq('user_id', o['user_id'])
-              .maybeSingle() as Map<String, dynamic>?;
+              .maybeSingle();
         } catch (_) {
           customerProfile = null;
         }
@@ -160,6 +160,7 @@ class ShipperOrder {
           fee: null,
           customerPhone: customerProfile != null ? (customerProfile['phone'] ?? '') : null,
           restaurantPhone: restaurant != null ? (restaurant['phone'] ?? '') : null,
+          restaurantId: o['restaurant_id'] as String?,
         ));
       }
 
