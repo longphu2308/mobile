@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:mobile/core/models/food_model.dart';
 import 'package:mobile/core/repositories/food_repository.dart';
@@ -80,9 +81,14 @@ class FoodService extends GetxController {
 
   void filterByCategory(String category) {
     _filteredFoods.clear();
-    _filteredFoods.addAll(
-      _foods.where((food) => food.category == category).toList(),
-    );
+    if (category == 'all') {
+      _filteredFoods.addAll(_foods);
+    } else {
+      _filteredFoods.addAll(
+        _foods.where((food) => food.category == category).toList(),
+      );
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) => update());
   }
 
   Future<void> loadFoodsByRestaurantAndCategory(
@@ -109,7 +115,7 @@ class FoodService extends GetxController {
     if (query.isEmpty) {
       _filteredFoods.clear();
       _filteredFoods.addAll(_foods);
-      update();
+      WidgetsBinding.instance.addPostFrameCallback((_) => update());
       return;
     }
 
@@ -117,27 +123,22 @@ class FoodService extends GetxController {
     final lowercaseQuery = query.toLowerCase();
     final localResults = _foods.where((food) {
       final nameMatch = food.name.toLowerCase().contains(lowercaseQuery);
-      
       if (nameOnly) {
         return nameMatch;
       }
-      
       final descMatch = food.description.toLowerCase().contains(lowercaseQuery);
       final catMatch = food.category.toLowerCase().contains(lowercaseQuery);
-      
-      // Debug log để xem món nào match
       if (nameMatch || descMatch || catMatch) {
         print('🔍 Match "${food.name}": name=$nameMatch, desc=$descMatch, cat=$catMatch');
         if (descMatch) print('   Description: "${food.description}"');
         if (catMatch) print('   Category: "${food.category}"');
       }
-      
       return nameMatch || descMatch || catMatch;
     }).toList();
 
     _filteredFoods.clear();
     _filteredFoods.addAll(localResults);
-    update();
+    WidgetsBinding.instance.addPostFrameCallback((_) => update());
 
     // Nếu có kết quả local, không cần gọi API
     if (localResults.isNotEmpty) {
@@ -154,7 +155,7 @@ class FoodService extends GetxController {
       _filteredFoods.clear();
       _filteredFoods.addAll(foods);
       print('✅ Found ${foods.length} foods from API');
-      update();
+      WidgetsBinding.instance.addPostFrameCallback((_) => update());
     } catch (e) {
       print('❌ Error searching foods: $e');
     } finally {
@@ -165,5 +166,34 @@ class FoodService extends GetxController {
   void clearFilters() {
     _filteredFoods.clear();
     _filteredFoods.addAll(_foods);
+    WidgetsBinding.instance.addPostFrameCallback((_) => update());
+  }
+
+  // Tìm kiếm và lọc kết hợp
+  Future<void> searchAndFilterByCategory(String query, String category, {bool nameOnly = false}) async {
+    if (query.isEmpty && category.isEmpty) {
+      clearFilters();
+      return;
+    }
+
+    // Nếu chỉ có category, không có query
+    if (query.isEmpty) {
+      filterByCategory(category);
+      return;
+    }
+
+    // Tìm kiếm trước
+    await searchFoods(query, nameOnly: nameOnly);
+
+    // Nếu có category và không phải 'all', lọc thêm kết quả search
+    if (category.isNotEmpty && category != 'all') {
+      final searchResults = List<FoodModel>.from(_filteredFoods);
+      final categoryFiltered = searchResults
+          .where((food) => food.category == category)
+          .toList();
+      _filteredFoods.clear();
+      _filteredFoods.addAll(categoryFiltered);
+      WidgetsBinding.instance.addPostFrameCallback((_) => update());
+    }
   }
 }

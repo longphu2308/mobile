@@ -20,14 +20,18 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
   final FoodService _foodService = Get.find<FoodService>();
   String? _selectedCategory;
   bool _searchNameOnly = true; // Mặc định tìm chỉ theo tên
-  final List<String> _categories = [
-    'Tất cả',
-    'Món chính',
-    'Món phụ',
-    'Đồ uống',
-    'Tráng miệng',
-    'Món ăn vặt',
-  ];
+  
+  // Map category values từ DB sang tiếng Việt
+  final Map<String, String> _categoryMap = {
+    'all': 'Tất cả',
+    'appetizer': 'Khai vị',
+    'main': 'Món chính',
+    'dessert': 'Tráng miệng',
+    'drink': 'Đồ uống',
+    'combo': 'Combo',
+  };
+  
+  List<String> get _categoryKeys => _categoryMap.keys.toList();
 
   @override
   void initState() {
@@ -37,33 +41,24 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
   }
 
   void _performSearch(String query) {
-    if (query.trim().isEmpty && _selectedCategory == null) {
-      _foodService.clearFilters();
-      return;
-    }
-
-    _foodService.searchFoods(query.trim(), nameOnly: _searchNameOnly);
-    
-    // Lọc thêm theo category nếu có
-    if (_selectedCategory != null && _selectedCategory != 'Tất cả') {
-      _filterByCategory(_selectedCategory!);
+    final category = _selectedCategory ?? 'all';
+    if (query.trim().isEmpty) {
+      if (category == 'all') {
+        _foodService.clearFilters();
+      } else {
+        _foodService.filterByCategory(category);
+      }
+    } else {
+      _foodService.searchAndFilterByCategory(query.trim(), category, nameOnly: _searchNameOnly);
     }
   }
 
-  void _filterByCategory(String category) {
+  void _filterByCategory(String categoryKey) {
     setState(() {
-      _selectedCategory = category;
+      _selectedCategory = categoryKey;
     });
-    
-    if (category == 'Tất cả') {
-      if (_searchController.text.trim().isEmpty) {
-        _foodService.clearFilters();
-      } else {
-        _foodService.searchFoods(_searchController.text.trim());
-      }
-    } else {
-      _foodService.filterByCategory(category);
-    }
+    final query = _searchController.text.trim();
+    _foodService.searchAndFilterByCategory(query, categoryKey, nameOnly: _searchNameOnly);
   }
 
   @override
@@ -144,18 +139,19 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
             padding: const EdgeInsets.symmetric(horizontal: horizontalPadding),
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              itemCount: _categories.length,
+              itemCount: _categoryKeys.length,
               itemBuilder: (context, index) {
-                final category = _categories[index];
-                final isSelected = _selectedCategory == category ||
-                    (_selectedCategory == null && category == 'Tất cả');
+                final categoryKey = _categoryKeys[index];
+                final categoryLabel = _categoryMap[categoryKey]!;
+                final isSelected = _selectedCategory == categoryKey ||
+                    (_selectedCategory == null && categoryKey == 'all');
                 
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: FilterChip(
-                    label: Text(category),
+                    label: Text(categoryLabel),
                     selected: isSelected,
-                    onSelected: (selected) => _filterByCategory(category),
+                    onSelected: (selected) => _filterByCategory(categoryKey),
                     backgroundColor: Colors.grey[100],
                     selectedColor: primaryColor.withValues(alpha: 0.2),
                     labelStyle: TextStyle(
@@ -182,14 +178,10 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
                   );
                 }
 
-                final foodList = _searchController.text.trim().isEmpty
-                    ? foodService.foods
-                    : foodService.filteredFoods;
-
+                final foodList = foodService.filteredFoods;
                 if (foodList.isEmpty) {
-                  return _SearchNotFound(
-                    searchQuery: _searchController.text.trim(),
-                  );
+                  // Không hiện gì cả nếu không có món
+                  return const SizedBox.shrink();
                 }
 
                 return _SearchFound(
