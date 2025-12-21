@@ -57,6 +57,7 @@ class CartController extends GetxController {
         _currentRestaurantId.value = cart.restaurantId;
         _currentRestaurantName.value = cart.restaurantName;
       }
+      update(); // Trigger rebuild of GetBuilder
     } catch (e) {
       print('Error loading cart: $e');
     }
@@ -89,6 +90,7 @@ class CartController extends GetxController {
         ),
       );
     }
+    update(); // Trigger rebuild of GetBuilder
 
     if (_currentRestaurantId.value == null ||
         _currentRestaurantId.value != restaurantId) {
@@ -113,6 +115,7 @@ class CartController extends GetxController {
 
   void removeItem(String foodId) {
     _items.removeWhere((item) => item.foodId == foodId);
+    update(); // Trigger rebuild of GetBuilder
 
     if (_currentUserId != null) {
       _cartRepository.removeItemFromCart(_currentUserId!, foodId).catchError((
@@ -139,6 +142,7 @@ class CartController extends GetxController {
         imageUrl: _items[index].imageUrl,
         quantity: quantity,
       );
+      update(); // Trigger rebuild of GetBuilder
 
       if (_currentUserId != null) {
         _cartRepository
@@ -171,6 +175,7 @@ class CartController extends GetxController {
 
   void clear() {
     _items.clear();
+    update(); // Trigger rebuild of GetBuilder
 
     if (_currentUserId != null) {
       _cartRepository.clearCart(_currentUserId!).catchError((e) {
