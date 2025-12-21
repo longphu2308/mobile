@@ -4,6 +4,7 @@ import 'package:mobile/core/services/supabase/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/Shipper/models/shipper_order.dart';
 import 'package:mobile/config/routes.dart';
+import 'package:mobile/Shipper/widgets/shipper_bottom_nav.dart';
 
 class ShipperProfile extends StatefulWidget {
   static const routeName = '/shipper/profile';
@@ -314,6 +315,7 @@ class _ShipperProfileState extends State<ShipperProfile> {
           ],
         ),
       ),
+      bottomNavigationBar: shipperBottomNav(context, 2),
     );
   }
 

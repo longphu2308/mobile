@@ -2,21 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:mobile/Shipper/models/shipper_order.dart';
 import 'package:mobile/core/services/supabase/supabase_service.dart';
 import 'package:mobile/User/utils/utils.dart';
+import 'package:mobile/Shipper/widgets/shipper_bottom_nav.dart';
 
 double _statusProgress(String status) {
+  // Map ordered lifecycle to progress values (0.0 -> 1.0)
   switch (status.toLowerCase()) {
-    case 'assigned':
+    case 'pending':
       return 0.0;
-    case 'pickup':
-      return 0.33;
-    case 'nearby':
-      return 0.15;
-    case 'delivery':
+    case 'confirmed':
+      return 0.2;
+    case 'preparing':
+      return 0.4;
+    case 'ready_for_pickup':
+      return 0.6;
     case 'delivering':
-      return 0.66;
-    case 'completed':
-    case 'done':
+      return 0.8;
+    case 'delivered':
       return 1.0;
+    case 'cancelled':
+      return 0.0;
     default:
       return 0.0;
   }
@@ -34,6 +38,7 @@ class _OrderDetailState extends State<OrderDetail> {
   late ShipperOrder order;
   List<OrderItem> items = [];
   bool isLoadingItems = false;
+  bool _isUpdatingStatus = false;
 
   @override
   void didChangeDependencies() {
@@ -99,20 +104,9 @@ class _OrderDetailState extends State<OrderDetail> {
 
   @override
   Widget build(BuildContext context) {
-    if (order == null) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Order'),
-          backgroundColor: whiteColor,
-          foregroundColor: primaryColor,
-          elevation: 0,
-        ),
-        body: const SafeArea(child: Center(child: CircularProgressIndicator())),
-      );
-    }
     return Scaffold(
       appBar: AppBar(
-        title: Text('Order ${order!.id}'),
+        title: Text('Order ${order.id}'),
         backgroundColor: whiteColor,
         foregroundColor: primaryColor,
         elevation: 0,
@@ -351,44 +345,86 @@ class _OrderDetailState extends State<OrderDetail> {
                 ),
               ),
 
-              // Action buttons fixed to bottom area with safe spacing
+              // Single action button for allowed status transitions
               Padding(
                 padding: EdgeInsets.only(
                   bottom: MediaQuery.of(context).viewInsets.bottom,
                 ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryColor,
+                child: Builder(builder: (ctx) {
+                  final status = (order.status ?? '').toLowerCase();
+                  String? nextStatus;
+                  String buttonLabel = 'No action';
+                  switch (status) {
+                    case 'pending':
+                      nextStatus = 'confirmed';
+                      buttonLabel = 'Confirm Order';
+                      break;
+                    case 'ready_for_pickup':
+                      nextStatus = 'delivering';
+                      buttonLabel = 'Start Delivery';
+                      break;
+                    case 'delivering':
+                      nextStatus = 'delivered';
+                      buttonLabel = 'Mark Delivered';
+                      break;
+                    default:
+                      nextStatus = null;
+                      buttonLabel = 'No action';
+                  }
+
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
+                          onPressed: (nextStatus == null || _isUpdatingStatus)
+                              ? null
+                              : () => _changeStatus(nextStatus!, ctx),
+                          child: _isUpdatingStatus
+                              ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : Text(buttonLabel),
                         ),
-                        onPressed: () => Navigator.pushNamed(
-                          context,
-                          '/shipper/pickup-confirm',
-                          arguments: order,
-                        ),
-                        child: const Text('Picked up'),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pushNamed(
-                          context,
-                          '/shipper/delivery-confirm',
-                          arguments: order,
-                        ),
-                        child: const Text('Deliver'),
-                      ),
-                    ),
-                  ],
-                ),
+                    ],
+                  );
+                }),
               ),
             ],
           ),
         ),
       ),
+      bottomNavigationBar: shipperBottomNav(context, 0),
     );
+  }
+
+  Future<void> _changeStatus(String nextStatus, BuildContext ctx) async {
+    setState(() => _isUpdatingStatus = true);
+    try {
+      final supabase = SupabaseService();
+      await supabase.from('orders').update({'status': nextStatus}).eq('order_id', order.id);
+      // Update local order instance by recreating with new status
+      setState(() {
+        order = ShipperOrder(
+          id: order.id,
+          customerName: order.customerName,
+          address: order.address,
+          distanceKm: order.distanceKm,
+          status: nextStatus,
+          total: order.total,
+          items: order.items,
+          eta: order.eta,
+          restaurantName: order.restaurantName,
+          restaurantAddress: order.restaurantAddress,
+          fee: order.fee,
+          customerPhone: order.customerPhone,
+          restaurantPhone: order.restaurantPhone,
+        );
+      });
+      ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Status updated to $nextStatus')));
+    } catch (e) {
+      ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Failed to update status')));
+    } finally {
+      setState(() => _isUpdatingStatus = false);
+    }
   }
 }

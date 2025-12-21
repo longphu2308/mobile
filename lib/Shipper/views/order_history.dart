@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/Shipper/models/shipper_order.dart';
 import 'package:mobile/User/utils/utils.dart';
+import 'package:mobile/Shipper/widgets/shipper_bottom_nav.dart';
 
 class OrderHistory extends StatefulWidget {
   static const routeName = '/shipper/history';
@@ -99,6 +100,7 @@ class _OrderHistoryState extends State<OrderHistory> {
           ],
         ),
       ),
+      bottomNavigationBar: shipperBottomNav(context, 1),
     );
   }
 }

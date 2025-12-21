@@ -50,7 +50,11 @@ class _ShipperDashboardState extends State<ShipperDashboard> {
       }
     } catch (_) {}
     setState(() {
-      orders = fetched;
+      // Show only active orders for the dashboard (hide delivered/cancelled)
+      orders = (fetched ?? []).where((o) {
+        final s = (o.status ?? '').toString().toLowerCase();
+        return !(s == 'delivered' || s == 'cancelled');
+      }).toList();
       isLoading = false;
     });
   }
@@ -259,11 +263,15 @@ class _ShipperDashboardState extends State<ShipperDashboard> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   ElevatedButton(
-                                    onPressed: () => Navigator.pushNamed(
-                                      context,
-                                      '/shipper/order-detail',
-                                      arguments: o,
-                                    ),
+                                    onPressed: () async {
+                                      await Navigator.pushNamed(
+                                        context,
+                                        '/shipper/order-detail',
+                                        arguments: o,
+                                      );
+                                      // Refresh list when returning from detail (so delivered orders disappear)
+                                      await _loadOrders();
+                                    },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: primaryColor,
                                       padding: EdgeInsets.zero,
