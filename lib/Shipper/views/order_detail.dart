@@ -47,9 +47,14 @@ class _OrderDetailState extends State<OrderDetail> {
   LatLng? _customerLocation;
   RouteDestination? _activeRoute;
 
+  bool _initialized = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (_initialized) return;
+    _initialized = true;
+    
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args == null || args is! ShipperOrder) {
       // Defensive: if called without a proper ShipperOrder, go back.
@@ -61,10 +66,85 @@ class _OrderDetailState extends State<OrderDetail> {
     }
     order = args;
     items = List.from(order.items);
+    
+    // Fetch missing data (restaurant info, customer info, items)
+    _loadFullOrderData();
+  }
+
+  /// Load all order data including restaurant and customer info
+  Future<void> _loadFullOrderData() async {
+    // Load items if empty
     if (items.isEmpty) {
       _fetchItems();
     }
+    
+    // Fetch restaurant and customer info if missing
+    await _fetchOrderDetails();
+    
+    // Load locations for map
     _loadLocations();
+  }
+
+  /// Fetch restaurant and customer info for the order
+  Future<void> _fetchOrderDetails() async {
+    try {
+      final supabase = SupabaseService();
+      
+      // Fetch order with restaurant and customer info
+      final orderData = await supabase
+          .from('orders')
+          .select('*, restaurants(*), user_profiles:user_id(*)')
+          .eq('order_id', order.id)
+          .maybeSingle();
+      
+      if (orderData != null) {
+        String? restaurantName = order.restaurantName;
+        String? restaurantAddress = order.restaurantAddress;
+        String? restaurantPhone = order.restaurantPhone;
+        String? restaurantId = order.restaurantId;
+        String customerName = order.customerName;
+        String? customerPhone = order.customerPhone;
+        
+        // Get restaurant info
+        final restaurant = orderData['restaurants'];
+        if (restaurant != null) {
+          restaurantName = restaurant['name'] ?? restaurantName;
+          restaurantAddress = restaurant['address'] ?? restaurantAddress;
+          restaurantPhone = restaurant['phone'] ?? restaurantPhone;
+          restaurantId = orderData['restaurant_id'] ?? restaurantId;
+        }
+        
+        // Get customer info from user_profiles
+        final userProfile = orderData['user_profiles'];
+        if (userProfile != null) {
+          customerName = userProfile['full_name'] ?? customerName;
+          customerPhone = userProfile['phone'] ?? customerPhone;
+        }
+        
+        setState(() {
+          order = ShipperOrder(
+            id: order.id,
+            customerName: customerName.isNotEmpty ? customerName : order.customerName,
+            address: orderData['delivery_address'] ?? order.address,
+            distanceKm: order.distanceKm,
+            status: orderData['status'] ?? order.status,
+            total: (orderData['total_amount'] as num?)?.toDouble() ?? order.total,
+            items: order.items,
+            eta: order.eta,
+            restaurantName: restaurantName,
+            restaurantAddress: restaurantAddress,
+            fee: order.fee,
+            customerPhone: customerPhone,
+            restaurantPhone: restaurantPhone,
+            restaurantId: restaurantId,
+          );
+        });
+        
+        print('✅ Order details loaded: restaurant=${order.restaurantName}, customer=${order.customerName}');
+      }
+    } catch (e) {
+      print('Error fetching order details: $e');
+    }
   }
 
   Future<void> _loadLocations() async {

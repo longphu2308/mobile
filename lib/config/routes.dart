@@ -180,9 +180,20 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const ShipperDashboard());
 
       case shipperOrderDetailRoute:
+        // Convert OrderModel to ShipperOrder if needed
+        ShipperOrder order;
+        if (settings.arguments is ShipperOrder) {
+          order = settings.arguments as ShipperOrder;
+        } else if (settings.arguments is OrderModel) {
+          order = ShipperOrder.fromOrderModel(settings.arguments as OrderModel);
+        } else {
+          throw ArgumentError(
+            'Invalid argument type for shipperOrderDetailRoute',
+          );
+        }
         return MaterialPageRoute(
           builder: (_) => const OrderDetail(),
-          settings: settings,
+          settings: RouteSettings(name: settings.name, arguments: order),
         );
 
       case shipperHistoryRoute:

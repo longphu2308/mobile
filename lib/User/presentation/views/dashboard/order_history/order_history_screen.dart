@@ -4,8 +4,23 @@ import 'package:mobile/core/models/order_model.dart';
 import 'package:mobile/User/utils/utils.dart';
 import 'package:get/get.dart';
 
-class OrderHistoryScreen extends StatelessWidget {
+class OrderHistoryScreen extends StatefulWidget {
   const OrderHistoryScreen({super.key});
+
+  @override
+  State<OrderHistoryScreen> createState() => _OrderHistoryScreenState();
+}
+
+class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
+  late OrderController _orderController;
+
+  @override
+  void initState() {
+    super.initState();
+    _orderController = Get.find<OrderController>();
+    // Refresh orders when entering the screen
+    _orderController.loadUserOrders();
+  }
 
   String _formatPrice(double price) {
     final priceStr = price.toStringAsFixed(0);
@@ -38,21 +53,32 @@ class OrderHistoryScreen extends StatelessWidget {
           ),
         ),
         centerTitle: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: primaryColor),
+            onPressed: () => _orderController.loadUserOrders(),
+          ),
+        ],
       ),
-      body: GetBuilder<OrderController>(
-        builder: (orderController) {
-          if (orderController.orders.isEmpty) {
-            return const _EmptyState();
-          }
+      body: Obx(() {
+        if (_orderController.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        
+        if (_orderController.orders.isEmpty) {
+          return const _EmptyState();
+        }
 
-          return ListView.builder(
+        return RefreshIndicator(
+          onRefresh: () => _orderController.loadUserOrders(),
+          child: ListView.builder(
             padding: const EdgeInsets.symmetric(
               horizontal: horizontalPadding,
               vertical: 16,
             ),
-            itemCount: orderController.orders.length,
+            itemCount: _orderController.orders.length,
             itemBuilder: (context, index) {
-              final order = orderController.orders[index];
+              final order = _orderController.orders[index];
               return TweenAnimationBuilder<double>(
                 tween: Tween(begin: 0.0, end: 1.0),
                 duration: Duration(milliseconds: 300 + (index * 50)),
@@ -73,9 +99,9 @@ class OrderHistoryScreen extends StatelessWidget {
                 ),
               );
             },
-          );
-        },
-      ),
+          ),
+        );
+      }),
     );
   }
 }

@@ -4,12 +4,15 @@ import 'package:mobile/User/presentation/controllers/auth_controller.dart';
 import 'package:mobile/core/repositories/order_repository.dart';
 import 'package:mobile/core/models/order_model.dart';
 import 'package:mobile/core/models/cart_model.dart';
+import 'package:mobile/core/services/supabase/supabase_service.dart';
+import 'package:mobile/core/models/shipper_model.dart';
 
 enum OrderState { initial, loading, success, error }
 
 class OrderController extends GetxController {
   final OrderRepository _orderRepository;
   final AuthController? _authController;
+  final SupabaseService _supabase = SupabaseService();
 
   final RxList<OrderModel> _orders = <OrderModel>[].obs;
   final Rx<OrderModel?> _currentOrder = Rx<OrderModel?>(null);
@@ -53,23 +56,39 @@ class OrderController extends GetxController {
     }
   }
 
-  /// Load user's orders from Firebase
+  /// Load user's orders from Supabase
   Future<void> loadUserOrders() async {
-    if (_currentUserId == null) return;
+    // Try to get userId from multiple sources
+    String? userId = _currentUserId ?? 
+                     _authController?.currentUser?.userId ?? 
+                     _supabase.currentUser?.id;
+    
+    if (userId == null) {
+      print('OrderController: Cannot load orders - no user logged in');
+      return;
+    }
+    
+    // Update _currentUserId if it was null
+    _currentUserId ??= userId;
 
     try {
       _isLoading.value = true;
       _errorMessage.value = null;
 
-      List<OrderModel> orders = await _orderRepository.getUserOrders(
-        _currentUserId!,
-      );
+      print('OrderController: Loading orders for user $userId');
+      List<OrderModel> orders = await _orderRepository.getUserOrders(userId);
       _orders.assignAll(orders);
       _state.value = OrderState.success;
-      _isLoading.value = false;
+      print('OrderController: Loaded ${orders.length} orders');
     } on FirestoreException catch (e) {
       _errorMessage.value = e.message;
       _state.value = OrderState.error;
+      print('OrderController: Error loading orders - ${e.message}');
+    } catch (e) {
+      _errorMessage.value = 'Lỗi tải đơn hàng';
+      _state.value = OrderState.error;
+      print('OrderController: Error loading orders - $e');
+    } finally {
       _isLoading.value = false;
     }
   }
@@ -83,11 +102,12 @@ class OrderController extends GetxController {
     String paymentMethod = 'cash',
     String? note,
   }) async {
-    print(
-      'createOrder called - userId: $_currentUserId, items: ${items.length}',
-    );
+    // Try to get userId from AuthController first, then fallback to Supabase
+    String? userId = _currentUserId ?? _supabase.currentUser?.id;
 
-    if (_currentUserId == null) {
+    print('createOrder called - userId: $userId, items: ${items.length}');
+
+    if (userId == null) {
       _errorMessage.value = 'Lỗi: Bạn chưa đăng nhập';
       print('Error: userId is null');
       return false;
@@ -112,7 +132,7 @@ class OrderController extends GetxController {
       // Create order model - status pending, waiting for shipper and restaurant
       final order = OrderModel(
         id: '', // Will be set by Supabase
-        userId: _currentUserId!,
+        userId: userId,
         restaurantId: restaurantId,
         items: orderItems,
         totalAmount: totalAmount,
@@ -134,6 +154,10 @@ class OrderController extends GetxController {
         _state.value = OrderState.success;
         _isLoading.value = false;
         print('Order created successfully with id: $orderId');
+
+        // Send notifications to shippers and restaurant
+        _notifyShippersAndRestaurant(createdOrder);
+
         return true;
       } else {
         _errorMessage.value = 'Không thể tạo đơn hàng';
@@ -267,6 +291,90 @@ class OrderController extends GetxController {
   /// Get recent orders (last 10)
   List<OrderModel> getRecentOrders({int limit = 10}) {
     return _orders.take(limit).toList();
+  }
+
+  /// Send notifications to available shippers and restaurant
+  Future<void> _notifyShippersAndRestaurant(OrderModel order) async {
+    try {
+      // Get available shippers
+      final availableShippers = await _orderRepository.getAvailableShippers();
+
+      // Send notification to all available shippers
+      for (final shipper in availableShippers) {
+        _sendNotificationToShipper(shipper.userId, order);
+      }
+
+      // Send notification to restaurant
+      _sendNotificationToRestaurant(order.restaurantId, order);
+
+      // Set timeout to cancel order if no shipper accepts within 1 hour
+      _scheduleOrderTimeout(order.id);
+    } catch (e) {
+      print('Error sending notifications: $e');
+    }
+  }
+
+  /// Send notification to shipper
+  void _sendNotificationToShipper(String shipperId, OrderModel order) {
+    // Notification will be sent via real-time listener in ShipperController
+    // ShipperNotificationService.showNewOrderNotification() will be called automatically
+    print(
+      'NOTIFICATION TO SHIPPER ${shipperId}: New order ${order.id} available!',
+    );
+    print(
+      'Order details: ${order.items.length} items, Total: ${order.totalAmount}',
+    );
+    print('Delivery address: ${order.deliveryAddress}');
+  }
+
+  /// Send notification to restaurant
+  void _sendNotificationToRestaurant(String restaurantId, OrderModel order) {
+    // TODO: Implement push notification to restaurant owner
+    // For now, just print notification
+    print(
+      'NOTIFICATION TO RESTAURANT ${restaurantId}: New order ${order.id} received!',
+    );
+    print(
+      'Order details: ${order.items.length} items, Total: ${order.totalAmount}',
+    );
+    print('Customer address: ${order.deliveryAddress}');
+
+    // You can add real push notification here later
+    // Example: sendPushNotificationToRestaurant(restaurantId, order);
+  }
+
+  /// Schedule timeout to cancel order if no shipper accepts within 1 minute
+  void _scheduleOrderTimeout(String orderId) {
+    Future.delayed(const Duration(minutes: 1), () async {
+      try {
+        // Check if order is still pending (no shipper accepted)
+        final currentOrder = await _orderRepository.getOrderById(orderId);
+        if (currentOrder != null &&
+            currentOrder.status == OrderStatus.pending &&
+            currentOrder.shipperId == null) {
+          // Cancel the order but keep it in database
+          await _orderRepository.cancelOrder(orderId);
+          print(
+            'Order ${orderId} cancelled due to timeout (no shipper accepted within 1 minute)',
+          );
+
+          // Send notification to customer about cancellation
+          _sendCancellationNotificationToCustomer(orderId);
+        } else {
+          print('Order ${orderId} was accepted by a shipper before timeout');
+        }
+      } catch (e) {
+        print('Error checking order timeout: $e');
+      }
+    });
+  }
+
+  /// Send cancellation notification to customer
+  void _sendCancellationNotificationToCustomer(String orderId) {
+    // TODO: Implement push notification to customer
+    print(
+      'NOTIFICATION TO CUSTOMER: Order ${orderId} has been cancelled due to no available shipper within 1 minute.',
+    );
   }
 
   @override
