@@ -44,6 +44,37 @@ class StorageService {
     }
   }
 
+  /// Upload restaurant image to Supabase Storage
+  /// Returns the public URL of the uploaded image
+  Future<String?> uploadRestaurantImage(File imageFile, String fileName) async {
+    try {
+      // Generate unique filename
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final uniqueFileName = 'restaurant_${timestamp}_$fileName';
+      final filePath = 'restaurants/$uniqueFileName';
+
+      print('📤 Uploading restaurant image: $filePath');
+
+      // Upload file
+      await _client.storage
+          .from(bucketName)
+          .upload(
+            filePath,
+            imageFile,
+            fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+          );
+
+      // Get public URL
+      final publicUrl = _client.storage.from(bucketName).getPublicUrl(filePath);
+
+      print('✅ Restaurant image uploaded successfully: $publicUrl');
+      return publicUrl;
+    } catch (e) {
+      print('❌ Error uploading restaurant image: $e');
+      return null;
+    }
+  }
+
   /// Delete image from Supabase Storage
   Future<bool> deleteImage(String imageUrl) async {
     try {

@@ -5,77 +5,126 @@ import 'package:mobile/core/repositories/restaurant_repository.dart';
 class RestaurantController extends GetxController {
   final RestaurantRepository _repository;
 
-  final Rx<RestaurantModel?> _restaurant = Rx<RestaurantModel?>(null);
-  final RxBool _isLoading = false.obs;
-  final RxnString _error = RxnString(null);
+  RestaurantModel? _restaurant;
+  bool _isLoading = false;
+  String? _error;
 
   RestaurantController({required RestaurantRepository repository})
     : _repository = repository;
 
   // Getters
-  RestaurantModel? get restaurant => _restaurant.value;
-  bool get isLoading => _isLoading.value;
-  String? get error => _error.value;
+  RestaurantModel? get restaurant => _restaurant;
+  bool get isLoading => _isLoading;
+  String? get error => _error;
 
   // Load restaurant info
   Future<void> loadRestaurant(String restaurantId) async {
-    _isLoading.value = true;
-    _error.value = null;
+    // Prevent multiple simultaneous loads
+    if (_isLoading) return;
+
+    _isLoading = true;
+    _error = null;
+    update();
 
     try {
-      _restaurant.value = await _repository.getRestaurantById(restaurantId);
-      _error.value = null;
+      _restaurant = await _repository.getRestaurantById(restaurantId);
+      _error = null;
     } catch (e) {
       print('Error loading restaurant: $e');
-      _error.value = e.toString();
+      _error = e.toString();
     } finally {
-      _isLoading.value = false;
+      _isLoading = false;
+      update();
     }
   }
 
   // Load restaurant by owner ID
-  Future<void> loadRestaurantByOwnerId(String ownerId) async {
-    _isLoading.value = true;
-    _error.value = null;
+  Future<void> loadRestaurantByOwnerId(
+    String ownerId, {
+    bool force = false,
+  }) async {
+    // Prevent multiple simultaneous loads unless forced
+    if (_isLoading && !force) {
+      print('Already loading restaurant, skipping...');
+      return;
+    }
+
+    _isLoading = true;
+    _error = null;
+    update();
 
     try {
-      _restaurant.value = await _repository.getRestaurantByOwnerId(ownerId);
-      _error.value = null;
+      print('Loading restaurant for owner: $ownerId');
+      _restaurant = await _repository.getRestaurantByOwnerId(ownerId);
+      _error = null;
+      print('Restaurant loaded successfully: ${_restaurant?.name}');
     } catch (e) {
       print('Error loading restaurant by owner: $e');
-      _error.value = e.toString();
+      _error = e.toString();
     } finally {
-      _isLoading.value = false;
+      _isLoading = false;
+      update();
     }
   }
 
   // Update restaurant
-  Future<void> updateRestaurant(RestaurantModel restaurant) async {
-    _isLoading.value = true;
-    _error.value = null;
+  Future<bool> updateRestaurant(RestaurantModel restaurant) async {
+    _isLoading = true;
+    _error = null;
+    update();
 
     try {
-      await _repository.updateRestaurant(restaurant.id, restaurant.toMap());
-      _restaurant.value = restaurant;
-      _error.value = null;
-    } catch (e) {
-      print('Error updating restaurant: $e');
-      _error.value = e.toString();
-    } finally {
-      _isLoading.value = false;
+      print('🔄 Updating restaurant: ${restaurant.name} (${restaurant.id})');
+      print('📋 Update data: ${restaurant.toMap()}');
+
+      final success = await _repository.updateRestaurant(
+        restaurant.id,
+        restaurant.toMap(),
+      );
+
+      if (!success) {
+        throw Exception('Update returned false');
+      }
+
+      // Reload from server to ensure sync
+      print('🔄 Reloading restaurant from server...');
+      _restaurant = await _repository.getRestaurantById(restaurant.id);
+
+      if (_restaurant == null) {
+        throw Exception('Failed to reload restaurant after update');
+      }
+
+      print('✅ Restaurant updated and reloaded: ${_restaurant!.name}');
+      _error = null;
+      _isLoading = false;
+      update(); // Update UI with new data
+      return true;
+    } catch (e, stackTrace) {
+      print('❌ Error updating restaurant: $e');
+      print('Stack trace: $stackTrace');
+      _error = e.toString();
+      _isLoading = false;
+      update();
+      return false;
     }
   }
 
-  // Update restaurant phone
-  Future<void> updatePhone(String restaurantId, String phone) async {
+  // Update restaurant image
+  Future<bool> updateImage(String restaurantId, String imageUrl) async {
     try {
-      await _repository.updateRestaurant(restaurantId, {'phone': phone});
-      if (_restaurant.value != null) {
-        _restaurant.value = _restaurant.value!.copyWith(phone: phone);
+      await _repository.updateRestaurant(restaurantId, {
+        'image_url': imageUrl,
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+      if (_restaurant != null) {
+        _restaurant = _restaurant!.copyWith(imageUrl: imageUrl);
+        update();
       }
+      return true;
     } catch (e) {
-      print('Error updating phone: $e');
-      _error.value = e.toString();
+      print('Error updating image: $e');
+      _error = e.toString();
+      return false;
     }
   }
 }
