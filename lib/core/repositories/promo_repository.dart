@@ -113,7 +113,7 @@ class PromoRepository {
       return data['promo_id'];
     } catch (e) {
       print('Error creating promo: $e');
-      return null;
+      rethrow; // Rethrow để controller có thể bắt và xử lý
     }
   }
 
@@ -128,7 +128,7 @@ class PromoRepository {
       return true;
     } catch (e) {
       print('Error updating promo: $e');
-      return false;
+      rethrow; // Rethrow để controller có thể bắt và xử lý
     }
   }
 

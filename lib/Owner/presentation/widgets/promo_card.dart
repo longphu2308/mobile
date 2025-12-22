@@ -22,320 +22,380 @@ class PromoCard extends StatelessWidget {
     return GestureDetector(
       onTap: onShowDetail,
       child: Container(
-        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: whiteColor,
-          borderRadius: BorderRadius.circular(radius),
-          boxShadow: const [
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
             BoxShadow(
-              color: Colors.black12,
-              blurRadius: 6,
-              offset: Offset(0, 2),
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
           border: Border.all(
             color: promo.active
-                ? primaryColor.withValues(alpha: 0.2)
-                : Colors.grey.shade300,
-            width: 1,
+                ? Colors.green.withOpacity(0.3)
+                : Colors.grey.shade200,
+            width: 1.5,
           ),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ===== CODE & NAME =====
-            Row(
-              children: [
-                const Icon(
-                  Icons.local_offer_outlined,
-                  color: primaryColor,
-                  size: 20,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        promo.code,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: primaryColor,
-                        ),
-                      ),
-                      Text(
-                        promo.name,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: promo.active
-                        ? Colors.green.withValues(alpha: 0.1)
-                        : Colors.red.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    promo.active ? 'Hoạt động' : 'Tắt',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: promo.active ? Colors.green : Colors.red,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 10),
-
-            // ===== DESCRIPTION =====
-            if (promo.description.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Text(
-                  promo.description,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                    height: 1.4,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-
-            // ===== DISCOUNT & CONDITIONS =====
+            // ===== HEADER =====
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(8),
+                color: promo.active
+                    ? Colors.green.withOpacity(0.05)
+                    : Colors.grey.withOpacity(0.05),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Giảm',
-                        style: TextStyle(fontSize: 11, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${promo.discountPercent.toStringAsFixed(0)}%',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
-                        ),
-                      ),
-                    ],
+                  // Voucher icon
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: primaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.local_offer,
+                      color: primaryColor,
+                      size: 26,
+                    ),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Đơn tối thiểu',
-                        style: TextStyle(fontSize: 10, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '₫${(promo.minOrderAmount / 1000).toStringAsFixed(0)}K',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (promo.maxDiscountAmount != null &&
-                      promo.maxDiscountAmount! > 0)
-                    Column(
+                  const SizedBox(width: 12),
+                  // Code & Name
+                  Expanded(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Tối đa',
-                          style: TextStyle(fontSize: 10, color: Colors.grey),
-                        ),
-                        const SizedBox(height: 2),
                         Text(
-                          '₫${(promo.maxDiscountAmount! / 1000).toStringAsFixed(0)}K',
+                          promo.code,
                           style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: primaryColor,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          promo.name,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Status badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: promo.active
+                          ? Colors.green.withOpacity(0.1)
+                          : Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          promo.active ? Icons.check_circle : Icons.cancel,
+                          size: 14,
+                          color: promo.active ? Colors.green : Colors.red,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          promo.active ? 'Hoạt động' : 'Tắt',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: promo.active ? Colors.green : Colors.red,
                           ),
                         ),
                       ],
                     ),
+                  ),
                 ],
               ),
             ),
 
-            const SizedBox(height: 10),
-
-            // ===== TIME & USAGE INFO =====
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            // ===== BODY =====
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  // Discount info row
+                  Row(
                     children: [
-                      const Text(
-                        'Thời gian áp dụng',
-                        style: TextStyle(fontSize: 10, color: Colors.grey),
+                      _buildInfoChip(
+                        icon: Icons.percent,
+                        label: 'Giảm ${promo.discountPercent.toStringAsFixed(0)}%',
+                        color: Colors.green,
                       ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: promo.isExpired
-                              ? Colors.red.withValues(alpha: 0.1)
-                              : Colors.blue.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '${promo.startDate.day}/${promo.startDate.month} - ${promo.endDate.day}/${promo.endDate.month}/${promo.endDate.year}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: promo.isExpired ? Colors.red : Colors.blue,
-                          ),
-                        ),
+                      const SizedBox(width: 8),
+                      _buildInfoChip(
+                        icon: Icons.shopping_cart_outlined,
+                        label: 'Tối thiểu ${_formatMoney(promo.minOrderAmount)}',
+                        color: Colors.blue,
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Lượt sử dụng',
-                      style: TextStyle(fontSize: 10, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+
+                  const SizedBox(height: 12),
+
+                  // Time & Usage row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildInfoBox(
+                          icon: Icons.calendar_today_outlined,
+                          title: 'Thời gian',
+                          value:
+                              '${_formatDate(promo.startDate)} - ${_formatDate(promo.endDate)}',
+                          color: promo.isExpired ? Colors.red : Colors.blue,
+                        ),
                       ),
-                      decoration: BoxDecoration(
-                        color: promo.isUsageLimitReached
-                            ? Colors.orange.withValues(alpha: 0.1)
-                            : Colors.purple.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        '${promo.usedCount}/${promo.usageLimit}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildInfoBox(
+                          icon: Icons.confirmation_number_outlined,
+                          title: 'Lượt dùng',
+                          value: '${promo.usedCount}/${promo.usageLimit}',
                           color: promo.isUsageLimitReached
                               ? Colors.orange
                               : Colors.purple,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Usage progress bar
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: LinearProgressIndicator(
+                          value: promo.usageLimit > 0
+                              ? promo.usedCount / promo.usageLimit
+                              : 0,
+                          minHeight: 6,
+                          backgroundColor: Colors.grey.shade200,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            promo.isUsageLimitReached
+                                ? Colors.red
+                                : Colors.green,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '${((promo.usedCount / (promo.usageLimit > 0 ? promo.usageLimit : 1)) * 100).toStringAsFixed(0)}% đã sử dụng',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          Text(
+                            'Còn ${promo.usageLimit - promo.usedCount} lượt',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: primaryColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
 
-            const SizedBox(height: 10),
-
-            // ===== USAGE PROGRESS BAR =====
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: LinearProgressIndicator(
-                    value: promo.usedCount / promo.usageLimit,
-                    minHeight: 6,
-                    backgroundColor: Colors.grey.shade300,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      promo.isUsageLimitReached ? Colors.red : Colors.green,
-                    ),
-                  ),
+            // ===== FOOTER ACTIONS =====
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(16),
+                  bottomRight: Radius.circular(16),
                 ),
-                const SizedBox(height: 6),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '${((promo.usedCount / promo.usageLimit) * 100).toStringAsFixed(0)}% đã sử dụng',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey.shade600,
+              ),
+              child: Row(
+                children: [
+                  // Toggle button - Full width for better UX
+                  Expanded(
+                    child: InkWell(
+                      onTap: onToggle,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: promo.active
+                              ? Colors.orange.withOpacity(0.1)
+                              : Colors.green.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: promo.active
+                                ? Colors.orange.withOpacity(0.3)
+                                : Colors.green.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              promo.active
+                                  ? Icons.pause_circle_outline
+                                  : Icons.play_circle_outline,
+                              color: promo.active ? Colors.orange : Colors.green,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              promo.active ? 'Tạm ngưng' : 'Kích hoạt',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color:
+                                    promo.active ? Colors.orange : Colors.green,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    Text(
-                      'Còn ${promo.usageLimit - promo.usedCount} lượt',
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: primaryColor,
+                  ),
+                  const SizedBox(width: 12),
+                  // Delete button
+                  InkWell(
+                    onTap: onDelete,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.withOpacity(0.3)),
+                      ),
+                      child: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.red,
+                        size: 20,
                       ),
                     ),
-                  ],
-                ),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                IconButton(
-                  onPressed: onToggle,
-                  icon: Icon(
-                    promo.active
-                        ? Icons.pause_circle_outline
-                        : Icons.play_circle_outline,
-                    color: promo.active ? Colors.green : Colors.orange,
-                    size: 20,
                   ),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 36,
-                    minHeight: 36,
-                  ),
-                  tooltip: promo.active ? 'Tắt' : 'Bật',
-                ),
-                IconButton(
-                  onPressed: onDelete,
-                  icon: const Icon(
-                    Icons.delete_outline,
-                    color: Colors.red,
-                    size: 20,
-                  ),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 36,
-                    minHeight: 36,
-                  ),
-                  tooltip: 'Xoá',
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildInfoChip({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoBox({
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 12, color: color),
+              const SizedBox(width: 4),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatMoney(double amount) {
+    if (amount >= 1000000) {
+      return '${(amount / 1000000).toStringAsFixed(1)}M';
+    } else if (amount >= 1000) {
+      return '${(amount / 1000).toStringAsFixed(0)}K';
+    }
+    return amount.toStringAsFixed(0);
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}';
   }
 }
 

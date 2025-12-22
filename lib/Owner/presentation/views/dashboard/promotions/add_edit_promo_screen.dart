@@ -26,7 +26,19 @@ class _AddEditPromoScreenState extends State<AddEditPromoScreen> {
   DateTime? endDate;
   bool isActive = true;
   bool isLoading = false;
-  String selectedType = 'user'; // Loại voucher: user, owner, both
+  String selectedType = 'order'; // Loại voucher: order, delivery, food, all
+
+  // Danh sách các loại voucher hợp lệ theo DB constraint
+  static const List<String> _validTypes = ['delivery', 'food', 'both'];
+
+  // Đảm bảo selectedType luôn hợp lệ cho dropdown
+  String _getValidSelectedType() {
+    if (_validTypes.contains(selectedType)) {
+      return selectedType;
+    }
+    // Nếu type không hợp lệ, mặc định là 'delivery'
+    return 'delivery';
+  }
 
   @override
   void initState() {
@@ -37,7 +49,7 @@ class _AddEditPromoScreenState extends State<AddEditPromoScreen> {
       text: widget.promo?.description ?? '',
     );
     discountController = TextEditingController(
-      text: widget.promo?.discountPercent.toString() ?? '',
+      text: widget.promo?.discount.toString() ?? '',
     );
     maxDiscountController = TextEditingController(
       text: widget.promo?.maxDiscountAmount?.toString() ?? '',
@@ -51,7 +63,9 @@ class _AddEditPromoScreenState extends State<AddEditPromoScreen> {
     startDate = widget.promo?.startDate;
     endDate = widget.promo?.endDate;
     isActive = widget.promo?.active ?? true;
-    selectedType = widget.promo?.type ?? 'user';
+    // Đảm bảo type hợp lệ (DB chỉ cho phép: delivery, food, both)
+    final promoType = widget.promo?.type ?? 'delivery';
+    selectedType = _validTypes.contains(promoType) ? promoType : 'delivery';
   }
 
   @override
@@ -118,27 +132,31 @@ class _AddEditPromoScreenState extends State<AddEditPromoScreen> {
 
     try {
       final controller = Get.find<PromotionsController>();
-      final discount = double.parse(discountController.text);
-      final maxDiscount = maxDiscountController.text.isEmpty
-          ? null
-          : double.parse(maxDiscountController.text);
-      final minOrder = double.parse(minOrderController.text);
-      final usageLimit = int.parse(usageLimitController.text);
+      final discountValue = int.tryParse(discountController.text) ?? 0;
+
+      // Get restaurantId from controller if not provided
+      String? restaurantId = widget.restaurantId ?? widget.promo?.restaurantId;
+      if (restaurantId == null && widget.promo == null) {
+        // Get from controller for new promos
+        try {
+          final promoController = Get.find<PromotionsController>();
+          restaurantId = promoController.restaurantId;
+        } catch (e) {
+          print('Error getting restaurant ID: $e');
+        }
+      }
 
       final promo = PromoModel(
         id: widget.promo?.id ?? '',
         code: codeController.text.toUpperCase(),
-        name: nameController.text,
         description: descriptionController.text,
-        discountPercent: discount,
-        maxDiscountAmount: maxDiscount,
-        minOrderAmount: minOrder,
+        discount: discountValue,
         type: selectedType,
-        restaurantId: widget.restaurantId ?? widget.promo?.restaurantId,
+        restaurantId: restaurantId,
         startDate: startDate!,
         endDate: endDate!,
         active: isActive,
-        usageLimit: usageLimit,
+        usedCount: widget.promo?.usedCount ?? 0,
         createdAt: widget.promo?.createdAt ?? DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -261,37 +279,42 @@ class _AddEditPromoScreenState extends State<AddEditPromoScreen> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: DropdownButton<String>(
-                value: selectedType,
+                value: _getValidSelectedType(),
                 isExpanded: true,
                 underline: const SizedBox(),
-                items: [
+                items: const [
+                  // Chỉ 3 loại được phép theo DB constraint
                   DropdownMenuItem(
-                    value: 'user',
+                    value: 'delivery',
                     child: Row(
-                      children: const [
-                        Icon(Icons.person, size: 18, color: Colors.blue),
+                      children: [
+                        Icon(
+                          Icons.delivery_dining,
+                          size: 18,
+                          color: Colors.blue,
+                        ),
                         SizedBox(width: 8),
-                        Text('👤 Khách hàng'),
+                        Text('🚚 Vận chuyển'),
                       ],
                     ),
                   ),
                   DropdownMenuItem(
-                    value: 'owner',
+                    value: 'food',
                     child: Row(
-                      children: const [
-                        Icon(Icons.store, size: 18, color: Colors.orange),
+                      children: [
+                        Icon(Icons.fastfood, size: 18, color: Colors.orange),
                         SizedBox(width: 8),
-                        Text('🏪 Chủ quán'),
+                        Text('🍔 Món ăn'),
                       ],
                     ),
                   ),
                   DropdownMenuItem(
                     value: 'both',
                     child: Row(
-                      children: const [
+                      children: [
                         Icon(Icons.group, size: 18, color: Colors.green),
                         SizedBox(width: 8),
-                        Text('👥 Cả hai'),
+                        Text('✨ Cả hai'),
                       ],
                     ),
                   ),
