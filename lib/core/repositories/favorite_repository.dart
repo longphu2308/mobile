@@ -7,18 +7,96 @@ class FavoriteRepository {
   final _supabase = SupabaseService().client;
 
   /// Get all favorites for a user
+  /// Join with foods table to get food details
   Future<List<FavoriteModel>> getUserFavorites(String userId) async {
     try {
-      final data = await _supabase
+      // First get favorites
+      final favoritesData = await _supabase
           .from('favorites')
-          .select()
+          .select('favorite_id, user_id, food_id, created_at')
           .eq('user_id', userId)
           .order('created_at', ascending: false);
 
-      return (data as List)
-          .map((item) => FavoriteModel.fromMap(item, item['favorite_id']))
+      if (favoritesData.isEmpty) {
+        return [];
+      }
+
+      // Get all food IDs
+      final foodIds = (favoritesData as List)
+          .map((item) => item['food_id'] as String)
           .toList();
+
+      // Fetch foods data
+      final foodsData = await _supabase
+          .from('foods')
+          .select('food_id, name, image_url, price, restaurant_id')
+          .inFilter('food_id', foodIds);
+
+      // Create a map for quick lookup
+      final foodsMap = <String, Map<String, dynamic>>{};
+      for (var food in foodsData as List) {
+        foodsMap[food['food_id'] as String] = food;
+      }
+
+      // Get restaurant names if needed
+      final restaurantIds = foodsMap.values
+          .where((f) => f['restaurant_id'] != null)
+          .map((f) => f['restaurant_id'] as String)
+          .toSet()
+          .toList();
+
+      final restaurantsMap = <String, String>{};
+      if (restaurantIds.isNotEmpty) {
+        final restaurantsData = await _supabase
+            .from('restaurants')
+            .select('restaurant_id, name')
+            .inFilter('restaurant_id', restaurantIds);
+
+        for (var restaurant in restaurantsData as List) {
+          restaurantsMap[restaurant['restaurant_id'] as String] =
+              restaurant['name'] as String;
+        }
+      }
+
+      // Combine data
+      return (favoritesData as List).map((item) {
+        final favoriteId = item['favorite_id'] as String;
+        final foodId = item['food_id'] as String;
+        final foodData = foodsMap[foodId];
+
+        if (foodData == null) {
+          // Food might have been deleted
+          return FavoriteModel(
+            id: favoriteId,
+            userId: item['user_id'] ?? '',
+            foodId: foodId,
+            foodName: 'Món ăn không còn tồn tại',
+            foodImageUrl: '',
+            price: 0,
+            createdAt: item['created_at'] != null
+                ? DateTime.parse(item['created_at'])
+                : DateTime.now(),
+          );
+        }
+
+        return FavoriteModel(
+          id: favoriteId,
+          userId: item['user_id'] ?? '',
+          foodId: foodId,
+          foodName: foodData['name'] ?? '',
+          foodImageUrl: foodData['image_url'] ?? '',
+          price: (foodData['price'] ?? 0).toDouble(),
+          restaurantId: foodData['restaurant_id'],
+          restaurantName: foodData['restaurant_id'] != null
+              ? restaurantsMap[foodData['restaurant_id']]
+              : null,
+          createdAt: item['created_at'] != null
+              ? DateTime.parse(item['created_at'])
+              : DateTime.now(),
+        );
+      }).toList();
     } catch (e) {
+      print('❌ Error getting favorites: $e');
       throw FirestoreException(
         message: 'Lỗi lấy danh sách yêu thích: ${e.toString()}',
         code: 'get_favorites_error',
@@ -27,12 +105,13 @@ class FavoriteRepository {
   }
 
   /// Add food to favorites
+  /// Only stores user_id and food_id (schema only has these columns)
   Future<bool> addFavorite(String userId, FoodModel food) async {
     try {
       // Check if already favorited
       final existing = await _supabase
           .from('favorites')
-          .select()
+          .select('favorite_id')
           .eq('user_id', userId)
           .eq('food_id', food.id)
           .limit(1)
@@ -42,20 +121,14 @@ class FavoriteRepository {
         return false; // Already favorited
       }
 
-      final favoriteData = {
-        'user_id': userId,
-        'food_id': food.id,
-        'food_name': food.name,
-        'food_image_url': food.imageUrl,
-        'price': food.price,
-        'restaurant_id': food.restaurantId,
-        'created_at': DateTime.now().toIso8601String(),
-      };
+      // Only insert columns that exist in the schema
+      final favoriteData = {'user_id': userId, 'food_id': food.id};
 
       await _supabase.from('favorites').insert(favoriteData);
 
       return true;
     } catch (e) {
+      print('❌ Error adding favorite: $e');
       throw FirestoreException(
         message: 'Lỗi thêm vào yêu thích: ${e.toString()}',
         code: 'add_favorite_error',
@@ -108,14 +181,31 @@ class FavoriteRepository {
   }
 
   /// Stream để lắng nghe thay đổi của favorites
+  /// Join with foods table to get food details
   Stream<List<FavoriteModel>> favoritesStream(String userId) {
     return _supabase
         .from('favorites')
         .stream(primaryKey: ['favorite_id'])
         .eq('user_id', userId)
         .order('created_at', ascending: false)
-        .map((data) => data
-            .map((item) => FavoriteModel.fromMap(item, item['favorite_id']))
-            .toList());
+        .map((data) {
+          // Note: Stream doesn't support joins well, so we'll need to fetch food details separately
+          // For now, return basic favorite info
+          return data.map((item) {
+            final favoriteId = item['favorite_id'] as String;
+            return FavoriteModel(
+              id: favoriteId,
+              userId: item['user_id'] ?? '',
+              foodId: item['food_id'] ?? '',
+              foodName:
+                  'Loading...', // Will be updated when food details are fetched
+              foodImageUrl: '',
+              price: 0,
+              createdAt: item['created_at'] != null
+                  ? DateTime.parse(item['created_at'])
+                  : DateTime.now(),
+            );
+          }).toList();
+        });
   }
 }
