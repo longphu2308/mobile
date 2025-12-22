@@ -9,12 +9,12 @@ class FoodRepository {
     try {
       print('\n🍽️ FoodRepository.getAllFoods START ============');
       print('📡 Fetching foods from Supabase...');
-      
+
       final response = await _supabase.from('foods').select();
-      
+
       print('📦 Response type: ${response.runtimeType}');
       print('📊 Response length: ${response.length}');
-      
+
       if (response.isEmpty) {
         print('⚠️ WARNING: No foods returned from database!');
         print('   Possible causes:');
@@ -213,7 +213,7 @@ class FoodRepository {
       return true;
     } catch (e) {
       print('Error deleting food: $e');
-      return false;
+      rethrow; // Rethrow để controller có thể bắt và xử lý soft delete
     }
   }
 

@@ -56,8 +56,7 @@ class FoodModel {
 
   // Chuyển model sang map để lưu vào Supabase (snake_case)
   Map<String, dynamic> toMap() {
-    return {
-      'food_id': id,
+    final map = <String, dynamic>{
       'restaurant_id': restaurantId,
       'name': name,
       'description': description,
@@ -68,6 +67,12 @@ class FoodModel {
       'created_at': createdAt.toIso8601String(),
       'updated_at': DateTime.now().toIso8601String(),
     };
+    // Only include food_id if it's not empty (for updates)
+    // When creating new food, let the database generate the UUID
+    if (id.isNotEmpty) {
+      map['food_id'] = id;
+    }
+    return map;
   }
 
   FoodModel copyWith({

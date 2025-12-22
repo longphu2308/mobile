@@ -18,6 +18,8 @@ class PromotionsController extends GetxController {
   List<PromoModel> get promos => _promos;
   bool get isLoading => _isLoading.value;
   String? get error => _error.value;
+  String? get restaurantId => _restaurant.value?.id;
+  RestaurantModel? get restaurant => _restaurant.value;
 
   // Load promos của restaurant
   Future<void> loadPromos() async {
@@ -53,16 +55,17 @@ class PromotionsController extends GetxController {
     }
   }
 
-  Future<void> toggleActive(String promoId, bool currentActive) async {
+  /// Toggle active status - newActive is the desired new state
+  Future<void> toggleActive(String promoId, bool newActive) async {
     try {
       final success = await _promoRepository.updatePromo(promoId, {
-        'active': !currentActive,
+        'active': newActive,
       });
 
       if (success) {
         final index = _promos.indexWhere((p) => p.id == promoId);
         if (index >= 0) {
-          _promos[index] = _promos[index].copyWith(active: !currentActive);
+          _promos[index] = _promos[index].copyWith(active: newActive);
         }
       }
     } catch (e) {
@@ -83,32 +86,28 @@ class PromotionsController extends GetxController {
   }
 
   Future<void> addPromo(PromoModel promo) async {
-    try {
-      final promoId = await _promoRepository.createPromo(promo);
+    final promoId = await _promoRepository.createPromo(promo);
 
-      if (promoId != null) {
-        _promos.add(promo.copyWith(id: promoId));
-      }
-    } catch (e) {
-      print('Error adding promo: $e');
+    if (promoId != null) {
+      _promos.add(promo.copyWith(id: promoId));
+    } else {
+      throw Exception('Không thể tạo voucher');
     }
   }
 
   Future<void> updatePromo(String promoId, PromoModel updatedPromo) async {
-    try {
-      final success = await _promoRepository.updatePromo(
-        promoId,
-        updatedPromo.toMap(),
-      );
+    final success = await _promoRepository.updatePromo(
+      promoId,
+      updatedPromo.toMap(),
+    );
 
-      if (success) {
-        final index = _promos.indexWhere((p) => p.id == promoId);
-        if (index >= 0) {
-          _promos[index] = updatedPromo.copyWith(id: promoId);
-        }
+    if (success) {
+      final index = _promos.indexWhere((p) => p.id == promoId);
+      if (index >= 0) {
+        _promos[index] = updatedPromo.copyWith(id: promoId);
       }
-    } catch (e) {
-      print('Error updating promo: $e');
+    } else {
+      throw Exception('Không thể cập nhật voucher');
     }
   }
 
