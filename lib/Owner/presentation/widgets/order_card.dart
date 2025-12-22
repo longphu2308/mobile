@@ -32,6 +32,7 @@ class OrderCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header: Order ID + Total
           Row(
             children: [
               CircleAvatar(
@@ -49,68 +50,191 @@ class OrderCard extends StatelessWidget {
                 ),
               ),
               Text(
-                "₫${order.totalAmount}",
+                "₫${order.totalAmount.toStringAsFixed(0)}",
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
+                  color: primaryColor,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+
+          const SizedBox(height: 12),
+
+          // Danh sách món ăn
+          if (order.items.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Món đặt:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  ..._buildItemsList(),
+                ],
+              ),
+            ),
+
+          const SizedBox(height: 12),
+
+          // Status chip + View detail
           Row(
             children: [
-              Chip(
-                label: Text(
-                  _getStatusText(order.status),
-                  style: const TextStyle(color: whiteColor),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
                 ),
-                backgroundColor: statusColor,
+                decoration: BoxDecoration(
+                  color: statusColor,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  _getStatusText(order.status),
+                  style: const TextStyle(
+                    color: whiteColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
               const Spacer(),
-              TextButton(
+              TextButton.icon(
                 onPressed: onShowDetail,
-                child: const Text("Xem chi tiết"),
+                icon: const Icon(Icons.visibility, size: 18),
+                label: const Text("Chi tiết"),
               ),
             ],
           ),
+
           const SizedBox(height: 8),
+
+          // Action buttons
           if (order.status == OrderStatus.pending) ...[
             Row(
               children: [
-                ElevatedButton(
-                  onPressed: onUpdateStatus,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: onUpdateStatus,
+                    icon: const Icon(Icons.check_circle, size: 18),
+                    label: const Text("Chấp nhận"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
                   ),
-                  child: const Text("Chấp nhận"),
                 ),
-                const SizedBox(width: 8),
-                OutlinedButton(
-                  onPressed: onCancel,
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.red),
-                  ),
-                  child: const Text(
-                    "Từ chối",
-                    style: TextStyle(color: Colors.red),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onCancel,
+                    icon: const Icon(Icons.cancel, size: 18),
+                    label: const Text("Từ chối"),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
                   ),
                 ),
               ],
             ),
-          ] else if (order.status != OrderStatus.cancelled &&
-              order.status != OrderStatus.delivered) ...[
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
+          ] else if (order.status == OrderStatus.confirmed) ...[
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
                 onPressed: onUpdateStatus,
-                child: const Text("Cập nhật trạng thái ➜"),
+                icon: const Icon(Icons.soup_kitchen, size: 18),
+                label: const Text("Bắt đầu chuẩn bị món"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ] else if (order.status == OrderStatus.preparing) ...[
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: onUpdateStatus,
+                icon: const Icon(Icons.check_circle_outline, size: 18),
+                label: const Text("Hoàn thành món"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
               ),
             ),
           ],
         ],
       ),
     );
+  }
+
+  List<Widget> _buildItemsList() {
+    final displayItems = order.items.take(3).toList();
+    final List<Widget> widgets = [];
+
+    for (var item in displayItems) {
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Row(
+            children: [
+              const Icon(Icons.restaurant_menu, size: 14, color: primaryColor),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '${item.foodName} x${item.quantity}',
+                  style: const TextStyle(fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Text(
+                '₫${(item.price * item.quantity).toStringAsFixed(0)}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (order.items.length > 3) {
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            '... và ${order.items.length - 3} món khác',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return widgets;
   }
 
   String _getStatusText(OrderStatus status) {

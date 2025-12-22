@@ -19,42 +19,75 @@ class _OrdersScreenState extends State<OrdersScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = Get.put(OrdersController());
-    _controller.loadOrders();
+    // Sử dụng find nếu đã có, put nếu chưa
+    _controller = Get.isRegistered<OrdersController>()
+        ? Get.find<OrdersController>()
+        : Get.put(OrdersController());
   }
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      final controller = _controller;
-      return Scaffold(
-        backgroundColor: bgColor,
-        appBar: AppBar(
-          backgroundColor: whiteColor,
-          title: const Text(
-            'Quản lý đơn hàng',
-            style: TextStyle(color: blackColor, fontWeight: FontWeight.bold),
-          ),
-          leading: BackButton(color: blackColor),
+    return Scaffold(
+      backgroundColor: bgColor,
+      appBar: AppBar(
+        backgroundColor: whiteColor,
+        automaticallyImplyLeading: false,
+        title: const Text(
+          'Quản lý đơn hàng',
+          style: TextStyle(color: blackColor, fontWeight: FontWeight.bold),
         ),
-        body: ListView.separated(
-          padding: const EdgeInsets.all(horizontalPadding),
-          itemCount: controller.orders.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemBuilder: (context, index) {
-            final order = controller.orders[index];
-            return OrderCard(
-              order: order,
-              statusColor: controller.statusColor(order.status),
-              onUpdateStatus: () =>
-                  controller.updateStatus(order.id, order.status),
-              onCancel: () => _showCancelDialog(context, order.id),
-              onShowDetail: () => _showOrderDetail(context, order),
+      ),
+      body: RefreshIndicator(
+        onRefresh: () => _controller.refresh(),
+        child: Obx(() {
+          final orders = _controller.orders;
+
+          if (orders.isEmpty) {
+            return ListView(
+              children: const [
+                SizedBox(height: 200),
+                Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.receipt_long, size: 64, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text(
+                        'Chưa có đơn hàng nào',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Kéo xuống để làm mới',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             );
-          },
-        ),
-      );
-    });
+          }
+
+          return ListView.separated(
+            padding: const EdgeInsets.all(horizontalPadding),
+            itemCount: orders.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final order = orders[index];
+              return OrderCard(
+                key: ValueKey('${order.id}_${order.items.length}'),
+                order: order,
+                statusColor: _controller.statusColor(order.status),
+                onUpdateStatus: () =>
+                    _controller.updateStatus(order.id, order.status),
+                onCancel: () => _showCancelDialog(context, order.id),
+                onShowDetail: () => _showOrderDetail(context, order),
+              );
+            },
+          );
+        }),
+      ),
+    );
   }
 
   void _showOrderDetail(BuildContext context, OrderModel order) {

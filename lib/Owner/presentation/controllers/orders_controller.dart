@@ -98,37 +98,46 @@ class OrdersController extends GetxController {
   }
 
   /// Start listening for new orders in real-time
+  /// Chỉ dùng để detect order mới, không update toàn bộ list
   void _startListeningForOrders() {
     if (_restaurant.value == null) return;
 
     _ordersSubscription?.cancel();
 
+    // Lưu previous pending ids để detect new orders
+    Set<String> previousPendingIds = _orders
+        .where((o) => o.status == OrderStatus.pending)
+        .map((o) => o.id)
+        .toSet();
+
     _ordersSubscription = _orderRepository
         .restaurantOrdersStream(_restaurant.value!.id)
-        .listen((newOrders) {
-          // Update orders list
-          _orders.assignAll(newOrders);
-
-          // Show notification for new pending orders
-          final previousPendingIds = _orders
+        .listen((streamOrders) async {
+          // Chỉ kiểm tra order MỚI để show notification
+          final streamPendingIds = streamOrders
               .where((o) => o.status == OrderStatus.pending)
               .map((o) => o.id)
               .toSet();
 
-          final newPendingOrders = newOrders
-              .where(
-                (o) =>
-                    o.status == OrderStatus.pending &&
-                    !previousPendingIds.contains(o.id),
-              )
-              .toList();
+          final newPendingIds = streamPendingIds.difference(previousPendingIds);
 
-          if (newPendingOrders.isNotEmpty) {
-            // Show notification for new pending orders
-            for (final order in newPendingOrders) {
+          if (newPendingIds.isNotEmpty) {
+            // Có đơn mới, fetch lại để lấy đầy đủ items
+            await loadOrders();
+
+            // Show notification
+            for (final order in _orders.where(
+              (o) => newPendingIds.contains(o.id),
+            )) {
               _showNewOrderNotification(order);
             }
           }
+
+          // Update previous ids
+          previousPendingIds = _orders
+              .where((o) => o.status == OrderStatus.pending)
+              .map((o) => o.id)
+              .toSet();
         });
   }
 
