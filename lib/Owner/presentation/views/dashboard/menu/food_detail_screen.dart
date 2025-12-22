@@ -16,6 +16,7 @@ class FoodDetailScreen extends StatefulWidget {
 
 class _FoodDetailScreenState extends State<FoodDetailScreen> {
   late FoodModel currentFood;
+  bool _isUpdating = false;
 
   @override
   void initState() {
@@ -24,18 +25,38 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
   }
 
   Future<void> _toggleStatus(MenuScreenController controller) async {
-    await controller.toggleAvailability(currentFood.id, currentFood.available);
-    setState(() {
-      currentFood = currentFood.copyWith(available: !currentFood.available);
-    });
+    setState(() => _isUpdating = true);
+
+    try {
+      await controller.toggleAvailability(
+        currentFood.id,
+        currentFood.available,
+      );
+      setState(() {
+        currentFood = currentFood.copyWith(available: !currentFood.available);
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isUpdating = false);
+      }
+    }
   }
 
   Future<void> _deleteFood(MenuScreenController controller) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Xoá món ăn?'),
-        content: Text('Bạn có chắc muốn xoá món "${currentFood.name}"?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
+            SizedBox(width: 8),
+            Text('Xoá món ăn?'),
+          ],
+        ),
+        content: Text(
+          'Bạn có chắc muốn xoá món "${currentFood.name}"?\n\nHành động này không thể hoàn tác.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -44,17 +65,15 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Xoá'),
+            child: const Text('Xoá', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
 
-    if (confirm == true) {
-      if (mounted) {
-        await controller.deleteItem(currentFood.id);
-        Navigator.pop(context);
-      }
+    if (confirm == true && mounted) {
+      await controller.deleteItem(currentFood.id);
+      Navigator.pop(context);
     }
   }
 
@@ -63,7 +82,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
       context,
       MaterialPageRoute(builder: (_) => AddEditFoodScreen(food: currentFood)),
     ).then((result) {
-      if (result != null) {
+      if (result != null && result is FoodModel) {
         setState(() {
           currentFood = result;
         });
@@ -71,338 +90,503 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
     });
   }
 
+  String _getCategoryLabel(String categoryKey) {
+    return MenuScreenController.getCategoryLabel(categoryKey);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bgColor,
-      appBar: AppBar(
-        backgroundColor: whiteColor,
-        title: const Text(
-          'Chi tiết món ăn',
-          style: TextStyle(color: blackColor, fontWeight: FontWeight.bold),
-        ),
-        leading: BackButton(color: blackColor),
-        actions: [
-          IconButton(
-            onPressed: _openEdit,
-            icon: const Icon(Icons.edit, color: primaryColor),
-          ),
-        ],
-      ),
       body: GetBuilder<MenuScreenController>(
         builder: (controller) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ===== FOOD IMAGE =====
-                Container(
-                  width: double.infinity,
-                  height: 250,
+          return CustomScrollView(
+            slivers: [
+              // ===== APP BAR WITH IMAGE =====
+              SliverAppBar(
+                expandedHeight: 280,
+                pinned: true,
+                backgroundColor: whiteColor,
+                leading: Container(
+                  margin: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(12),
-                    color: Colors.grey.shade200,
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: currentFood.imageUrl.isNotEmpty
-                        ? Image.network(
-                            currentFood.imageUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Center(
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back, color: blackColor),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+                actions: [
+                  Container(
+                    margin: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      onPressed: _openEdit,
+                      icon: const Icon(Icons.edit, color: primaryColor),
+                    ),
+                  ),
+                ],
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Food Image
+                      currentFood.imageUrl.isNotEmpty
+                          ? Image.network(
+                              currentFood.imageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey.shade200,
+                                  child: const Center(
+                                    child: Icon(
+                                      Icons.image_not_supported,
+                                      size: 60,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                );
+                              },
+                            )
+                          : Container(
+                              color: Colors.grey.shade200,
+                              child: const Center(
                                 child: Icon(
-                                  Icons.image_not_supported,
-                                  size: 50,
+                                  Icons.fastfood,
+                                  size: 60,
+                                  color: Colors.grey,
                                 ),
-                              );
-                            },
-                          )
-                        : const Center(child: Icon(Icons.fastfood, size: 50)),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // ===== FOOD NAME =====
-                Text(
-                  currentFood.name,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                // ===== CATEGORY =====
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: primaryColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    currentFood.category.toUpperCase(),
-                    style: const TextStyle(
-                      color: primaryColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // ===== PRICE SECTION =====
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Giá',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '₫${currentFood.price.toStringAsFixed(0)}',
-                          style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: primaryColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // ===== DESCRIPTION =====
-                const Text(
-                  'Mô tả',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(
-                      currentFood.description,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        height: 1.6,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // ===== FOOD ID =====
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'ID Món ăn',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          currentFood.id,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // ===== STATUS SECTION =====
-                const Text(
-                  'Trạng thái',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Trạng thái bán',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
+                      // Gradient overlay
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        height: 100,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: 0.4),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Status badge
+                      Positioned(
+                        top: 100,
+                        right: 16,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: currentFood.available
+                                ? Colors.green
+                                : Colors.red,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.2),
+                                blurRadius: 8,
                               ),
-                              decoration: BoxDecoration(
-                                color: currentFood.available
-                                    ? Colors.green.withOpacity(0.1)
-                                    : Colors.red.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(20),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                currentFood.available
+                                    ? Icons.check_circle
+                                    : Icons.cancel,
+                                size: 16,
+                                color: Colors.white,
                               ),
-                              child: Text(
+                              const SizedBox(width: 4),
+                              Text(
                                 currentFood.available ? 'Còn hàng' : 'Hết hàng',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // ===== CONTENT =====
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Food name and category
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  currentFood.name,
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: primaryColor.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    _getCategoryLabel(currentFood.category),
+                                    style: const TextStyle(
+                                      color: primaryColor,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // ===== PRICE CARD =====
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              primaryColor,
+                              primaryColor.withValues(alpha: 0.8),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: primaryColor.withValues(alpha: 0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.monetization_on,
+                              color: Colors.white,
+                              size: 32,
+                            ),
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Giá bán',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                Text(
+                                  '₫${currentFood.price.toStringAsFixed(0)}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // ===== DESCRIPTION =====
+                      const Text(
+                        'Mô tả',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: whiteColor,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          currentFood.description,
+                          style: TextStyle(
+                            fontSize: 15,
+                            height: 1.6,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // ===== INFO SECTION =====
+                      const Text(
+                        'Thông tin',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: whiteColor,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            _buildInfoRow(
+                              icon: Icons.fingerprint,
+                              label: 'ID món ăn',
+                              value: currentFood.id,
+                              isMonospace: true,
+                            ),
+                            const Divider(height: 24),
+                            _buildInfoRow(
+                              icon: Icons.calendar_today,
+                              label: 'Ngày tạo',
+                              value: _formatDate(currentFood.createdAt),
+                            ),
+                            const Divider(height: 24),
+                            _buildInfoRow(
+                              icon: Icons.update,
+                              label: 'Cập nhật lần cuối',
+                              value: _formatDate(currentFood.updatedAt),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // ===== STATUS TOGGLE =====
+                      const Text(
+                        'Trạng thái bán',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      GestureDetector(
+                        onTap: _isUpdating
+                            ? null
+                            : () => _toggleStatus(controller),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: currentFood.available
+                                ? Colors.green.withValues(alpha: 0.1)
+                                : Colors.red.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: currentFood.available
+                                  ? Colors.green
+                                  : Colors.red,
+                              width: 2,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (_isUpdating)
+                                SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: currentFood.available
+                                        ? Colors.green
+                                        : Colors.red,
+                                  ),
+                                )
+                              else
+                                Icon(
+                                  currentFood.available
+                                      ? Icons.check_circle
+                                      : Icons.cancel,
+                                  color: currentFood.available
+                                      ? Colors.green
+                                      : Colors.red,
+                                  size: 24,
+                                ),
+                              const SizedBox(width: 12),
+                              Text(
+                                currentFood.available
+                                    ? 'Còn hàng - Nhấn để chuyển sang Hết hàng'
+                                    : 'Hết hàng - Nhấn để chuyển sang Còn hàng',
                                 style: TextStyle(
                                   color: currentFood.available
                                       ? Colors.green
                                       : Colors.red,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      // ===== ACTION BUTTONS =====
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: _openEdit,
+                              icon: const Icon(Icons.edit, size: 20),
+                              label: const Text('Chỉnh sửa'),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                side: const BorderSide(
+                                  color: primaryColor,
+                                  width: 2,
+                                ),
+                                foregroundColor: primaryColor,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                        DropdownButton<bool>(
-                          value: currentFood.available,
-                          items: const [
-                            DropdownMenuItem(
-                              value: true,
-                              child: Text('Còn hàng'),
-                            ),
-                            DropdownMenuItem(
-                              value: false,
-                              child: Text('Hết hàng'),
-                            ),
-                          ],
-                          onChanged: (value) {
-                            if (value != null) {
-                              _toggleStatus(controller);
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // ===== CREATION DATE =====
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Ngày tạo',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => _deleteFood(controller),
+                              icon: const Icon(Icons.delete, size: 20),
+                              label: const Text('Xoá món'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _formatDate(currentFood.createdAt),
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                          ],
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            const Text(
-                              'Cập nhật lần cuối',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _formatDate(currentFood.updatedAt),
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 40),
+                    ],
                   ),
                 ),
-
-                const SizedBox(height: 30),
-
-                // ===== ACTION BUTTONS =====
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _openEdit,
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          side: const BorderSide(color: primaryColor),
-                        ),
-                        child: const Text(
-                          'Chỉnh sửa',
-                          style: TextStyle(color: primaryColor),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => _deleteFood(controller),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        child: const Text(
-                          'Xoá',
-                          style: TextStyle(color: whiteColor),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 40),
-              ],
-            ),
+              ),
+            ],
           );
         },
       ),
     );
   }
 
+  Widget _buildInfoRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    bool isMonospace = false,
+  }) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: primaryColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 20, color: primaryColor),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  fontFamily: isMonospace ? 'monospace' : null,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   String _formatDate(DateTime dateTime) {
-    return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+    return '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 }

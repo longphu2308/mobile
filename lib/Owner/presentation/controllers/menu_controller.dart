@@ -17,27 +17,37 @@ class MenuScreenController extends GetxController {
   final RxBool _isLoading = false.obs;
   final RxnString _error = RxnString(null);
 
-  // Danh mục món
-  final List<String> _categories = [
-    'Tất cả',
-    'main',
-    'appetizer',
-    'dessert',
-    'drink',
-    'combo',
-  ];
-  final RxString _selectedCategory = 'Tất cả'.obs;
+  // Danh mục món - Map category key to Vietnamese
+  static const Map<String, String> categoryMap = {
+    'all': 'Tất cả',
+    'appetizer': 'Khai vị',
+    'main': 'Món chính',
+    'dessert': 'Tráng miệng',
+    'drink': 'Đồ uống',
+    'combo': 'Combo',
+  };
 
-  List<String> get categories => _categories;
-  String get selectedCategory => _selectedCategory.value;
+  List<String> get categoryKeys => categoryMap.keys.toList();
+  final RxString _selectedCategoryKey = 'all'.obs;
+
+  String get selectedCategoryKey => _selectedCategoryKey.value;
+  String get selectedCategoryLabel =>
+      categoryMap[_selectedCategoryKey.value] ?? 'Tất cả';
   List<FoodModel> get menu => _menu;
   bool get isLoading => _isLoading.value;
   String? get error => _error.value;
   RestaurantModel? get restaurant => _restaurant.value;
 
+  /// Convert category key to Vietnamese label
+  static String getCategoryLabel(String categoryKey) {
+    return categoryMap[categoryKey] ?? categoryKey;
+  }
+
   List<FoodModel> get filteredMenu {
-    if (_selectedCategory.value == 'Tất cả') return _menu;
-    return _menu.where((m) => m.category == _selectedCategory.value).toList();
+    if (_selectedCategoryKey.value == 'all') return _menu;
+    return _menu
+        .where((m) => m.category == _selectedCategoryKey.value)
+        .toList();
   }
 
   // Load menu của restaurant
@@ -74,8 +84,8 @@ class MenuScreenController extends GetxController {
     }
   }
 
-  void selectCategory(String category) {
-    _selectedCategory.value = category;
+  void selectCategory(String categoryKey) {
+    _selectedCategoryKey.value = categoryKey;
   }
 
   Future<void> toggleAvailability(String foodId, bool currentAvailable) async {
@@ -108,21 +118,27 @@ class MenuScreenController extends GetxController {
     }
   }
 
-  Future<void> addItem(FoodModel food) async {
-    if (_restaurant.value == null) return;
+  Future<bool> addItem(FoodModel food) async {
+    if (_restaurant.value == null) {
+      throw Exception('Restaurant not found');
+    }
 
     try {
       final foodId = await _foodRepository.createFood(food);
 
       if (foodId != null) {
         _menu.add(food.copyWith(id: foodId));
+        return true;
+      } else {
+        throw Exception('Failed to create food');
       }
     } catch (e) {
       print('Error adding food: $e');
+      rethrow;
     }
   }
 
-  Future<void> updateItem(String foodId, FoodModel updatedFood) async {
+  Future<bool> updateItem(String foodId, FoodModel updatedFood) async {
     try {
       final success = await _foodRepository.updateFood(
         foodId,
@@ -134,9 +150,13 @@ class MenuScreenController extends GetxController {
         if (idx != -1) {
           _menu[idx] = updatedFood.copyWith(id: foodId);
         }
+        return true;
+      } else {
+        throw Exception('Failed to update food');
       }
     } catch (e) {
       print('Error updating food: $e');
+      rethrow;
     }
   }
 
