@@ -134,10 +134,7 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
             const SizedBox(height: 12),
             Text(
               'Tạo voucher để thu hút khách hàng',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade500,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),

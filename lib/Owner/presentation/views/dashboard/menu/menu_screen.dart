@@ -46,6 +46,46 @@ class _MenuScreenState extends State<MenuScreen> {
     _controller.loadMenu(); // Reload menu after adding
   }
 
+  Future<void> _handleDelete(FoodModel item) async {
+    try {
+      final result = await _controller.deleteItem(item.id);
+
+      if (mounted) {
+        if (result == 'deleted') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Đã xóa "${item.name}"'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else if (result == 'hidden') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '"${item.name}" đã được đặt trước đó.\nĐã chuyển sang "Hết hàng" thay vì xóa.',
+              ),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Không thể xóa "${item.name}"'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Obx(() {
@@ -161,8 +201,7 @@ class _MenuScreenState extends State<MenuScreen> {
                                   key: ValueKey(item.id),
                                   item: item,
                                   onEdit: () => _openEdit(item),
-                                  onDelete: () =>
-                                      controller.deleteItem(item.id),
+                                  onDelete: () => _handleDelete(item),
                                   onToggle: (value) =>
                                       controller.toggleAvailability(
                                         item.id,

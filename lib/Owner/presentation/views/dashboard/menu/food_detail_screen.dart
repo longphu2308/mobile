@@ -72,8 +72,45 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
     );
 
     if (confirm == true && mounted) {
-      await controller.deleteItem(currentFood.id);
-      Navigator.pop(context);
+      try {
+        final result = await controller.deleteItem(currentFood.id);
+
+        if (mounted) {
+          if (result == 'deleted') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Đã xóa món ăn thành công'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            Navigator.pop(context);
+          } else if (result == 'hidden') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Món ăn đã được đặt hàng trước đó.\nĐã chuyển sang trạng thái "Hết hàng" thay vì xóa.',
+                ),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 4),
+              ),
+            );
+            Navigator.pop(context);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Không thể xóa món ăn'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
     }
   }
 

@@ -106,15 +106,43 @@ class MenuScreenController extends GetxController {
     }
   }
 
-  Future<void> deleteItem(String foodId) async {
+  /// Xóa món ăn. Nếu không xóa được (do foreign key), sẽ chuyển sang ẩn món.
+  /// Returns: 'deleted' nếu xóa thành công, 'hidden' nếu chỉ ẩn được, 'error' nếu thất bại
+  Future<String> deleteItem(String foodId) async {
     try {
       final success = await _foodRepository.deleteFood(foodId);
 
       if (success) {
         _menu.removeWhere((item) => item.id == foodId);
+        return 'deleted';
       }
+      return 'error';
     } catch (e) {
       print('Error deleting food: $e');
+
+      // Nếu lỗi foreign key, thử soft delete (đánh dấu không khả dụng)
+      if (e.toString().contains('foreign key') ||
+          e.toString().contains('23503') ||
+          e.toString().contains('order_items')) {
+        try {
+          final success = await _foodRepository.updateFood(foodId, {
+            'available': false,
+            'updated_at': DateTime.now().toIso8601String(),
+          });
+
+          if (success) {
+            // Cập nhật local list
+            final index = _menu.indexWhere((item) => item.id == foodId);
+            if (index >= 0) {
+              _menu[index] = _menu[index].copyWith(available: false);
+            }
+            return 'hidden';
+          }
+        } catch (softDeleteError) {
+          print('Error soft deleting food: $softDeleteError');
+        }
+      }
+      rethrow;
     }
   }
 
