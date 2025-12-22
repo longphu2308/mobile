@@ -21,13 +21,25 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+  String? _selectedCategory;
+  
+  // Map category values từ DB sang tiếng Việt
+  final Map<String, String> _categoryMap = {
+    'all': 'Tất cả',
+    'appetizer': 'Khai vị',
+    'main': 'Món chính',
+    'dessert': 'Tráng miệng',
+    'drink': 'Đồ uống',
+    'combo': 'Combo',
+  };
+  
+  List<String> get _categoryKeys => _categoryMap.keys.toList();
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
     _loadFavorites();
+    _loadFoods();
   }
 
   void _loadFavorites() {
@@ -40,11 +52,18 @@ class _HomeScreenState extends State<HomeScreen>
       }
     });
   }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
+  
+  void _loadFoods() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final foodService = Get.find<FoodService>();
+      // Only load if foods haven't been loaded yet
+      if (foodService.foods.isEmpty && !foodService.isLoading) {
+        print('🏠 HomeScreen: Triggering foods load as fallback...');
+        foodService.loadFoods();
+      } else {
+        print('🏠 HomeScreen: Foods already loaded (${foodService.foods.length} items)');
+      }
+    });
   }
 
   @override
@@ -182,42 +201,56 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             YBox(40),
             SearchTextField(
+              readOnly: true,
+              hintText: 'Tìm kiếm món ăn, nhà hàng...',
               onTap: () {
-                final foodService = Get.find<FoodService>();
-                Navigator.pushNamed(
-                  context,
-                  searchResultRoute,
-                  arguments: {
-                    'searchString': 'Search',
-                    'foundFoodList': foodService.foods,
-                  },
-                );
+                Navigator.pushNamed(context, searchResultRoute);
               },
             ),
-            YBox(40),
-            Padding(
-              padding: const EdgeInsets.only(left: horizontalPadding),
-              child: TabBar(
-                controller: _tabController,
-                // onTap không cần setState vì _tabController quản lý index
-                onTap: (index) {},
-                isScrollable: true,
-                indicatorColor: primaryColor,
-                indicatorWeight: 3,
-                indicatorSize: TabBarIndicatorSize.label,
-                labelColor: primaryColor,
-                unselectedLabelColor: greyColor,
-                labelStyle: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
-                unselectedLabelStyle: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
-                tabs: [
-                  ...List.generate(5, (index) => Tab(text: tabBarTitle[index])),
-                ],
+            YBox(20),
+            // Category filter chips
+            SizedBox(
+              height: 40,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: horizontalPadding),
+                itemCount: _categoryKeys.length,
+                itemBuilder: (context, index) {
+                  final categoryKey = _categoryKeys[index];
+                  final categoryLabel = _categoryMap[categoryKey]!;
+                  final isSelected = _selectedCategory == categoryKey ||
+                      (_selectedCategory == null && categoryKey == 'all');
+                  
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilterChip(
+                      label: Text(categoryLabel),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() {
+                          _selectedCategory = categoryKey;
+                        });
+                        final foodService = Get.find<FoodService>();
+                        if (categoryKey == 'all') {
+                          foodService.clearFilters();
+                        } else {
+                          foodService.filterByCategory(categoryKey);
+                        }
+                      },
+                      backgroundColor: Colors.grey[100],
+                      selectedColor: primaryColor.withValues(alpha: 0.2),
+                      labelStyle: TextStyle(
+                        color: isSelected ? primaryColor : Colors.grey[700],
+                        fontSize: 13,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                      side: BorderSide(
+                        color: isSelected ? primaryColor : Colors.transparent,
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                  );
+                },
               ),
             ),
             YBox(25),
@@ -271,9 +304,9 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   );
                 }
-                final foods = foodService.filteredFoods.isNotEmpty
-                    ? foodService.filteredFoods
-                    : foodService.foods;
+                // Luôn dùng filteredFoods để hiển thị, nếu rỗng thì không hiện gì cả
+                final foods = foodService.filteredFoods;
+                if (foods.isEmpty) return SizedBox.shrink();
                 return SizedBox(
                   height: 300,
                   child: ListView.builder(
@@ -319,9 +352,9 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   );
                 }
-                final foods = foodService.filteredFoods.isNotEmpty
-                    ? foodService.filteredFoods
-                    : foodService.foods;
+                // Luôn dùng filteredFoods để hiển thị, nếu rỗng thì không hiện gì cả
+                final foods = foodService.filteredFoods;
+                if (foods.isEmpty) return SizedBox.shrink();
                 return Padding(
                   padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                   child: GridView.builder(

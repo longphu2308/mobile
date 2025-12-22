@@ -20,6 +20,7 @@ import 'package:mobile/Owner/presentation/views/dashboard/promotions/add_edit_pr
 import 'package:mobile/Owner/presentation/views/dashboard/promotions/promo_detail_screen.dart';
 import 'package:mobile/User/presentation/views/dashboard/profile/edit_profile_screen.dart';
 import 'package:mobile/User/presentation/views/dashboard/profile/change_password_screen.dart';
+import 'package:mobile/User/presentation/views/dashboard/order_history/user_order_detail_screen.dart';
 import 'package:mobile/core/models/user_model.dart';
 import 'package:mobile/core/models/order_model.dart';
 import 'package:mobile/core/models/promo_model.dart';
@@ -48,6 +49,7 @@ const String checkoutRoute = '/checkout';
 const String orderHistoryRoute = '/order-history';
 const String userEditProfileRoute = '/user/edit-profile';
 const String userChangePasswordRoute = '/user/change-password';
+const String userOrderDetailRoute = '/user/order-detail';
 
 // Owner routes
 const String ownerDashboardRoute = '/owner-dashboard';
@@ -118,13 +120,7 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const HomeScreen());
 
       case searchResultRoute:
-        final args = settings.arguments as Map<String, dynamic>;
-        return MaterialPageRoute(
-          builder: (_) => SearchResultScreen(
-            searchString: args['searchString'],
-            foundFoodList: args['foundFoodList'],
-          ),
-        );
+        return MaterialPageRoute(builder: (_) => const SearchResultScreen());
 
       case cartRoute:
         return MaterialPageRoute(builder: (_) => const CartScreen());
@@ -222,6 +218,13 @@ class AppRouter {
       case userChangePasswordRoute:
         return MaterialPageRoute(
           builder: (_) => const UserChangePasswordScreen(),
+        );
+
+      case userOrderDetailRoute:
+        final args = settings.arguments as Map<String, dynamic>;
+        return MaterialPageRoute(
+          builder: (_) =>
+              UserOrderDetailScreen(order: args['order'] as OrderModel),
         );
 
       default:

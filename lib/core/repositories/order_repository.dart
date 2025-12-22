@@ -1,6 +1,7 @@
 import 'package:mobile/core/models/order_model.dart';
 import 'package:mobile/core/services/supabase/supabase_service.dart';
 import 'package:mobile/core/models/user_model.dart';
+import 'package:uuid/uuid.dart';
 
 class OrderRepository {
   final _supabase = SupabaseService().client;
@@ -16,16 +17,12 @@ class OrderRepository {
           .order('created_at', ascending: false);
 
       return (data as List).map((item) {
-        // Convert order_items to OrderItemModel list
-        final orderItems =
-            (item['order_items'] as List<dynamic>?)
-                ?.map((orderItem) => OrderItemModel.fromMap(orderItem))
-                .toList() ??
-            [];
-
-        // Create a copy of the item data with items field
+        // Create a copy of the item data
         final orderData = Map<String, dynamic>.from(item);
-        orderData['items'] = orderItems;
+        
+        // Rename order_items to items for OrderModel.fromMap
+        orderData['items'] = item['order_items'] ?? [];
+        orderData.remove('order_items');
 
         return OrderModel.fromMap(orderData, item['order_id']);
       }).toList();
@@ -45,17 +42,9 @@ class OrderRepository {
           .order('created_at', ascending: false);
 
       return (data as List).map((item) {
-        // Convert order_items to OrderItemModel list
-        final orderItems =
-            (item['order_items'] as List<dynamic>?)
-                ?.map((orderItem) => OrderItemModel.fromMap(orderItem))
-                .toList() ??
-            [];
-
-        // Create a copy of the item data with items field
         final orderData = Map<String, dynamic>.from(item);
-        orderData['items'] = orderItems;
-
+        orderData['items'] = item['order_items'] ?? [];
+        orderData.remove('order_items');
         return OrderModel.fromMap(orderData, item['order_id']);
       }).toList();
     } catch (e) {
@@ -78,17 +67,9 @@ class OrderRepository {
           .order('created_at', ascending: false);
 
       return (data as List).map((item) {
-        // Convert order_items to OrderItemModel list
-        final orderItems =
-            (item['order_items'] as List<dynamic>?)
-                ?.map((orderItem) => OrderItemModel.fromMap(orderItem))
-                .toList() ??
-            [];
-
-        // Create a copy of the item data with items field
         final orderData = Map<String, dynamic>.from(item);
-        orderData['items'] = orderItems;
-
+        orderData['items'] = item['order_items'] ?? [];
+        orderData.remove('order_items');
         return OrderModel.fromMap(orderData, item['order_id']);
       }).toList();
     } catch (e) {
@@ -106,17 +87,9 @@ class OrderRepository {
           .eq('order_id', orderId)
           .maybeSingle();
       if (data != null) {
-        // Convert order_items to OrderItemModel list
-        final orderItems =
-            (data['order_items'] as List<dynamic>?)
-                ?.map((orderItem) => OrderItemModel.fromMap(orderItem))
-                .toList() ??
-            [];
-
-        // Create a copy of the data with items field
         final orderData = Map<String, dynamic>.from(data);
-        orderData['items'] = orderItems;
-
+        orderData['items'] = data['order_items'] ?? [];
+        orderData.remove('order_items');
         return OrderModel.fromMap(orderData, data['order_id']);
       }
       return null;
@@ -133,14 +106,14 @@ class OrderRepository {
       final orderMap = order.toMap();
       // Remove items from order map as they go to separate table
       orderMap.remove('items');
+      
+      // Generate UUID for order_id to avoid using .select() which triggers SELECT policies
+      final orderId = const Uuid().v4();
+      orderMap['order_id'] = orderId;
 
-      final data = await _supabase
+      await _supabase
           .from(_table)
-          .insert(orderMap)
-          .select()
-          .single();
-
-      final orderId = data['order_id'];
+          .insert(orderMap);
 
       // Create order_items
       if (order.items.isNotEmpty) {

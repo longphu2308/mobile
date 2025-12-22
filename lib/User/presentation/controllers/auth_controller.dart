@@ -4,6 +4,7 @@ import 'package:mobile/core/repositories/auth_repository.dart';
 import 'package:mobile/core/models/user_model.dart';
 import 'package:mobile/core/errors/app_exception.dart';
 import 'package:mobile/core/services/supabase/supabase_service.dart';
+import 'package:mobile/core/services/food/food_service.dart';
 
 enum AuthState { initial, loading, authenticated, unauthenticated, error }
 
@@ -160,6 +161,17 @@ class AuthController extends GetxController {
       _state.value = AuthState.authenticated;
       _isLoading.value = false;
       print('🎉 SignUp process completed in controller');
+      
+      // Load foods now that user is authenticated
+      print('📊 Loading foods after signup...');
+      try {
+        final foodService = Get.find<FoodService>();
+        await foodService.loadFoods();
+        print('✅ Foods loaded successfully');
+      } catch (e) {
+        print('⚠️ Failed to load foods: $e');
+      }
+      
       return true;
     } on AuthException catch (e) {
       print('❌ AuthException in controller: ${e.message}');
@@ -191,6 +203,17 @@ class AuthController extends GetxController {
       _currentUser.value = user;
       _state.value = AuthState.authenticated;
       _isLoading.value = false;
+      
+      // Load foods now that user is authenticated
+      print('📊 Loading foods after sign in...');
+      try {
+        final foodService = Get.find<FoodService>();
+        await foodService.loadFoods();
+        print('✅ Foods loaded successfully');
+      } catch (e) {
+        print('⚠️ Failed to load foods: $e');
+      }
+      
       return true;
     } on AuthException catch (e) {
       _errorMessage.value = e.message;
@@ -230,6 +253,16 @@ class AuthController extends GetxController {
         await _loadProfile(user.userId);
         await _loadAddresses(user.userId);
         _state.value = AuthState.authenticated;
+        
+        // Load foods now that user is authenticated
+        print('📊 Loading foods for existing session...');
+        try {
+          final foodService = Get.find<FoodService>();
+          await foodService.loadFoods();
+          print('✅ Foods loaded successfully');
+        } catch (e) {
+          print('⚠️ Failed to load foods: $e');
+        }
       } else {
         _currentUser.value = null;
         _currentProfile.value = null;

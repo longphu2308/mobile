@@ -7,19 +7,36 @@ class FoodRepository {
   // Lấy tất cả món ăn
   Future<List<FoodModel>> getAllFoods() async {
     try {
-      print('FoodRepository: Fetching foods from Supabase...');
+      print('\n🍽️ FoodRepository.getAllFoods START ============');
+      print('📡 Fetching foods from Supabase...');
+      
       final response = await _supabase.from('foods').select();
-      print('FoodRepository: Received ${response.length} rows');
+      
+      print('📦 Response type: ${response.runtimeType}');
+      print('📊 Response length: ${response.length}');
+      
+      if (response.isEmpty) {
+        print('⚠️ WARNING: No foods returned from database!');
+        print('   Possible causes:');
+        print('   1. No foods exist in database');
+        print('   2. RLS policy blocking access');
+        print('   3. User not authenticated');
+        return [];
+      }
 
       final foods = (response as List).map((data) {
-        print('  - Food ID: ${data['food_id']}, Name: ${data['name']}');
+        print('  ✅ Food: ${data['name']} (ID: ${data['food_id']})');
         return FoodModel.fromMap(data, data['food_id']);
       }).toList();
 
-      print('FoodRepository: Converted to ${foods.length} FoodModel objects');
+      print('🎉 Successfully loaded ${foods.length} foods');
+      print('🍽️ FoodRepository.getAllFoods END ============\n');
       return foods;
-    } catch (e) {
-      print('Error getting all foods: $e');
+    } catch (e, stackTrace) {
+      print('\n❌ ERROR in FoodRepository.getAllFoods:');
+      print('   Error: $e');
+      print('   Stack trace: $stackTrace');
+      print('🍽️ FoodRepository.getAllFoods END (with error) ============\n');
       return [];
     }
   }
@@ -99,25 +116,33 @@ class FoodRepository {
     }
   }
 
-  // Tìm kiếm món ăn theo tên
+  // Tìm kiếm món ăn theo tên, mô tả, hoặc category
   Future<List<FoodModel>> searchFoods(
     String query, {
     String? restaurantId,
   }) async {
     try {
+      print('🔍 Searching foods for: "$query"');
       var queryBuilder = _supabase.from('foods').select();
 
       if (restaurantId != null) {
         queryBuilder = queryBuilder.eq('restaurant_id', restaurantId);
       }
 
-      final response = await queryBuilder.ilike('name', '%$query%');
+      // Tìm kiếm theo tên (case-insensitive)
+      final response = await queryBuilder.or(
+        'name.ilike.%$query%,description.ilike.%$query%,category.ilike.%$query%',
+      );
 
-      return (response as List)
+      final results = (response as List)
           .map((data) => FoodModel.fromMap(data, data['food_id']))
           .toList();
-    } catch (e) {
-      print('Error searching foods: $e');
+
+      print('✅ Found ${results.length} foods');
+      return results;
+    } catch (e, stackTrace) {
+      print('❌ Error searching foods: $e');
+      print('Stack trace: $stackTrace');
       return [];
     }
   }
